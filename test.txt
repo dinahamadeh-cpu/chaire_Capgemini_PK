@@ -1,2 +1,0 @@
-Ceci est un essaie pour un premier usage de git
-Test git
