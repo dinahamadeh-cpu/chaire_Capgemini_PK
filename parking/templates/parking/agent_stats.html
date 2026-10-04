@@ -1,0 +1,34 @@
+{% extends "parking/base.html" %}
+{% block title %}Statistiques d'occupation - Parking{% endblock %}
+{% block content %}
+    <h1>Statistiques d'occupation</h1>
+
+    {% for entry in history %}
+        <h2>{{ entry.parking.name }}</h2>
+        <p>
+            Places totales : {{ entry.total_spots }}<br>
+            Occupées actuellement : {{ entry.current_occupied }} / {{ entry.total_spots }}
+        </p>
+        {% if entry.timeline %}
+            <table>
+                <thead>
+                    <tr><th>Horodatage</th><th>Places occupées</th></tr>
+                </thead>
+                <tbody>
+                    {% for point in entry.timeline %}
+                        <tr>
+                            <td>{{ point.timestamp }}</td>
+                            <td>{{ point.occupied }} / {{ point.total }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Aucun historique disponible pour ce parking.</p>
+        {% endif %}
+    {% empty %}
+        <p>Aucun parking enregistré.</p>
+    {% endfor %}
+
+    <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+{% endblock %}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Parking{% endblock %}</title>
+    <style>
+        :root {
+            --primary: #2d6cdf;
+            --primary-dark: #1d4ea0;
+            --accent: #10b981;
+            --accent-dark: #0e9f72;
+            --danger: #ef4444;
+            --bg: #eef2fb;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: #1f2937;
+        }
+        .topbar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 1.1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+        }
+        .topbar .brand {
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        main.card {
+            max-width: 700px;
+            margin: 2rem auto;
+            background: #fff;
+            border-radius: 14px;
+            padding: 2rem 2.2rem;
+            box-shadow: 0 6px 24px rgba(31, 41, 55, 0.08);
+        }
+        h1 { color: var(--primary-dark); margin-top: 0; }
+        h2 { color: var(--primary); }
+        p { line-height: 1.5; }
+        a.button, button {
+            display: inline-block;
+            padding: 0.65rem 1.3rem;
+            margin: 0.3rem 0.3rem 0.3rem 0;
+            background: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.15s, box-shadow 0.15s;
+        }
+        a.button:hover, button:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+        }
+        a.button.secondary { background: var(--accent); }
+        a.button.secondary:hover { background: var(--accent-dark); }
+        nav a { margin-right: 0.5rem; }
+        label { font-weight: 600; color: #374151; }
+        input[type="text"], input[type="password"] {
+            padding: 0.55rem 0.7rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 280px;
+            font-size: 1rem;
+        }
+        .error {
+            color: var(--danger);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+        }
+        .conforme {
+            display: inline-block;
+            color: #047857;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            font-weight: 700;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+        }
+        .non-conforme {
+            display: inline-block;
+            color: #b91c1c;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            font-weight: 700;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+        }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+        th, td { border: 1px solid #e5e7eb; padding: 0.5rem 0.7rem; text-align: left; }
+        th { background: #f0f4fb; color: var(--primary-dark); }
+        tr:nth-child(even) { background: #fafbff; }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="{% url 'parking:home' %}">🅿️ Parking</a>
+    </header>
+    <main class="card">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

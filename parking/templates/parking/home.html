@@ -1,0 +1,12 @@
+{% extends "parking/base.html" %}
+{% block title %}Accueil - Parking{% endblock %}
+{% block content %}
+    <h1>Gestion des places de parking</h1>
+    <p>Choisissez comment vous souhaitez continuer :</p>
+    <p>
+        <a class="button" href="{% url 'parking:agent_login' %}">Se connecter en tant qu'agent</a>
+    </p>
+    <p>
+        <a class="button secondary" href="/parking/">Continuer sans compte (usager)</a>
+    </p>
+{% endblock %}
