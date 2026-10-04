@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des parkings</title>
+</head>
+<body>
+    <h1>Liste des parkings</h1>
+
+    {% if parkings %}
+        <ul>
+            {% for parking in parkings %}
+                <li>
+                    <h2>
+                        <a href="{% url 'parking:parking_detail' parking.id %}">
+                            {{ parking.name }}
+                        </a>
+                    </h2>
+
+                    <p>Adresse : {{ parking.address }}</p>
+                    <p>
+                        <a href="{% url 'parking:parking_detail' parking.id %}">
+                            Voir les places disponibles
+                        </a>
+                    </p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Aucun parking n'est actuellement enregistré.</p>
+    {% endif %}
+</body>
+</html>

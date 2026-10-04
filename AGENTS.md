@@ -24,6 +24,11 @@ Stack actuelle :
 
 ## Commandes utiles
 
+Attention : installer uv avant de lancer ces lignes, cela va créer un .venv.
+```bash
+pip install uv
+```
+Puis lancer grâce à  :
 ```bash
 uv run python manage.py runserver
 uv run python manage.py makemigrations

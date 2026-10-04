@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
+from django.urls import reverse
 
 from .models import Parking, Reservation, Spot
 
@@ -39,3 +40,42 @@ class ParkingModelsTests(TestCase):
 
         with self.assertRaises(IntegrityError):
             Spot.objects.create(parking=parking, number=1)
+
+class ParkingViewsTests(TestCase):
+    def setUp(self):
+        self.parking = Parking.objects.create(
+            name="Parking Central",
+            address="1 rue du Centre",
+        )
+
+        Spot.objects.create(
+            parking=self.parking,
+            number=1,
+            is_available=True,
+        )
+
+        Spot.objects.create(
+            parking=self.parking,
+            number=2,
+            is_available=False,
+        )
+
+    def test_parking_list_page(self):
+        response = self.client.get(reverse("parking:parking_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Parking Central")
+        self.assertContains(response, "1 rue du Centre")
+
+    def test_parking_detail_page(self):
+        response = self.client.get(
+            reverse(
+                "parking:parking_detail",
+                args=[self.parking.id],
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Parking Central")
+        self.assertContains(response, "Place numéro 1")
+        self.assertNotContains(response, "Place numéro 2")
