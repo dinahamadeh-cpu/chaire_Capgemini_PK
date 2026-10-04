@@ -18,16 +18,11 @@
                     </h2>
 
                     <p>Adresse : {{ parking.address }}</p>
-                    <p>
-                        <a href="{% url 'parking:parking_detail' parking.id %}">
-                            Voir les places disponibles
-                        </a>
-                    </p>
-                </li>
+                    </li>
             {% endfor %}
         </ul>
     {% else %}
-        <p>Aucun parking n'est actuellement enregistré.</p>
+        <p>Aucun parking n'est disponible.</p>
     {% endif %}
 </body>
 </html>

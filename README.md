@@ -2,12 +2,46 @@
 ## Information
 Voir **[AGENTS.md](AGENTS.md)** pour plus d'informations sur comment lancer le projet 
 
-## Ce qui a été fait : 
+## Arborescence (actuelle) du projet 
 
-- voir commentaire merge
+```
+|   .gitignore
+|   AGENTS.md
+|   arborescence.txt
+|   db.sqlite3
+|   manage.py
+|   pyproject.toml
+|   README.md
+|   requirements.txt
+|   uv.lock
+|           
+\---parking
+    |   admin.py
+    |   apps.py
+    |   models.py
+    |   tests.py
+    |   ulrs.py
+    |   views.py
+    |   __init__.py
+    |   
+    +---migrations
+    |   |   0001_initial.py
+    |   |   __init__.py
+    |           
+    +---templates
+    |       parking_details.html
+    |       parking_list.html
 
-## à Faire : 
+```
+
+### Ce qui a été fait : 
+
+- voir commentaire merge 1
+
+### à Faire : 
 - Afficher les parkings et places disponibles dans des pages html django, avec leur urls et tests
 
 
-## En cours : 
+### En cours : 
+- Création de la visualisation des parkings et des places disponibles
+
