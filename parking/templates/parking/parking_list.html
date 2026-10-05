@@ -3,26 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <title>Liste des parkings</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .page-layout {
+            display: grid;
+            grid-template-columns: 45% 55%;
+            min-height: 100vh;
+        }
+
+        .map-section {
+            min-height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .parking-list-section {
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .parking-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .parking-card h2 {
+            margin-top: 0;
+        }
+
+        @media (max-width: 800px) {
+            .page-layout {
+                display: block;
+            }
+
+            .map-section {
+                position: static;
+                min-height: 400px;
+            }
+
+            #map {
+                height: 400px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Liste des parkings</h1>
+    <main class="page-layout">
+        <section class="map-section">
+            <div id="map"></div>
+        </section>
 
-    {% if parkings %}
-        <ul>
-            {% for parking in parkings %}
-                <li>
-                    <h2>
-                        <a href="{% url 'parking:parking_detail' parking.id %}">
-                            {{ parking.name }}
-                        </a>
-                    </h2>
+        <section class="parking-list-section">
+            <h1>Liste des parkings</h1>
 
-                    <p>Adresse : {{ parking.address }}</p>
-                    </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Aucun parking n'est disponible.</p>
-    {% endif %}
-</body>
-</html>
+            {% if parkings %}
+                {% for parking in parkings %}
+                    <article class="parking-card">
+                        <h2>
+                            <a href="{% url 'parking:parking_detail' parking.id %}">
+                                {{ parking.name }}
+                            </a>
+                        </h2>
+
+                        <p>Adresse : {{ parking.address }}</p>
+
+                        {% if parking.latitude and parking.longitude %}
+                            <p>
+                                Coordonnées :
+                                {{ parking.latitude }},
+                                {{ parking.longitude }}
+                            </p>
+                        {% else %}
+                            <p>Position du parking non renseignée.</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p>Aucun parking n'est disponible.</p>
+            {% endif %}
+        </section>
+    </main>
+
+    {{ parking_data|json_script:"parkings-data" }}
+
+    <script>
+    function initMap() {
+        const map = new google.maps.Map(
+            document.getElementById("map"),
+            {
+                zoom: 12,
+                center: {
+                    lat: 48.8566,
+                    lng: 2.3522
+                }
+            }
+        );
+
+        const parkings = JSON.parse(
+            document.getElementById("parkings-data").textContent
+        );
+
+        parkings.forEach((parking) => {
+            if (parking.latitude !== null &&
+                parking.longitude !== null) {
+
+                const marker = new google.maps.Marker({
+                    position: {
+                        lat: parking.latitude,
+                        lng: parking.longitude
+                    },
+                    map: map,
+                    title: parking.name
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <strong>${parking.name}</strong>
+                        <br>
+                        ${parking.address}
+                    `
+                });
+
+                marker.addListener("click", () => {
+                    infoWindow.open({
+                        anchor: marker,
+                        map: map
+                    });
+                });
+            }
+        });
+    }
+</script>
+
+<script
+    src="https://maps.googleapis.com/maps/api/js?key={{ Google_Maps_API_Key }}&callback=initMap"
+    async
+    defer>
+</script>

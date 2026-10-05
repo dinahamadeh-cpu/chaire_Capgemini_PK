@@ -55,3 +55,8 @@ id : admin
 mdp : Azerty@
 
 </details>
+
+### A mettre dans la partie admin de django 
+
+- mettre les coordonnées des parkings (plus tard)
+- 

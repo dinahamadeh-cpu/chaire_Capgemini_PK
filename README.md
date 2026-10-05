@@ -40,8 +40,9 @@ Voir **[AGENTS.md](AGENTS.md)** pour plus d'informations sur comment lancer le p
 
 ### à Faire : 
 - Afficher les parkings et places disponibles dans des pages html django, avec leur urls et tests
+- Inclure la carte 
 
 
 ### En cours : 
-- Création de la visualisation des parkings et des places disponibles
+- Mettre les points des parkings, mettre le focus sur une ville en particulier
 
