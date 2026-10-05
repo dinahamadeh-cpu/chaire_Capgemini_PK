@@ -79,3 +79,11 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Parking Central")
         self.assertContains(response, "Place numéro 1")
         self.assertNotContains(response, "Place numéro 2")
+
+    def test_parking_list_contains_map_and_parking_data(self):
+        response = self.client.get(reverse("parking:parking_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="map"')
+        self.assertContains(response, "Parking Central")
+        self.assertContains(response, "json_script")
