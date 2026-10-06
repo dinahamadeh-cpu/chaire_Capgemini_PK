@@ -6,6 +6,7 @@
 </head>
 <body>
     <p>
+        <a href="{% url 'parking:home' %}">Accueil</a> ·
         <a href="{% url 'parking:parking_list' %}">
             Retour à la liste des parkings
         </a>
@@ -14,6 +15,10 @@
     <h1>{{ parking.name }}</h1>
 
     <p>Adresse : {{ parking.address }}</p>
+
+    <p>
+        Places disponibles : {{ available_spots|length }} / {{ total_spots }}
+    </p>
 
     <h2>Places disponibles</h2>
 

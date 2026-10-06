@@ -65,6 +65,10 @@
 </head>
 
 <body>
+    <header>
+        <a href="{% url 'parking:home' %}">Accueil</a>
+    </header>
+
     <main class="page-layout">
         <section class="map-section">
             <div id="map"></div>
@@ -84,6 +88,12 @@
 
                         <p>Adresse : {{ parking.address }}</p>
 
+                        <p>
+                            Places disponibles :
+                            <strong>{{ parking.available_spots_count }}</strong>
+                            / {{ parking.total_spots_count }}
+                        </p>
+
                         {% if parking.latitude and parking.longitude %}
                             <p>
                                 Coordonnées :
@@ -96,7 +106,8 @@
                     </article>
                 {% endfor %}
             {% else %}
-                <p>Aucun parking n'est disponible.</p>
+                <p>Aucun parking n'est encore enregistré.</p>
+                <p>Les parkings peuvent être ajoutés depuis l'administration.</p>
             {% endif %}
         </section>
     </main>
