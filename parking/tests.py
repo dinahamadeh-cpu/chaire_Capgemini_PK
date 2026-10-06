@@ -86,4 +86,4 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="map"')
         self.assertContains(response, "Parking Central")
-        self.assertContains(response, "json_script")
+        self.assertContains(response, 'id="parkings-data"')
