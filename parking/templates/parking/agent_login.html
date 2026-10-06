@@ -1,0 +1,21 @@
+{% extends "parking/base.html" %}
+{% block title %}Connexion agent - Parking{% endblock %}
+{% block content %}
+    <h1>Connexion agent</h1>
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <p>
+            <label for="username">Identifiant</label><br>
+            <input type="text" id="username" name="username" required>
+        </p>
+        <p>
+            <label for="password">Mot de passe</label><br>
+            <input type="password" id="password" name="password" required>
+        </p>
+        <button type="submit">Se connecter</button>
+    </form>
+    <p><a href="{% url 'parking:home' %}">&larr; Retour</a></p>
+{% endblock %}

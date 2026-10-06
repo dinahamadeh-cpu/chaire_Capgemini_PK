@@ -1,0 +1,11 @@
+{% extends "parking/base.html" %}
+{% block title %}Espace agent - Parking{% endblock %}
+{% block content %}
+    <h1>Espace agent</h1>
+    <p>Connecté en tant que {{ request.user.username }}.</p>
+    <nav>
+        <a class="button" href="{% url 'parking:agent_plate_check' %}">Vérifier une plaque</a>
+        <a class="button" href="{% url 'parking:agent_stats' %}">Statistiques d'occupation</a>
+    </nav>
+    <p><a href="{% url 'parking:agent_logout' %}">Se déconnecter</a></p>
+{% endblock %}

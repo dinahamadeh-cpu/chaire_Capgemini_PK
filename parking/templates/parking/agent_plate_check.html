@@ -1,0 +1,28 @@
+{% extends "parking/base.html" %}
+{% block title %}Vérification plaque - Parking{% endblock %}
+{% block content %}
+    <h1>Vérifier une plaque</h1>
+    <form method="get">
+        <p>
+            <label for="plate">Plaque d'immatriculation</label><br>
+            <input type="text" id="plate" name="plate" placeholder="AA-123-AA" value="{{ plate }}">
+        </p>
+        <button type="submit">Vérifier</button>
+    </form>
+
+    {% if result %}
+        <h2>Résultat pour {{ result.plate }}</h2>
+        {% if result.reservation %}
+            <p class="conforme">Conforme — véhicule stationné.</p>
+            <p>
+                Parking : {{ result.reservation.spot.parking.name }}<br>
+                Place n°{{ result.reservation.spot.number }}<br>
+                Depuis : {{ result.reservation.created_at }}
+            </p>
+        {% else %}
+            <p class="non-conforme">Non conforme — aucun stationnement actif trouvé pour cette plaque.</p>
+        {% endif %}
+    {% endif %}
+
+    <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+{% endblock %}
