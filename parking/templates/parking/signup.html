@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Créer un compte</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        main {
+            width: min(90%, 480px);
+            padding: 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(23, 32, 51, 0.12);
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            margin-top: 0.4rem;
+            padding: 0.7rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button,
+        a {
+            display: inline-block;
+            margin-top: 1.2rem;
+            padding: 0.75rem 1.1rem;
+            border: 0;
+            border-radius: 8px;
+            background: #2457c5;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .errorlist {
+            color: #b91c1c;
+        }
+
+        .helptext {
+            display: block;
+            margin-top: 0.4rem;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Créer un compte</h1>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Créer mon compte</button>
+        </form>
+
+        <a href="{% url 'parking:login' %}">J’ai déjà un compte</a>
+    </main>
+</body>
+</html>
