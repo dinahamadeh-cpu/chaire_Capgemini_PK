@@ -24,11 +24,17 @@ Stack actuelle :
 
 ## Commandes utiles
 
+Attention : installer uv avant de lancer ces lignes, cela va créer un .venv.
 ```bash
-uv run python manage.py runserver
+pip install uv
+```
+Puis lancer grâce à  :
+```bash
+uv sync # permet de créer un .venv
 uv run python manage.py makemigrations
 uv run python manage.py migrate
 uv run python manage.py test
+uv run python manage.py runserver
 ```
 
 ## Vérification
@@ -40,3 +46,17 @@ uv run python manage.py test
 ```
 
 Si une commande ou un choix technique important change, mettre à jour ce fichier.
+
+## Pour rajouter des informations dans les bases de données en tant qu'administrateur 
+id : admin
+<details>
+<summary>mdp</summary>
+
+mdp : Azerty@
+
+</details>
+
+### A mettre dans la partie admin de django 
+
+- mettre les coordonnées des parkings (plus tard)
+- 
