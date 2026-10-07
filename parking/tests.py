@@ -1,3 +1,6 @@
+from datetime import time
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -86,6 +89,40 @@ class ParkingModelsTests(TestCase):
 
         with self.assertRaises(ValidationError):
             reservation.full_clean()
+
+    def test_parking_pricing_is_optional(self):
+        parking = Parking.objects.create(name="Parking Central", address="1 rue du Centre")
+
+        parking.full_clean()
+        self.assertIsNone(parking.hourly_rate)
+        self.assertEqual(parking.max_duration_display, "Illimitée")
+        self.assertEqual(parking.opening_hours_display, "Ouvert 24h/24")
+
+    def test_max_duration_display(self):
+        parking = Parking(name="Parking Central", address="1 rue du Centre")
+
+        parking.max_duration_minutes = 45
+        self.assertEqual(parking.max_duration_display, "45 min")
+        parking.max_duration_minutes = 120
+        self.assertEqual(parking.max_duration_display, "2 h")
+        parking.max_duration_minutes = 90
+        self.assertEqual(parking.max_duration_display, "1 h 30")
+
+    def test_opening_hours_display(self):
+        parking = Parking(
+            name="Parking Central",
+            address="1 rue du Centre",
+            opening_time=time(7, 0),
+            closing_time=time(21, 30),
+        )
+
+        self.assertEqual(parking.opening_hours_display, "07:00 – 21:30")
+
+    def test_opening_and_closing_times_go_together(self):
+        parking = Parking(name="Parking Central", address="1 rue du Centre", opening_time=time(7, 0))
+
+        with self.assertRaises(ValidationError):
+            parking.full_clean()
 
 
 class ParkingViewsTests(TestCase):
@@ -189,3 +226,38 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, 'id="map"')
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
+
+    def test_parking_detail_shows_pricing(self):
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.max_duration_minutes = 120
+        self.parking.opening_time = time(7, 0)
+        self.parking.closing_time = time(21, 0)
+        self.parking.save()
+
+        response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
+
+        self.assertContains(response, "2,50 € / heure")
+        self.assertContains(response, "Durée maximale : 2 h")
+        self.assertContains(response, "07:00 – 21:00")
+
+    def test_parking_list_shows_pricing(self):
+        self.parking.hourly_rate = Decimal("1.80")
+        self.parking.save()
+
+        response = self.client.get(reverse("parking:parking_list"))
+
+        self.assertContains(response, "1,80 € / heure")
+        self.assertContains(response, "Ouvert 24h/24")
+
+    def test_parking_without_rate_shows_not_provided(self):
+        response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
+
+        self.assertContains(response, "non renseigné")
+
+    def test_free_parking_shows_free(self):
+        self.parking.hourly_rate = Decimal("0")
+        self.parking.save()
+
+        response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
+
+        self.assertContains(response, "Gratuit")

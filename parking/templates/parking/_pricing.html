@@ -1,0 +1,14 @@
+<ul class="pricing">
+    <li>
+        Tarif :
+        {% if parking.hourly_rate is None %}
+            non renseigné
+        {% elif parking.hourly_rate == 0 %}
+            <strong>Gratuit</strong>
+        {% else %}
+            <strong>{{ parking.hourly_rate|floatformat:2 }} € / heure</strong>
+        {% endif %}
+    </li>
+    <li>Durée maximale : {{ parking.max_duration_display }}</li>
+    <li>Horaires : {{ parking.opening_hours_display }}</li>
+</ul>

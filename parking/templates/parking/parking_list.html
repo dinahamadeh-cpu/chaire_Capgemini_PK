@@ -94,6 +94,8 @@
                             / {{ parking.total_spots_count }}
                         </p>
 
+                        {% include "parking/_pricing.html" %}
+
                         {% if parking.latitude and parking.longitude %}
                             <p>
                                 Coordonnées :

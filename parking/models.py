@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 
@@ -14,11 +15,50 @@ class Parking(models.Model):
     address = models.CharField(max_length=300)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    hourly_rate = models.DecimalField(
+        "tarif horaire (€)", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    max_duration_minutes = models.PositiveIntegerField(
+        "durée maximale (minutes)",
+        null=True,
+        blank=True,
+        help_text="Laisser vide si la durée n'est pas limitée.",
+    )
+    opening_time = models.TimeField(
+        "heure d'ouverture",
+        null=True,
+        blank=True,
+        help_text="Laisser vide avec l'heure de fermeture si le parking est ouvert 24h/24.",
+    )
+    closing_time = models.TimeField("heure de fermeture", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        if (self.opening_time is None) != (self.closing_time is None):
+            raise ValidationError(
+                "Renseigner à la fois l'heure d'ouverture et l'heure de fermeture, ou aucune des deux."
+            )
+
+    @property
+    def max_duration_display(self):
+        if self.max_duration_minutes is None:
+            return "Illimitée"
+        hours, minutes = divmod(self.max_duration_minutes, 60)
+        if hours and minutes:
+            return f"{hours} h {minutes:02d}"
+        if hours:
+            return f"{hours} h"
+        return f"{minutes} min"
+
+    @property
+    def opening_hours_display(self):
+        if self.opening_time is None or self.closing_time is None:
+            return "Ouvert 24h/24"
+        return f"{self.opening_time:%H:%M} – {self.closing_time:%H:%M}"
 
 
 class Spot(models.Model):

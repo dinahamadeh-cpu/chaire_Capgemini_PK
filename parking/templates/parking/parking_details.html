@@ -20,6 +20,10 @@
         Places disponibles : {{ available_spots|length }} / {{ total_spots }}
     </p>
 
+    <h2>Tarif et horaires</h2>
+
+    {% include "parking/_pricing.html" %}
+
     <h2>Places disponibles</h2>
 
     {% if available_spots %}
