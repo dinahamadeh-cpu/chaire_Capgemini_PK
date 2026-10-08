@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .forms import ReservationForm
 from .models import Parking, Reservation, Spot
@@ -94,6 +95,38 @@ def reserve_spot(request, parking_id, spot_id):
         messages.success(request, "La place a bien été réservée.")
 
     return redirect("parking:parking_detail", parking_id=parking_id)
+
+
+@login_required(login_url="parking:login")
+def reservation_list(request):
+    reservations = (
+        Reservation.objects.filter(user=request.user)
+        .select_related("spot", "spot__parking")
+        .order_by("-created_at")
+    )
+    return render(
+        request,
+        "parking/reservation_list.html",
+        {"reservations": reservations},
+    )
+
+
+@login_required(login_url="parking:login")
+def cancel_reservation(request, reservation_id):
+    if request.method != "POST":
+        return redirect("parking:reservation_list")
+
+    reservation = get_object_or_404(
+        Reservation,
+        pk=reservation_id,
+        user=request.user,
+        status=Reservation.Status.ACTIVE,
+    )
+    reservation.status = Reservation.Status.CANCELLED
+    reservation.ended_at = timezone.now()
+    reservation.save()
+    messages.success(request, "La réservation a bien été annulée.")
+    return redirect("parking:reservation_list")
 
 
 def agent_login(request):

@@ -1,0 +1,41 @@
+{% extends "parking/base.html" %}
+
+{% block title %}Mes réservations - Parking{% endblock %}
+
+{% block content %}
+    <h1>Mes réservations</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if reservations %}
+        <ul>
+            {% for reservation in reservations %}
+                <li>
+                    <p>
+                        {{ reservation.spot.parking.name }} — place {{ reservation.spot.number }}<br>
+                        Plaque : {{ reservation.plate }}<br>
+                        Statut : {{ reservation.get_status_display }}<br>
+                        Créée le : {{ reservation.created_at }}
+                    </p>
+
+                    {% if reservation.status == "active" %}
+                        <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}">
+                            {% csrf_token %}
+                            <button type="submit">Annuler la réservation</button>
+                        </form>
+                    {% elif reservation.ended_at %}
+                        <p>Terminée le : {{ reservation.ended_at }}</p>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Vous n'avez aucune réservation.</p>
+    {% endif %}
+
+    <p><a href="{% url 'parking:parking_list' %}">Voir les parkings</a></p>
+{% endblock %}

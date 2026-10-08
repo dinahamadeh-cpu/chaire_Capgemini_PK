@@ -236,6 +236,65 @@ class ParkingViewsTests(TestCase):
         )
         self.assertFalse(Reservation.objects.filter(plate="HH-890-HH").exists())
 
+    def test_user_can_view_only_own_reservations(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        other_user = get_user_model().objects.create_user(username="bob", password="password")
+        own_spot = self.parking.spots.get(number=1)
+        other_spot = Spot.objects.create(parking=self.parking, number=3)
+        Reservation.objects.create(user=user, spot=own_spot, plate="AA-123-AA")
+        Reservation.objects.create(user=other_user, spot=other_spot, plate="BB-234-BB")
+        self.client.login(username="alice", password="password")
+
+        response = self.client.get(reverse("parking:reservation_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "AA-123-AA")
+        self.assertNotContains(response, "BB-234-BB")
+
+    def test_anonymous_user_is_redirected_from_reservations(self):
+        response = self.client.get(reverse("parking:reservation_list"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:reservation_list')}",
+        )
+
+    def test_user_can_cancel_own_active_reservation(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        spot = self.parking.spots.get(number=1)
+        reservation = Reservation.objects.create(user=user, spot=spot, plate="CC-345-CC")
+        self.client.login(username="alice", password="password")
+
+        response = self.client.post(
+            reverse("parking:cancel_reservation", args=[reservation.id])
+        )
+
+        self.assertRedirects(response, reverse("parking:reservation_list"))
+        reservation.refresh_from_db()
+        spot.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.CANCELLED)
+        self.assertIsNotNone(reservation.ended_at)
+        self.assertTrue(spot.is_available)
+
+    def test_user_cannot_cancel_another_users_reservation(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        other_user = get_user_model().objects.create_user(username="bob", password="password")
+        spot = self.parking.spots.get(number=1)
+        reservation = Reservation.objects.create(
+            user=other_user,
+            spot=spot,
+            plate="DD-456-DD",
+        )
+        self.client.login(username="alice", password="password")
+
+        response = self.client.post(
+            reverse("parking:cancel_reservation", args=[reservation.id])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
     def test_agent_requires_agents_group(self):
         user = get_user_model().objects.create_user(username="agent", password="password")
         user.is_staff = True
