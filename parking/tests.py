@@ -20,15 +20,35 @@ class SeedDataTests(TestCase):
         agents = User.objects.filter(groups__name="Agents")
         demo_user = User.objects.get(username="demo")
 
-        self.assertEqual(Parking.objects.count(), 2)
-        self.assertEqual(Spot.objects.count(), 20)
+        self.assertEqual(Parking.objects.count(), 4)
+        self.assertEqual(Spot.objects.count(), 40)
         self.assertEqual(Reservation.objects.filter(user__in=agents).count(), 0)
         self.assertEqual(Reservation.objects.filter(user=demo_user).count(), 2)
         self.assertEqual(Reservation.objects.filter(user__isnull=True).count(), 8)
         self.assertEqual(
             Parking.objects.filter(latitude__isnull=False, longitude__isnull=False).count(),
-            2,
+            4,
         )
+        self.assertSetEqual(
+            set(Parking.objects.values_list("name", flat=True)),
+            {
+                "Parking Centre-Ville",
+                "Parking Gare",
+                "Parking Place Saint-Michel",
+                "Parking Parc de la Villette Nord - Cité des Sciences",
+            },
+        )
+        place_saint_michel = Parking.objects.get(name="Parking Place Saint-Michel")
+        self.assertEqual(place_saint_michel.address, "25 Rue Francisque Gay, 75006 Paris")
+        self.assertEqual(place_saint_michel.hourly_rate, Decimal("5.50"))
+        self.assertIsNone(place_saint_michel.max_duration_minutes)
+        self.assertEqual(place_saint_michel.opening_hours_display, "Ouvert 24h/24")
+        cite_des_sciences = Parking.objects.get(
+            name="Parking Parc de la Villette Nord - Cité des Sciences"
+        )
+        self.assertEqual(cite_des_sciences.address, "61 Bd Macdonald, 75019 Paris")
+        self.assertEqual(cite_des_sciences.hourly_rate, Decimal("4.80"))
+        self.assertEqual(cite_des_sciences.opening_hours_display, "Ouvert 24h/24")
         self.assertTrue(demo_user.check_password("demo1234"))
 
 
@@ -178,11 +198,78 @@ class ParkingViewsTests(TestCase):
             is_available=False,
         )
 
+    def authenticate_as_user(self):
+        user = get_user_model().objects.create_user(
+            username="parking-viewer",
+            password="test-password-123",
+        )
+        self.client.force_login(user)
+
     def test_home_page_links_to_parking_list(self):
         response = self.client.get(reverse("parking:home"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("parking:parking_list"))
+        self.assertContains(response, reverse("parking:agent_login"))
+
+    def test_home_page_separates_usager_and_agent_actions(self):
+        response = self.client.get(reverse("parking:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Espace usager")
+        self.assertContains(response, "Espace professionnel")
+        self.assertContains(response, reverse("parking:signup"))
+        self.assertContains(response, reverse("parking:login"))
+        self.assertContains(response, reverse("parking:agent_login"))
+        self.assertContains(response, reverse("admin:index"))
+        self.assertNotContains(response, reverse("parking:reservation_list"))
+
+    def test_authenticated_home_page_links_to_reservations(self):
+        user = get_user_model().objects.create_user(
+            username="alice",
+            password="test-password-123",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Mes réservations")
+        self.assertContains(response, reverse("parking:reservation_list"))
+        self.assertNotContains(response, "Créer un compte")
+
+    def test_anonymous_user_is_redirected_to_login_from_parking_list(self):
+        response = self.client.get(reverse("parking:parking_list"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:parking_list')}",
+        )
+
+    def test_anonymous_user_is_redirected_to_login_from_parking_detail(self):
+        response = self.client.get(
+            reverse("parking:parking_detail", args=[self.parking.id])
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:parking_detail', args=[self.parking.id])}",
+        )
+
+    def test_authenticated_user_can_view_parking_list_and_detail(self):
+        user = get_user_model().objects.create_user(
+            username="parking-user",
+            password="test-password-123",
+        )
+        self.client.force_login(user)
+
+        list_response = self.client.get(reverse("parking:parking_list"))
+        detail_response = self.client.get(
+            reverse("parking:parking_detail", args=[self.parking.id])
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(detail_response.status_code, 200)
 
     def test_login_page_is_available(self):
         response = self.client.get(reverse("parking:login"))
@@ -378,6 +465,8 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
 
     def test_parking_list_page(self):
+        self.authenticate_as_user()
+
         response = self.client.get(reverse("parking:parking_list"))
 
         self.assertEqual(response.status_code, 200)
@@ -387,6 +476,8 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "2")
 
     def test_parking_detail_page(self):
+        self.authenticate_as_user()
+
         response = self.client.get(
             reverse(
                 "parking:parking_detail",
@@ -400,6 +491,8 @@ class ParkingViewsTests(TestCase):
         self.assertNotContains(response, "Place numéro 2")
 
     def test_missing_parking_returns_not_found(self):
+        self.authenticate_as_user()
+
         response = self.client.get(
             reverse("parking:parking_detail", args=[999])
         )
@@ -407,6 +500,8 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_parking_list_contains_map_and_parking_data(self):
+        self.authenticate_as_user()
+
         response = self.client.get(reverse("parking:parking_list"))
 
         self.assertEqual(response.status_code, 200)
@@ -415,6 +510,8 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, 'id="parkings-data"')
 
     def test_parking_detail_shows_pricing(self):
+        self.authenticate_as_user()
+
         self.parking.hourly_rate = Decimal("2.50")
         self.parking.max_duration_minutes = 120
         self.parking.opening_time = time(7, 0)
@@ -428,6 +525,8 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "07:00 – 21:00")
 
     def test_parking_list_shows_pricing(self):
+        self.authenticate_as_user()
+
         self.parking.hourly_rate = Decimal("1.80")
         self.parking.save()
 
@@ -437,11 +536,15 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Ouvert 24h/24")
 
     def test_parking_without_rate_shows_not_provided(self):
+        self.authenticate_as_user()
+
         response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
 
         self.assertContains(response, "non renseigné")
 
     def test_free_parking_shows_free(self):
+        self.authenticate_as_user()
+
         self.parking.hourly_rate = Decimal("0")
         self.parking.save()
 
