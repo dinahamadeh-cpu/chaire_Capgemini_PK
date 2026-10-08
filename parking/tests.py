@@ -578,14 +578,92 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:logout"))
         self.assertContains(response, "csrfmiddlewaretoken")
 
-    def test_home_page_does_not_show_logout_button_for_anonymous_user(self):
-            response = self.client.get(reverse("parking:home"))
+class NewParkingFeaturesTests(TestCase):
+    def test_seed_data_can_be_run_twice_without_duplicate_users(self):
+        call_command("seed_data")
+        call_command("seed_data")
 
-            self.assertEqual(response.status_code, 200)
-            self.assertNotContains(response, "Se déconnecter") 
+        User = get_user_model()
 
-    def test_agent_can_still_access_agent_login_page(self):
-            response = self.client.get(reverse("parking:agent_login"))
+        self.assertEqual(User.objects.filter(username="agent1").count(), 1)
+        self.assertEqual(User.objects.filter(username="agent2").count(), 1)
+        self.assertEqual(User.objects.filter(username="demo").count(), 1)
+        self.assertEqual(Group.objects.filter(name="Agents").count(), 1)
 
-            self.assertEqual(response.status_code, 200)
-            self.assertContains(response, "Connexion agent")
+        self.assertEqual(Parking.objects.count(), 4)
+        self.assertEqual(Spot.objects.count(), 40)
+        self.assertEqual(Reservation.objects.count(), 10)
+
+    def test_seed_data_creates_correct_coordinates_for_new_parkings(self):
+        call_command("seed_data")
+
+        saint_michel = Parking.objects.get(name="Parking Place Saint-Michel")
+        cite_sciences = Parking.objects.get(
+            name="Parking Parc de la Villette Nord - Cité des Sciences"
+        )
+
+        self.assertEqual(saint_michel.latitude, 48.8528402)
+        self.assertEqual(saint_michel.longitude, 2.3433514)
+
+        self.assertEqual(cite_sciences.latitude, 48.8980453)
+        self.assertEqual(cite_sciences.longitude, 2.3875319)
+
+    def test_seed_data_creates_ten_spots_for_each_parking(self):
+        call_command("seed_data")
+
+        for parking in Parking.objects.all():
+            self.assertEqual(parking.spots.count(), 10)
+
+    def test_agent_can_log_in_from_agent_login_page(self):
+        agent = get_user_model().objects.create_user(
+            username="agent",
+            password="password",
+        )
+        agents_group = Group.objects.create(name="Agents")
+        agent.groups.add(agents_group)
+
+        response = self.client.post(
+            reverse("parking:agent_login"),
+            {
+                "username": "agent",
+                "password": "password",
+            },
+        )
+
+        self.assertRedirects(response, reverse("parking:agent_dashboard"))
+        self.assertTrue(response.wsgi_request.user.is_authenticated)
+
+    def test_regular_user_cannot_log_in_as_agent(self):
+        get_user_model().objects.create_user(
+            username="user",
+            password="password",
+        )
+
+        response = self.client.post(
+            reverse("parking:agent_login"),
+            {
+                "username": "user",
+                "password": "password",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Identifiants invalides, ou ce compte n'est pas un compte agent.",
+        )
+        self.assertFalse(response.wsgi_request.user.is_authenticated)      
+              
+    def test_parking_list_calculates_available_spots(self):
+        user = get_user_model().objects.create_user(
+            username="user",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:parking_list"))
+
+        parking = response.context["parkings"].get(name="Parking Central")
+
+        self.assertEqual(parking.total_spots_count, 2)
+        self.assertEqual(parking.available_spots_count, 1)

@@ -132,9 +132,6 @@ def cancel_reservation(request, reservation_id):
     messages.success(request, "La réservation a bien été annulée.")
     return redirect("parking:reservation_list")
 
-def professional_login(request):
-    return render(request, "parking/professional_login.html")
-
 def agent_login(request):
     error = None
     if request.method == "POST":

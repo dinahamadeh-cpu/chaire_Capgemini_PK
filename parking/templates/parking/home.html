@@ -351,6 +351,13 @@
                         <a class="button secondary" href="{% url 'parking:reservation_list' %}">
                             Mes réservations
                         </a>
+                        <form method="post" action="{% url 'parking:logout' %}" style="display: inline;">
+                            {% csrf_token %}
+                                <button type="submit" class="button secondary">
+                                                            Se déconnecter
+                                                        </button>
+                        </form>
+                        
                     {% else %}
                         <a class="button secondary" href="{% url 'parking:signup' %}">
                             Créer un compte
@@ -381,15 +388,5 @@
             <a href="{% url 'admin:index' %}">Administration du site</a>
         </footer>
     </main>
-    <footer>
-        <a
-            href="{% url 'parking:professional_login' %}"
-            class="professional-access"
-            aria-label="Accès professionnel"
-            title="Accès professionnel"
-        >
-            🔒
-        </a>
-    </footer>
 </body>
 </html>

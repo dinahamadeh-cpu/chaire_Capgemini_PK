@@ -41,5 +41,4 @@ urlpatterns = [
         name="agent_end_reservation",
     ),
     path("agent/statistiques/", views.agent_stats, name="agent_stats"),
-    path("acces-professionnel/", views.professional_login,name="professional_login"),
 ]
