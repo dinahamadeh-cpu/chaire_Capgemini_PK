@@ -44,12 +44,12 @@ uv run python manage.py createsuperuser
 
 - **Accueil** (`/`) : accès aux parkings, à la connexion, à l'inscription, à l'espace agent et à l'administration.
 - **Comptes usagers** : créer un compte (`/inscription/`), se connecter (`/connexion/`) et se déconnecter.
-- **Liste des parkings** (`/parkings/`) : chaque parking avec son nombre de places libres, et une carte Google Maps.
-- **Détail d'un parking** (`/parkings/<id>/`) : les places disponibles du parking.
+- **Liste des parkings** (`/parkings/`) : chaque parking avec son nombre de places libres, son tarif, sa durée maximale et ses horaires, et une carte Google Maps.
+- **Détail d'un parking** (`/parkings/<id>/`) : le tarif horaire, la durée maximale, les horaires et les places disponibles du parking.
 - **Connexion agent** (`/agent/login/`) : réservée aux comptes agents.
 - **Vérification de plaque** (`/agent/plaque/`) : l'agent saisit une plaque (format `AA-123-AA`) et voit si le véhicule a une réservation en cours, sur quelle place et dans quel parking.
 - **Statistiques** (`/agent/statistiques/`) : nombre de places occupées par parking et historique de l'occupation.
-- **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings, des places et des réservations.
+- **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (y compris tarif, durée maximale et horaires), des places et des réservations.
 
 Règles déjà en place :
 - une plaque ne peut avoir qu'une seule réservation active à la fois ;

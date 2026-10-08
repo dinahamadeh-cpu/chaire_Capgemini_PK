@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import time, timedelta
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -12,8 +13,24 @@ AGENTS = [
 ]
 
 PARKINGS = [
-    {"name": "Parking Centre-Ville", "address": "1 place de la Mairie", "spots": 10},
-    {"name": "Parking Gare", "address": "2 avenue de la Gare", "spots": 10},
+    {
+        "name": "Parking Centre-Ville",
+        "address": "1 place de la Mairie",
+        "spots": 10,
+        "hourly_rate": Decimal("2.50"),
+        "max_duration_minutes": 120,
+        "opening_time": time(7, 0),
+        "closing_time": time(21, 0),
+    },
+    {
+        "name": "Parking Gare",
+        "address": "2 avenue de la Gare",
+        "spots": 10,
+        "hourly_rate": Decimal("1.80"),
+        "max_duration_minutes": None,
+        "opening_time": None,
+        "closing_time": None,
+    },
 ]
 
 STATIONED_PLATES = [
@@ -54,7 +71,14 @@ class Command(BaseCommand):
 
         spots = []
         for data in PARKINGS:
-            parking = Parking.objects.create(name=data["name"], address=data["address"])
+            parking = Parking.objects.create(
+                name=data["name"],
+                address=data["address"],
+                hourly_rate=data["hourly_rate"],
+                max_duration_minutes=data["max_duration_minutes"],
+                opening_time=data["opening_time"],
+                closing_time=data["closing_time"],
+            )
             for number in range(1, data["spots"] + 1):
                 spots.append(Spot.objects.create(parking=parking, number=number))
         self.stdout.write(f"{len(PARKINGS)} parkings et {len(spots)} places créés.")
