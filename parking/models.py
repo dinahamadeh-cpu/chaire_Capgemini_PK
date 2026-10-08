@@ -80,6 +80,7 @@ class Reservation(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
         CANCELLED = "cancelled", "Annulée"
+        COMPLETED = "completed", "Terminée"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
