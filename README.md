@@ -29,6 +29,9 @@ Puis ouvrir **http://127.0.0.1:8000/** dans le navigateur.
 ### Carte des parkings (facultatif)
 La carte de `/parkings/` utilise Google Maps. Les coordonnées (latitude, longitude) des parkings se renseignent dans `/admin/`.
 
+### Parkings et tarifs de démonstration
+La commande `seed_data` fournit quatre parkings de démonstration — Parking Centre-Ville, Parking Gare, Parking Place Saint-Michel et Parking Parc de la Villette Nord - Cité des Sciences — avec leurs places, tarifs horaires et horaires d'ouverture. Les tarifs de Place Saint-Michel et de la Villette reprennent le tarif d’une heure visible sur les captures ; leurs 10 places sont des données de démonstration.
+
 ### Comptes de test (créés par `seed_data`)
 | Identifiant | Mot de passe | Rôle  |
 |-------------|--------------|-------|
@@ -47,6 +50,7 @@ uv run python manage.py createsuperuser
 - **Comptes usagers** : créer un compte (`/inscription/`), se connecter (`/connexion/`) et se déconnecter.
 - **Liste des parkings** (`/parkings/`) : chaque parking avec son nombre de places libres, son tarif, sa durée maximale et ses horaires, et une carte Google Maps.
 - **Détail d'un parking** (`/parkings/<id>/`) : le tarif horaire, la durée maximale, les horaires et les places disponibles du parking.
+- **Réservation** : un usager connecté réserve une place avec une plaque au format `AA-123-AA`.
 - **Connexion agent** (`/agent/login/`) : réservée aux comptes agents.
 - **Vérification de plaque** (`/agent/plaque/`) : l'agent saisit une plaque (format `AA-123-AA`), voit si le véhicule a une réservation en cours et peut enregistrer son départ.
 - **Mes réservations** (`/mes-reservations/`) : un usager connecté consulte et annule ses réservations.
