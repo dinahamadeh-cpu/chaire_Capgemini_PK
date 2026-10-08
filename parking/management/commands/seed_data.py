@@ -13,11 +13,15 @@ AGENTS = [
     {"username": "agent2", "password": "agent1234"},
 ]
 
+DEMO_USER = {"username": "demo", "password": "demo1234"}
+
 PARKINGS = [
     {
         "name": "Parking Centre-Ville",
         "address": "1 place de la Mairie",
         "spots": 10,
+        "latitude": 48.8566,
+        "longitude": 2.3522,
         "hourly_rate": Decimal("2.50"),
         "max_duration_minutes": 120,
         "opening_time": time(7, 0),
@@ -27,6 +31,8 @@ PARKINGS = [
         "name": "Parking Gare",
         "address": "2 avenue de la Gare",
         "spots": 10,
+        "latitude": 48.8443,
+        "longitude": 2.3730,
         "hourly_rate": Decimal("1.80"),
         "max_duration_minutes": None,
         "opening_time": None,
@@ -46,6 +52,7 @@ STATIONED_PLATES = [
 ]
 
 LEFT_PLATES = ["YY-111-YY", "ZZ-222-ZZ"]
+DEMO_RESERVATION_PLATES = {STATIONED_PLATES[0], LEFT_PLATES[0]}
 
 
 class Command(BaseCommand):
@@ -54,7 +61,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         User = get_user_model()
         agents_group, _ = Group.objects.get_or_create(name="Agents")
-        agent_users = []
 
         for agent in AGENTS:
             user, created = User.objects.get_or_create(
@@ -68,7 +74,19 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"Agent déjà existant : {agent['username']}")
             user.groups.add(agents_group)
-            agent_users.append(user)
+
+        demo_user, created = User.objects.get_or_create(
+            username=DEMO_USER["username"],
+            defaults={"is_staff": False},
+        )
+        if created:
+            demo_user.set_password(DEMO_USER["password"])
+            demo_user.save()
+            self.stdout.write(
+                f"Utilisateur de démonstration créé : {DEMO_USER['username']} / {DEMO_USER['password']}"
+            )
+        else:
+            self.stdout.write(f"Utilisateur déjà existant : {DEMO_USER['username']}")
 
         Reservation.objects.all().delete()
         Spot.objects.all().delete()
@@ -79,6 +97,8 @@ class Command(BaseCommand):
             parking = Parking.objects.create(
                 name=data["name"],
                 address=data["address"],
+                latitude=data["latitude"],
+                longitude=data["longitude"],
                 hourly_rate=data["hourly_rate"],
                 max_duration_minutes=data["max_duration_minutes"],
                 opening_time=data["opening_time"],
@@ -89,10 +109,9 @@ class Command(BaseCommand):
         self.stdout.write(f"{len(PARKINGS)} parkings et {len(spots)} places créés.")
 
         stationed_spots = spots[: len(STATIONED_PLATES)]
-        seed_user = agent_users[0]
         for plate, spot in zip(STATIONED_PLATES, stationed_spots):
             Reservation.objects.create(
-                user=seed_user,
+                user=demo_user if plate in DEMO_RESERVATION_PLATES else None,
                 plate=plate,
                 spot=spot,
                 status=Reservation.Status.ACTIVE,
@@ -103,10 +122,10 @@ class Command(BaseCommand):
         now = timezone.now()
         for index, (plate, spot) in enumerate(zip(LEFT_PLATES, left_spots)):
             reservation = Reservation.objects.create(
-                user=seed_user,
+                user=demo_user if plate in DEMO_RESERVATION_PLATES else None,
                 plate=plate,
                 spot=spot,
-                status=Reservation.Status.CANCELLED,
+                status=Reservation.Status.COMPLETED,
             )
             started = now - timedelta(hours=3 - index)
             ended = now - timedelta(hours=1)

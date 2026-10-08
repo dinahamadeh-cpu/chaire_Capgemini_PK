@@ -2,6 +2,13 @@
 {% block title %}Vérification plaque - Parking{% endblock %}
 {% block content %}
     <h1>Vérifier une plaque</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
     <form method="get">
         <p>
             <label for="plate">Plaque d'immatriculation</label><br>
@@ -19,6 +26,10 @@
                 Place n°{{ result.reservation.spot.number }}<br>
                 Depuis : {{ result.reservation.created_at }}
             </p>
+            <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
+                {% csrf_token %}
+                <button type="submit">Enregistrer le départ</button>
+            </form>
         {% else %}
             <p class="non-conforme">Non conforme — aucun stationnement actif trouvé pour cette plaque.</p>
         {% endif %}
