@@ -30,6 +30,13 @@ Puis ouvrir **http://127.0.0.1:8000/** dans le navigateur.
 La carte de `/parkings/` utilise Google Maps. Les coordonnées (latitude, longitude) des parkings se renseignent dans `/admin/`.
 
 ### Comptes de test (créés par `seed_data`)
+
+Utilisé commande :
+```bash
+uv run python manage.py seed_data
+```
+Pour obtenir :
+
 | Identifiant | Mot de passe | Rôle  |
 |-------------|--------------|-------|
 | agent1      | agent1234    | Agent |

@@ -32,6 +32,7 @@ def _is_agent(user):
     return user.is_authenticated and user.groups.filter(name="Agents").exists()
 
 
+@login_required(login_url="parking:login")
 def parking_list(request):
     parkings = Parking.objects.annotate(
         total_spots_count=Count("spots"),
@@ -58,6 +59,7 @@ def parking_list(request):
     )
 
 
+@login_required(login_url="parking:login")
 def parking_detail(request, parking_id):
     parking = get_object_or_404(Parking, id=parking_id)
     available_spots = parking.spots.filter(is_available=True)
