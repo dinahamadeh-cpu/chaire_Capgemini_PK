@@ -29,10 +29,14 @@ Puis ouvrir **http://127.0.0.1:8000/** dans le navigateur.
 ### Carte des parkings (facultatif)
 La carte de `/parkings/` utilise Google Maps. Les coordonnées (latitude, longitude) des parkings se renseignent dans `/admin/`.
 
-### Parkings et tarifs de démonstration
-La commande `seed_data` fournit quatre parkings de démonstration — Parking Centre-Ville, Parking Gare, Parking Place Saint-Michel et Parking Parc de la Villette Nord - Cité des Sciences — avec leurs places, tarifs horaires et horaires d'ouverture. Les tarifs de Place Saint-Michel et de la Villette reprennent le tarif d’une heure visible sur les captures ; leurs 10 places sont des données de démonstration.
-
 ### Comptes de test (créés par `seed_data`)
+
+Utilisé commande :
+```bash
+uv run python manage.py seed_data
+```
+Pour obtenir :
+
 | Identifiant | Mot de passe | Rôle  |
 |-------------|--------------|-------|
 | agent1      | agent1234    | Agent |
