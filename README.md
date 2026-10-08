@@ -27,7 +27,7 @@ Puis ouvrir **http://127.0.0.1:8000/** dans le navigateur.
 > La base de données (`db.sqlite3`) est locale et n'est pas partagée sur GitHub.
 
 ### Carte des parkings (facultatif)
-La carte de `/parkings/` utilise Google Maps. Pour l'afficher, définir la variable d'environnement `GOOGLE_MAPS_API_KEY` avant de lancer le serveur. Les coordonnées (latitude, longitude) des parkings se renseignent dans `/admin/`.
+La carte de `/parkings/` utilise Google Maps. Les coordonnées (latitude, longitude) des parkings se renseignent dans `/admin/`.
 
 ### Comptes de test (créés par `seed_data`)
 | Identifiant | Mot de passe | Rôle  |
