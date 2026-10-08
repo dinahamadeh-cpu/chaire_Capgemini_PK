@@ -62,5 +62,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 LOGIN_REDIRECT_URL = "/parkings/"
 LOGOUT_REDIRECT_URL = "/"

@@ -5,6 +5,12 @@
     <title>{{ parking.name }}</title>
 </head>
 <body>
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
     <p>
         <a href="{% url 'parking:home' %}">Accueil</a> ·
         <a href="{% url 'parking:parking_list' %}">
@@ -31,6 +37,16 @@
             {% for spot in available_spots %}
                 <li>
                     Place numéro {{ spot.number }}
+                    {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
+                            {% csrf_token %}
+                            <label for="plate-{{ spot.id }}">Plaque :</label>
+                            <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
+                            <button type="submit">Réserver</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>
