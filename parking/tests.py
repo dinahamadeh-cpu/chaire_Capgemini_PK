@@ -3,12 +3,33 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core.management import call_command
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
 from .models import Parking, Reservation, Spot
+
+
+class SeedDataTests(TestCase):
+    def test_seed_data_keeps_stationings_out_of_agent_reservations(self):
+        call_command("seed_data")
+
+        User = get_user_model()
+        agents = User.objects.filter(groups__name="Agents")
+        demo_user = User.objects.get(username="demo")
+
+        self.assertEqual(Parking.objects.count(), 2)
+        self.assertEqual(Spot.objects.count(), 20)
+        self.assertEqual(Reservation.objects.filter(user__in=agents).count(), 0)
+        self.assertEqual(Reservation.objects.filter(user=demo_user).count(), 2)
+        self.assertEqual(Reservation.objects.filter(user__isnull=True).count(), 8)
+        self.assertEqual(
+            Parking.objects.filter(latitude__isnull=False, longitude__isnull=False).count(),
+            2,
+        )
+        self.assertTrue(demo_user.check_password("demo1234"))
 
 
 class ParkingModelsTests(TestCase):
