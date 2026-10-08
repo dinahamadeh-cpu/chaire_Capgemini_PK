@@ -38,6 +38,28 @@ PARKINGS = [
         "opening_time": None,
         "closing_time": None,
     },
+    {
+        "name": "Parking Place Saint-Michel",
+        "address": "25 Rue Francisque Gay, 75006 Paris",
+        "spots": 10,
+        "latitude": 48.8528402,
+        "longitude": 2.3433514,
+        "hourly_rate": Decimal("5.50"),
+        "max_duration_minutes": None,
+        "opening_time": None,
+        "closing_time": None,
+    },
+    {
+        "name": "Parking Parc de la Villette Nord - Cité des Sciences",
+        "address": "61 Bd Macdonald, 75019 Paris",
+        "spots": 10,
+        "latitude": 48.8980453,
+        "longitude": 2.3875319,
+        "hourly_rate": Decimal("4.80"),
+        "max_duration_minutes": None,
+        "opening_time": None,
+        "closing_time": None,
+    },
 ]
 
 STATIONED_PLATES = [
