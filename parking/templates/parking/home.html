@@ -37,6 +37,34 @@
             margin: 0 auto clamp(24px, 5vh, 56px);
             text-align: center;
         }
+        .professional-access {
+            position: fixed;
+            right: 16px;
+            bottom: 14px;
+
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            margin: 0;
+
+            display: grid;
+            place-items: center;
+
+            background: transparent;
+            color: #94a3b8;
+            border-radius: 50%;
+            font-size: 14px;
+            text-decoration: none;
+            opacity: 0.45;
+            transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
+        }
+
+        .professional-access:hover,
+        .professional-access:focus-visible {
+            background: rgba(148, 163, 184, 0.16);
+            color: #475569;
+            opacity: 1;
+        }
 
         .eyebrow {
             display: inline-flex;
@@ -353,5 +381,15 @@
             <a href="{% url 'admin:index' %}">Administration du site</a>
         </footer>
     </main>
+    <footer>
+        <a
+            href="{% url 'parking:professional_login' %}"
+            class="professional-access"
+            aria-label="Accès professionnel"
+            title="Accès professionnel"
+        >
+            🔒
+        </a>
+    </footer>
 </body>
 </html>
