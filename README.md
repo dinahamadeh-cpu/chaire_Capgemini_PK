@@ -34,6 +34,7 @@ La carte de `/parkings/` utilise Google Maps. Les coordonnées (latitude, longit
 |-------------|--------------|-------|
 | agent1      | agent1234    | Agent |
 | agent2      | agent1234    | Agent |
+| demo        | demo1234     | Usager |
 
 Pour accéder à l'administration (`/admin/`), créer un compte administrateur :
 ```bash
@@ -47,7 +48,8 @@ uv run python manage.py createsuperuser
 - **Liste des parkings** (`/parkings/`) : chaque parking avec son nombre de places libres, son tarif, sa durée maximale et ses horaires, et une carte Google Maps.
 - **Détail d'un parking** (`/parkings/<id>/`) : le tarif horaire, la durée maximale, les horaires et les places disponibles du parking.
 - **Connexion agent** (`/agent/login/`) : réservée aux comptes agents.
-- **Vérification de plaque** (`/agent/plaque/`) : l'agent saisit une plaque (format `AA-123-AA`) et voit si le véhicule a une réservation en cours, sur quelle place et dans quel parking.
+- **Vérification de plaque** (`/agent/plaque/`) : l'agent saisit une plaque (format `AA-123-AA`), voit si le véhicule a une réservation en cours et peut enregistrer son départ.
+- **Mes réservations** (`/mes-reservations/`) : un usager connecté consulte et annule ses réservations.
 - **Statistiques** (`/agent/statistiques/`) : nombre de places occupées par parking et historique de l'occupation.
 - **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (y compris tarif, durée maximale et horaires), des places et des réservations.
 
@@ -55,7 +57,7 @@ Règles déjà en place :
 - une plaque ne peut avoir qu'une seule réservation active à la fois ;
 - une place devient automatiquement indisponible quand elle est réservée, et disponible quand la réservation se termine.
 
-> Pas encore disponible : réserver une place depuis le site.
+> Pas encore disponible : créer des contraventions.
 
 ## Lancer les tests
 ```bash
