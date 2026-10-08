@@ -448,3 +448,41 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
 
         self.assertContains(response, "Gratuit")
+
+    def test_authentificated_user_can_log_out(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        self.client.login(username="alice", password="password")
+
+        response = self.client.post(reverse("parking:logout"))
+
+        response = self.client.get(reverse("parking:reservation_list"))
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:reservation_list')}",
+        )
+
+    def test_home_page_shows_logout_button_for_authenticated_user(self):
+        get_user_model().objects.create_user(
+            username="alice",
+            password="password",
+        )
+        self.client.login(username="alice", password="password")
+
+        response = self.client.get(reverse("parking:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Se déconnecter")
+        self.assertContains(response, reverse("parking:logout"))
+        self.assertContains(response, "csrfmiddlewaretoken")
+
+    def test_home_page_does_not_show_logout_button_for_anonymous_user(self):
+            response = self.client.get(reverse("parking:home"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, "Se déconnecter") 
+
+    def test_agent_can_still_access_agent_login_page(self):
+            response = self.client.get(reverse("parking:agent_login"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Connexion agent")
