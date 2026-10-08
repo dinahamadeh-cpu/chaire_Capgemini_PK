@@ -47,6 +47,9 @@
         <a href="{% url 'parking:parking_list' %}">Voir les parkings</a>
         <a href="{% url 'parking:login' %}">Se connecter</a>
         <a href="{% url 'parking:signup' %}">Créer un compte</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
+        {% endif %}
         <a href="{% url 'parking:agent_login' %}">Espace agent</a>
         <a href="{% url 'admin:index' %}">Administration</a>
     </main>
