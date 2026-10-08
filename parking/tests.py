@@ -312,6 +312,50 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(reverse("parking:agent_dashboard"))
         self.assertEqual(response.status_code, 200)
 
+    def test_agent_can_end_an_active_reservation(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        reservation = Reservation.objects.create(
+            user=agent,
+            spot=self.parking.spots.get(number=1),
+            plate="AA-123-AA",
+        )
+        self.client.login(username="agent", password="password")
+
+        response = self.client.post(
+            reverse("parking:agent_end_reservation", args=[reservation.id])
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_plate_check')}?plate=AA-123-AA",
+        )
+        reservation.refresh_from_db()
+        reservation.spot.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.COMPLETED)
+        self.assertIsNotNone(reservation.ended_at)
+        self.assertTrue(reservation.spot.is_available)
+
+    def test_non_agent_cannot_end_an_active_reservation(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        reservation = Reservation.objects.create(
+            user=user,
+            spot=self.parking.spots.get(number=1),
+            plate="BB-234-BB",
+        )
+        self.client.login(username="alice", password="password")
+
+        response = self.client.post(
+            reverse("parking:agent_end_reservation", args=[reservation.id])
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_login')}?next={reverse('parking:agent_end_reservation', args=[reservation.id])}",
+        )
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
     def test_parking_list_page(self):
         response = self.client.get(reverse("parking:parking_list"))
 
