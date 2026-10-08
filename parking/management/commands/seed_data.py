@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -35,6 +36,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         User = get_user_model()
+        agents_group, _ = Group.objects.get_or_create(name="Agents")
+        agent_users = []
 
         for agent in AGENTS:
             user, created = User.objects.get_or_create(
@@ -47,6 +50,8 @@ class Command(BaseCommand):
                 self.stdout.write(f"Agent créé : {agent['username']} / {agent['password']}")
             else:
                 self.stdout.write(f"Agent déjà existant : {agent['username']}")
+            user.groups.add(agents_group)
+            agent_users.append(user)
 
         Reservation.objects.all().delete()
         Spot.objects.all().delete()
@@ -60,15 +65,24 @@ class Command(BaseCommand):
         self.stdout.write(f"{len(PARKINGS)} parkings et {len(spots)} places créés.")
 
         stationed_spots = spots[: len(STATIONED_PLATES)]
+        seed_user = agent_users[0]
         for plate, spot in zip(STATIONED_PLATES, stationed_spots):
-            Reservation.objects.create(plate=plate, spot=spot, status=Reservation.Status.ACTIVE)
+            Reservation.objects.create(
+                user=seed_user,
+                plate=plate,
+                spot=spot,
+                status=Reservation.Status.ACTIVE,
+            )
         self.stdout.write(f"{len(STATIONED_PLATES)} véhicules stationnés (plaques actives).")
 
         left_spots = spots[len(STATIONED_PLATES) : len(STATIONED_PLATES) + len(LEFT_PLATES)]
         now = timezone.now()
         for index, (plate, spot) in enumerate(zip(LEFT_PLATES, left_spots)):
             reservation = Reservation.objects.create(
-                plate=plate, spot=spot, status=Reservation.Status.CANCELLED
+                user=seed_user,
+                plate=plate,
+                spot=spot,
+                status=Reservation.Status.CANCELLED,
             )
             started = now - timedelta(hours=3 - index)
             ended = now - timedelta(hours=1)

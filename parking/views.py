@@ -2,10 +2,14 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Parking, Reservation
+from .forms import ReservationForm
+from .models import Parking, Reservation, Spot
 
 
 def home(request):
@@ -19,6 +23,10 @@ def signup(request):
         login(request, user)
         return redirect("parking:parking_list")
     return render(request, "parking/signup.html", {"form": form})
+
+
+def _is_agent(user):
+    return user.is_authenticated and user.groups.filter(name="Agents").exists()
 
 
 def parking_list(request):
@@ -63,13 +71,38 @@ def parking_detail(request, parking_id):
     )
 
 
+@login_required(login_url="parking:login")
+def reserve_spot(request, parking_id, spot_id):
+    if request.method != "POST":
+        return redirect("parking:parking_detail", parking_id=parking_id)
+
+    spot = get_object_or_404(Spot, pk=spot_id, parking_id=parking_id)
+    form = ReservationForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "La plaque doit respecter le format AA-123-AA.")
+        return redirect("parking:parking_detail", parking_id=parking_id)
+
+    try:
+        Reservation.objects.create(
+            user=request.user,
+            spot=spot,
+            plate=form.cleaned_data["plate"],
+        )
+    except IntegrityError:
+        messages.error(request, "Cette place ou cette plaque est déjà réservée.")
+    else:
+        messages.success(request, "La place a bien été réservée.")
+
+    return redirect("parking:parking_detail", parking_id=parking_id)
+
+
 def agent_login(request):
     error = None
     if request.method == "POST":
         username = request.POST.get("username", "")
         password = request.POST.get("password", "")
         user = authenticate(request, username=username, password=password)
-        if user is not None and user.is_staff:
+        if user is not None and _is_agent(user):
             login(request, user)
             return redirect("parking:agent_dashboard")
         error = "Identifiants invalides, ou ce compte n'est pas un compte agent."
@@ -79,10 +112,6 @@ def agent_login(request):
 def agent_logout(request):
     logout(request)
     return redirect("parking:home")
-
-
-def _is_agent(user):
-    return user.is_authenticated and user.is_staff
 
 
 @user_passes_test(_is_agent, login_url="parking:agent_login")

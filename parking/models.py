@@ -60,7 +60,12 @@ class Reservation(models.Model):
                 fields=["plate"],
                 condition=models.Q(status="active"),
                 name="unique_active_reservation_per_plate",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["spot"],
+                condition=models.Q(status="active"),
+                name="unique_active_reservation_per_spot",
+            ),
         ]
 
     def __str__(self):
