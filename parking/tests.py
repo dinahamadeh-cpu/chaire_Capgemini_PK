@@ -2,6 +2,7 @@ from datetime import time
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
@@ -46,7 +47,7 @@ class ParkingModelsTests(TestCase):
         with self.assertRaises(IntegrityError):
             Spot.objects.create(parking=parking, number=1)
 
-    def test_reservation_without_user_is_allowed(self):
+    def test_reservation_without_user_is_allowed_for_agent_records(self):
         spot = Spot.objects.create(
             parking=Parking.objects.create(name="Parking Central", address="1 rue du Centre"),
             number=1,
@@ -57,12 +58,13 @@ class ParkingModelsTests(TestCase):
         self.assertIsNone(reservation.user)
 
     def test_spot_becomes_unavailable_then_available_again(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
         spot = Spot.objects.create(
             parking=Parking.objects.create(name="Parking Central", address="1 rue du Centre"),
             number=1,
         )
 
-        reservation = Reservation.objects.create(spot=spot, plate="CC-345-CC")
+        reservation = Reservation.objects.create(user=user, spot=spot, plate="CC-345-CC")
         spot.refresh_from_db()
         self.assertFalse(spot.is_available)
 
@@ -72,20 +74,31 @@ class ParkingModelsTests(TestCase):
         self.assertTrue(spot.is_available)
 
     def test_plate_can_only_have_one_active_reservation(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
         parking = Parking.objects.create(name="Parking Central", address="1 rue du Centre")
         spot_1 = Spot.objects.create(parking=parking, number=1)
         spot_2 = Spot.objects.create(parking=parking, number=2)
-        Reservation.objects.create(spot=spot_1, plate="DD-456-DD")
+        Reservation.objects.create(user=user, spot=spot_1, plate="DD-456-DD")
 
         with self.assertRaises(IntegrityError):
-            Reservation.objects.create(spot=spot_2, plate="DD-456-DD")
+            Reservation.objects.create(user=user, spot=spot_2, plate="DD-456-DD")
+
+    def test_spot_can_only_have_one_active_reservation(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        parking = Parking.objects.create(name="Parking Central", address="1 rue du Centre")
+        spot = Spot.objects.create(parking=parking, number=1)
+        Reservation.objects.create(user=user, spot=spot, plate="EE-567-EE")
+
+        with self.assertRaises(IntegrityError):
+            Reservation.objects.create(user=user, spot=spot, plate="FF-678-FF")
 
     def test_plate_format_is_validated(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
         spot = Spot.objects.create(
             parking=Parking.objects.create(name="Parking Central", address="1 rue du Centre"),
             number=1,
         )
-        reservation = Reservation(spot=spot, plate="not-a-plate")
+        reservation = Reservation(user=user, spot=spot, plate="not-a-plate")
 
         with self.assertRaises(ValidationError):
             reservation.full_clean()
@@ -189,6 +202,56 @@ class ParkingViewsTests(TestCase):
 
         self.assertRedirects(response, reverse("parking:parking_list"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
+
+    def test_authenticated_user_can_reserve_a_spot(self):
+        user = get_user_model().objects.create_user(
+            username="alice",
+            password="password",
+        )
+        self.client.login(username="alice", password="password")
+
+        response = self.client.post(
+            reverse(
+                "parking:reserve_spot",
+                args=[self.parking.id, self.parking.spots.get(number=1).id],
+            ),
+            {"plate": "GG-789-GG"},
+        )
+
+        self.assertRedirects(response, reverse("parking:parking_detail", args=[self.parking.id]))
+        reservation = Reservation.objects.get(plate="GG-789-GG")
+        self.assertEqual(reservation.user, user)
+
+    def test_anonymous_user_is_redirected_before_reserving(self):
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.post(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id]),
+            {"plate": "HH-890-HH"},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:reserve_spot', args=[self.parking.id, spot.id])}",
+        )
+        self.assertFalse(Reservation.objects.filter(plate="HH-890-HH").exists())
+
+    def test_agent_requires_agents_group(self):
+        user = get_user_model().objects.create_user(username="agent", password="password")
+        user.is_staff = True
+        user.save()
+        self.client.login(username="agent", password="password")
+
+        response = self.client.get(reverse("parking:agent_dashboard"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_login')}?next={reverse('parking:agent_dashboard')}",
+        )
+
+        user.groups.add(Group.objects.create(name="Agents"))
+        response = self.client.get(reverse("parking:agent_dashboard"))
+        self.assertEqual(response.status_code, 200)
 
     def test_parking_list_page(self):
         response = self.client.get(reverse("parking:parking_list"))

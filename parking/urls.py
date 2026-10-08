@@ -20,6 +20,11 @@ urlpatterns = [
     path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),
     path("parkings/", views.parking_list, name="parking_list"),
     path("parkings/<int:parking_id>/", views.parking_detail, name="parking_detail"),
+    path(
+        "parkings/<int:parking_id>/places/<int:spot_id>/reserver/",
+        views.reserve_spot,
+        name="reserve_spot",
+    ),
     path("agent/login/", views.agent_login, name="agent_login"),
     path("agent/logout/", views.agent_logout, name="agent_logout"),
     path("agent/", views.agent_dashboard, name="agent_dashboard"),
