@@ -11,8 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import ReservationForm
-from .models import Parking, Reservation, Spot
+from .forms import PaymentDetailsForm, ReservationForm
+from .models import DemoPaymentMethod, Parking, Reservation, Spot
 
 
 def home(request):
@@ -72,31 +72,132 @@ def parking_detail(request, parking_id):
             "parking": parking,
             "available_spots": available_spots,
             "total_spots": total_spots,
+            "parking_data": {
+                "name": parking.name,
+                "address": parking.address,
+                "latitude": parking.latitude,
+                "longitude": parking.longitude,
+            },
+        },
+    )
+
+
+@login_required(login_url="parking:login")
+def payment_methods(request):
+    payment_method = DemoPaymentMethod.objects.filter(user=request.user).first()
+
+    if request.method == "POST":
+        form = PaymentDetailsForm(request.POST)
+        if form.is_valid():
+            DemoPaymentMethod.objects.get_or_create(user=request.user)
+            messages.success(
+                request,
+                "Moyen de paiement simulé enregistré. "
+                "Les informations de carte ne sont pas conservées.",
+            )
+            return redirect("parking:payment_methods")
+        form_errors = [
+            f"{form.fields[field].label or field} : {error}"
+            for field, errors in form.errors.items()
+            for error in errors
+        ]
+    else:
+        form = PaymentDetailsForm()
+        form_errors = []
+
+    return render(
+        request,
+        "parking/payment_methods.html",
+        {
+            "payment_method": payment_method,
+            "form": form,
+            "form_errors": form_errors,
         },
     )
 
 
 @login_required(login_url="parking:login")
 def reserve_spot(request, parking_id, spot_id):
+    spot = get_object_or_404(Spot, pk=spot_id, parking_id=parking_id)
+    if spot.parking.hourly_rate is None:
+        messages.error(
+            request,
+            "La réservation est impossible : le tarif de ce parking n'est pas renseigné.",
+        )
+        return redirect("parking:parking_detail", parking_id=parking_id)
+
+    if not spot.is_available:
+        messages.error(request, "Cette place n'est plus disponible.")
+        return redirect("parking:parking_detail", parking_id=parking_id)
+
+    saved_payment_method = DemoPaymentMethod.objects.filter(user=request.user).exists()
+    rate_cents = int(spot.parking.hourly_rate * 100)
+
+    if request.method == "GET":
+        form = ReservationForm(has_saved_payment_method=saved_payment_method)
+        return render(
+            request,
+            "parking/reservation_checkout.html",
+            {
+                "parking": spot.parking,
+                "spot": spot,
+                "form": form,
+                "has_saved_payment_method": saved_payment_method,
+                "rate_cents": rate_cents,
+            },
+        )
+
     if request.method != "POST":
         return redirect("parking:parking_detail", parking_id=parking_id)
 
-    spot = get_object_or_404(Spot, pk=spot_id, parking_id=parking_id)
-    form = ReservationForm(request.POST)
+    form = ReservationForm(
+        request.POST,
+        has_saved_payment_method=saved_payment_method,
+    )
     if not form.is_valid():
-        messages.error(request, "La plaque doit respecter le format AA-123-AA.")
-        return redirect("parking:parking_detail", parking_id=parking_id)
+        form_errors = [
+            f"{form.fields[field].label or field} : {error}"
+            for field, errors in form.errors.items()
+            for error in errors
+        ]
+        safe_form = ReservationForm(
+            has_saved_payment_method=saved_payment_method,
+            initial={
+                "duration_hours": request.POST.get("duration_hours", ""),
+                "plate": request.POST.get("plate", ""),
+                "payment_method": request.POST.get("payment_method", ""),
+            },
+        )
+        return render(
+            request,
+            "parking/reservation_checkout.html",
+            {
+                "parking": spot.parking,
+                "spot": spot,
+                "form": safe_form,
+                "form_errors": form_errors,
+                "has_saved_payment_method": saved_payment_method,
+                "rate_cents": rate_cents,
+            },
+        )
 
+    amount_paid = spot.parking.hourly_rate * form.cleaned_data["duration_hours"]
     try:
         Reservation.objects.create(
             user=request.user,
             spot=spot,
             plate=form.cleaned_data["plate"],
+            duration_hours=form.cleaned_data["duration_hours"],
+            amount_paid=amount_paid,
         )
     except IntegrityError:
         messages.error(request, "Cette place ou cette plaque est déjà réservée.")
     else:
-        messages.success(request, "La place a bien été réservée.")
+        messages.success(
+            request,
+            f"Paiement simulé de {amount_paid:.2f} € confirmé. "
+            "La place a bien été réservée. Aucune donnée de carte n'a été enregistrée.",
+        )
 
     return redirect("parking:parking_detail", parking_id=parking_id)
 
@@ -116,6 +217,28 @@ def reservation_list(request):
 
 
 @login_required(login_url="parking:login")
+@require_POST
+def confirm_arrival(request, reservation_id):
+    reservation = get_object_or_404(
+        Reservation,
+        pk=reservation_id,
+        user=request.user,
+        status=Reservation.Status.ACTIVE,
+    )
+    arrival_recorded = Reservation.objects.filter(
+        pk=reservation.pk,
+        arrived_at__isnull=True,
+    ).update(arrived_at=timezone.now())
+
+    if arrival_recorded:
+        messages.success(request, "Votre arrivée est confirmée. Le décompte du stationnement commence.")
+    else:
+        messages.info(request, "Votre arrivée avait déjà été confirmée.")
+
+    return redirect("parking:reservation_list")
+
+
+@login_required(login_url="parking:login")
 def cancel_reservation(request, reservation_id):
     if request.method != "POST":
         return redirect("parking:reservation_list")
@@ -131,6 +254,9 @@ def cancel_reservation(request, reservation_id):
     reservation.save()
     messages.success(request, "La réservation a bien été annulée.")
     return redirect("parking:reservation_list")
+
+def professional_login(request):
+    return render(request, "parking/professional_login.html")
 
 def agent_login(request):
     error = None

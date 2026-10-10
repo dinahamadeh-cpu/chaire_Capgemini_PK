@@ -3,55 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ parking.name }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .site-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 14px 30px;
+            background: #f5f7fb;
+            border-bottom: 1px solid #dbe2ee;
+        }
+
+        .site-navigation a {
+            display: inline-block;
+            padding: 10px 16px;
+            border: 1px solid #2457c5;
+            border-radius: 7px;
+            background: #fff;
+            color: #2457c5;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .site-navigation a:hover,
+        .site-navigation a:focus-visible {
+            background: #2457c5;
+            color: #fff;
+        }
+
+        .detail-layout {
+            display: grid;
+            grid-template-columns: 45% 55%;
+            min-height: calc(100vh - 62px);
+        }
+
+        .map-section {
+            min-height: calc(100vh - 62px);
+            position: sticky;
+            top: 0;
+        }
+
+        #detail-map {
+            width: 100%;
+            height: calc(100vh - 62px);
+        }
+
+        .parking-details-section {
+            padding: 30px;
+        }
+
+        .available-spots {
+            display: grid;
+            gap: 14px;
+            padding-left: 20px;
+        }
+
+        .available-spots a {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: #2457c5;
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .available-spots a:hover,
+        .available-spots a:focus-visible {
+            background: #1d4ea0;
+        }
+
+        @media (max-width: 800px) {
+            .detail-layout {
+                display: block;
+            }
+
+            .map-section {
+                position: static;
+                min-height: 400px;
+            }
+
+            #detail-map {
+                height: 400px;
+            }
+
+            .site-navigation {
+                padding: 12px 20px;
+            }
+
+            .parking-details-section {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
+    <header class="site-navigation">
+        <a href="{% url 'parking:home' %}">Accueil</a>
+        <a href="{% url 'parking:parking_list' %}">Retour à la liste des parkings</a>
+    </header>
 
-    <p>
-        <a href="{% url 'parking:home' %}">Accueil</a> ·
-        <a href="{% url 'parking:parking_list' %}">
-            Retour à la liste des parkings
-        </a>
-    </p>
+    <main class="detail-layout">
+        <section class="map-section">
+            <div id="detail-map"></div>
+        </section>
 
-    <h1>{{ parking.name }}</h1>
+        <section class="parking-details-section">
+            {% if messages %}
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            {% endif %}
 
-    <p>Adresse : {{ parking.address }}</p>
+            <h1>{{ parking.name }}</h1>
 
-    <p>
-        Places disponibles : {{ available_spots|length }} / {{ total_spots }}
-    </p>
+            <p>Adresse : {{ parking.address }}</p>
 
-    <h2>Tarif et horaires</h2>
+            <p>
+                Places disponibles : {{ available_spots|length }} / {{ total_spots }}
+            </p>
 
-    {% include "parking/_pricing.html" %}
+            <h2>Tarif et horaires</h2>
 
-    <h2>Places disponibles</h2>
+            {% include "parking/_pricing.html" %}
 
-    {% if available_spots %}
-        <ul>
-            {% for spot in available_spots %}
-                <li>
-                    Place numéro {{ spot.number }}
-                    {% if user.is_authenticated %}
-                        <form method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
-                            {% csrf_token %}
-                            <label for="plate-{{ spot.id }}">Plaque :</label>
-                            <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
-                            <button type="submit">Réserver</button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Aucune place disponible dans ce parking.</p>
-    {% endif %}
+            <h2>Places disponibles</h2>
+
+            {% if available_spots %}
+                <ul class="available-spots">
+                    {% for spot in available_spots %}
+                        <li>
+                            Place n°{{ spot.number }}
+                            {% if parking.hourly_rate is None %}
+                                — réservation indisponible (tarif non renseigné)
+                            {% else %}
+                                — <a href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Aucune place disponible dans ce parking.</p>
+            {% endif %}
+        </section>
+    </main>
+
+    {{ parking_data|json_script:"parking-map-data" }}
+
+    <script>
+        function initMap() {
+            const parking = JSON.parse(
+                document.getElementById("parking-map-data").textContent
+            );
+            const hasParkingCoordinates =
+                parking.latitude !== null && parking.longitude !== null;
+            const position = hasParkingCoordinates
+                ? { lat: parking.latitude, lng: parking.longitude }
+                : { lat: 48.8566, lng: 2.3522 };
+            const map = new google.maps.Map(
+                document.getElementById("detail-map"),
+                {
+                    center: position,
+                    zoom: 12
+                }
+            );
+
+            if (hasParkingCoordinates) {
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: parking.name
+                });
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `<strong>${parking.name}</strong><br>${parking.address}`
+                });
+                infoWindow.open({
+                    anchor: marker,
+                    map: map
+                });
+
+                const targetZoom = 18;
+                const zoomIn = () => {
+                    const currentZoom = map.getZoom();
+                    if (currentZoom >= targetZoom) {
+                        return;
+                    }
+
+                    map.setZoom(currentZoom + 1);
+                    window.setTimeout(zoomIn, 180);
+                };
+                window.setTimeout(zoomIn, 250);
+            }
+        }
+    </script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap"
+        async
+        defer>
+    </script>
 </body>
 </html>

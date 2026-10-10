@@ -24,7 +24,11 @@
             <p>
                 Parking : {{ result.reservation.spot.parking.name }}<br>
                 Place n°{{ result.reservation.spot.number }}<br>
-                Depuis : {{ result.reservation.created_at }}
+                {% if result.reservation.arrived_at %}
+                    Arrivée confirmée : {{ result.reservation.arrived_at }}
+                {% else %}
+                    Arrivée non confirmée par l'usager
+                {% endif %}
             </p>
             <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
                 {% csrf_token %}

@@ -18,9 +18,15 @@ urlpatterns = [
         name="login",
     ),
     path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),
+    path("moyens-de-paiement/", views.payment_methods, name="payment_methods"),
     path("parkings/", views.parking_list, name="parking_list"),
     path("parkings/<int:parking_id>/", views.parking_detail, name="parking_detail"),
     path("mes-reservations/", views.reservation_list, name="reservation_list"),
+    path(
+        "mes-reservations/<int:reservation_id>/confirmer-arrivee/",
+        views.confirm_arrival,
+        name="confirm_arrival",
+    ),
     path(
         "mes-reservations/<int:reservation_id>/annuler/",
         views.cancel_reservation,
@@ -41,4 +47,5 @@ urlpatterns = [
         name="agent_end_reservation",
     ),
     path("agent/statistiques/", views.agent_stats, name="agent_stats"),
+    path("acces-professionnel/", views.professional_login,name="professional_login"),
 ]

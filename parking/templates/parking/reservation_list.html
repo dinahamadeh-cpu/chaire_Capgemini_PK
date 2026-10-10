@@ -18,11 +18,33 @@
                     <p>
                         {{ reservation.spot.parking.name }} — place {{ reservation.spot.number }}<br>
                         Plaque : {{ reservation.plate }}<br>
+                        Durée : {{ reservation.duration_hours }} h<br>
+                        {% if reservation.amount_paid is not None %}
+                            Paiement simulé : {{ reservation.amount_paid|floatformat:2 }} €<br>
+                        {% endif %}
                         Statut : {{ reservation.get_status_display }}<br>
                         Créée le : {{ reservation.created_at }}
                     </p>
 
                     {% if reservation.status == "active" %}
+                        {% if reservation.arrived_at %}
+                            <p>
+                                Arrivée confirmée le : {{ reservation.arrived_at|date:"d/m/Y à H:i" }}
+                            </p>
+                            <p
+                                class="parking-countdown"
+                                data-arrival="{{ reservation.arrived_at|date:'c' }}"
+                                data-duration-hours="{{ reservation.duration_hours }}"
+                            >
+                                Calcul du temps restant…
+                            </p>
+                        {% else %}
+                            <form method="post" action="{% url 'parking:confirm_arrival' reservation.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Confirmer mon arrivée</button>
+                            </form>
+                            <p>Le décompte commencera après confirmation de votre arrivée.</p>
+                        {% endif %}
                         <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}">
                             {% csrf_token %}
                             <button type="submit">Annuler la réservation</button>
@@ -38,4 +60,28 @@
     {% endif %}
 
     <p><a href="{% url 'parking:parking_list' %}">Voir les parkings</a></p>
+
+    <script>
+        const formatRemainingTime = (totalSeconds) => {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours} h ${minutes} min ${seconds} s`;
+        };
+
+        const updateCountdowns = () => {
+            document.querySelectorAll(".parking-countdown").forEach((countdown) => {
+                const arrival = new Date(countdown.dataset.arrival).getTime();
+                const durationMs = Number(countdown.dataset.durationHours) * 60 * 60 * 1000;
+                const remainingMs = arrival + durationMs - Date.now();
+
+                countdown.textContent = remainingMs > 0
+                    ? `Temps de stationnement restant : ${formatRemainingTime(Math.floor(remainingMs / 1000))}`
+                    : "La durée réservée est écoulée.";
+            });
+        };
+
+        updateCountdowns();
+        window.setInterval(updateCountdowns, 1000);
+    </script>
 {% endblock %}

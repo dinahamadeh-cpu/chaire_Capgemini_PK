@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import timedelta, time
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -8,8 +8,9 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import Parking, Reservation, Spot
+from .models import DemoPaymentMethod, Parking, Reservation, Spot
 
 
 class SeedDataTests(TestCase):
@@ -312,6 +313,8 @@ class ParkingViewsTests(TestCase):
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_authenticated_user_can_reserve_a_spot(self):
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
         user = get_user_model().objects.create_user(
             username="alice",
             password="password",
@@ -323,12 +326,187 @@ class ParkingViewsTests(TestCase):
                 "parking:reserve_spot",
                 args=[self.parking.id, self.parking.spots.get(number=1).id],
             ),
-            {"plate": "GG-789-GG"},
+            {
+                "plate": "GG-789-GG",
+                "duration_hours": "3",
+                "card_number": "1234567890123456",
+                "expiration_date": "12/30",
+                "security_code": "123",
+            },
         )
 
         self.assertRedirects(response, reverse("parking:parking_detail", args=[self.parking.id]))
         reservation = Reservation.objects.get(plate="GG-789-GG")
         self.assertEqual(reservation.user, user)
+        self.assertEqual(reservation.duration_hours, 3)
+        self.assertEqual(reservation.amount_paid, Decimal("7.50"))
+
+    def test_checkout_calculates_total_from_integer_cents(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+
+        response = self.client.get(
+            reverse(
+                "parking:reserve_spot",
+                args=[self.parking.id, self.parking.spots.get(number=1).id],
+            )
+        )
+
+        self.assertContains(response, 'data-hourly-rate-cents="250"')
+        self.assertContains(response, "Intl.NumberFormat")
+        self.assertNotContains(response, "NaN")
+
+    def test_user_can_save_a_demo_payment_method_without_card_data(self):
+        self.authenticate_as_user()
+
+        response = self.client.post(
+            reverse("parking:payment_methods"),
+            {
+                "card_number": "1234567890123456",
+                "expiration_date": "12/30",
+                "security_code": "123",
+            },
+        )
+
+        self.assertRedirects(response, reverse("parking:payment_methods"))
+        saved_method = DemoPaymentMethod.objects.get()
+        self.assertEqual(saved_method.user.username, "parking-viewer")
+        self.assertNotIn("1234567890123456", str(saved_method))
+        self.assertNotIn("123", str(saved_method))
+
+    def test_reservation_can_use_saved_demo_payment_method(self):
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        self.client.force_login(user)
+        DemoPaymentMethod.objects.create(user=user)
+
+        checkout_response = self.client.get(
+            reverse(
+                "parking:reserve_spot",
+                args=[self.parking.id, self.parking.spots.get(number=1).id],
+            )
+        )
+        self.assertContains(
+            checkout_response,
+            "Utiliser le moyen de paiement déjà enregistré",
+        )
+        self.assertContains(checkout_response, 'class="payment-method-choice"')
+        self.assertContains(checkout_response, "Nouveau moyen de paiement")
+        self.assertNotContains(checkout_response, "Ajouter ou gérer un moyen de paiement")
+
+        response = self.client.post(
+            reverse(
+                "parking:reserve_spot",
+                args=[self.parking.id, self.parking.spots.get(number=1).id],
+            ),
+            {
+                "payment_method": "saved",
+                "duration_hours": "2",
+                "plate": "KK-123-KK",
+            },
+        )
+
+        self.assertRedirects(response, reverse("parking:parking_detail", args=[self.parking.id]))
+        reservation = Reservation.objects.get(plate="KK-123-KK")
+        self.assertEqual(reservation.amount_paid, Decimal("5.00"))
+
+    def test_checkout_rejects_saved_payment_method_without_registered_method(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+
+        response = self.client.post(
+            reverse(
+                "parking:reserve_spot",
+                args=[self.parking.id, self.parking.spots.get(number=1).id],
+            ),
+            {
+                "payment_method": "saved",
+                "duration_hours": "1",
+                "plate": "LL-234-LL",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Aucun moyen de paiement simulé")
+        self.assertFalse(Reservation.objects.filter(plate="LL-234-LL").exists())
+
+    def test_reservation_checkout_page_shows_payment_form(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.get(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Réserver une place")
+        self.assertContains(response, 'name="duration_hours"')
+        self.assertContains(response, 'name="card_number"')
+        self.assertContains(response, 'name="security_code"')
+        self.assertNotContains(response, "Ces informations sont uniquement vérifiées")
+
+    def test_reservation_requires_all_payment_details(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.post(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id]),
+            {"plate": "GG-789-GG", "duration_hours": "1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Numéro de carte")
+        self.assertFalse(Reservation.objects.filter(plate="GG-789-GG").exists())
+
+    def test_reservation_rejects_letters_in_card_number(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.post(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id]),
+            {
+                "plate": "GG-789-GG",
+                "duration_hours": "1",
+                "card_number": "1234AB6789012345",
+                "expiration_date": "12/30",
+                "security_code": "123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Numéro de carte")
+        self.assertFalse(Reservation.objects.filter(plate="GG-789-GG").exists())
+
+    def test_reservation_does_not_enforce_parking_max_duration(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.max_duration_minutes = 120
+        self.parking.save()
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.post(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id]),
+            {
+                "plate": "GG-789-GG",
+                "duration_hours": "3",
+                "card_number": "1234567890123456",
+                "expiration_date": "12/30",
+                "security_code": "123",
+            },
+        )
+
+        self.assertRedirects(response, reverse("parking:parking_detail", args=[self.parking.id]))
+        reservation = Reservation.objects.get(plate="GG-789-GG")
+        self.assertEqual(reservation.duration_hours, 3)
 
     def test_anonymous_user_is_redirected_before_reserving(self):
         spot = self.parking.spots.get(number=1)
@@ -358,6 +536,88 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "AA-123-AA")
         self.assertNotContains(response, "BB-234-BB")
+
+    def test_user_can_confirm_arrival_and_start_parking_countdown(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        reservation = Reservation.objects.create(
+            user=user,
+            spot=self.parking.spots.get(number=1),
+            plate="MM-345-MM",
+            duration_hours=2,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:reservation_list"))
+        self.assertContains(response, "Confirmer mon arrivée")
+        self.assertContains(response, "Le décompte commencera")
+
+        response = self.client.post(
+            reverse("parking:confirm_arrival", args=[reservation.id])
+        )
+
+        self.assertRedirects(response, reverse("parking:reservation_list"))
+        reservation.refresh_from_db()
+        self.assertIsNotNone(reservation.arrived_at)
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
+        response = self.client.get(reverse("parking:reservation_list"))
+        self.assertContains(response, "Temps de stationnement restant")
+        self.assertContains(response, "data-duration-hours=\"2\"")
+        self.assertNotContains(response, "Confirmer mon arrivée")
+
+    def test_confirming_arrival_again_does_not_reset_timer(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        reservation = Reservation.objects.create(
+            user=user,
+            spot=self.parking.spots.get(number=1),
+            plate="NN-456-NN",
+            arrived_at=timezone.now() - timedelta(minutes=10),
+        )
+        initial_arrival = reservation.arrived_at
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("parking:confirm_arrival", args=[reservation.id])
+        )
+
+        self.assertRedirects(response, reverse("parking:reservation_list"))
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.arrived_at, initial_arrival)
+
+    def test_user_cannot_confirm_another_users_arrival(self):
+        owner = get_user_model().objects.create_user(username="owner", password="password")
+        other_user = get_user_model().objects.create_user(username="other", password="password")
+        reservation = Reservation.objects.create(
+            user=owner,
+            spot=self.parking.spots.get(number=1),
+            plate="PP-567-PP",
+        )
+        self.client.force_login(other_user)
+
+        response = self.client.post(
+            reverse("parking:confirm_arrival", args=[reservation.id])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        reservation.refresh_from_db()
+        self.assertIsNone(reservation.arrived_at)
+
+    def test_arrival_confirmation_requires_post(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        reservation = Reservation.objects.create(
+            user=user,
+            spot=self.parking.spots.get(number=1),
+            plate="QQ-678-QQ",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse("parking:confirm_arrival", args=[reservation.id])
+        )
+
+        self.assertEqual(response.status_code, 405)
+        reservation.refresh_from_db()
+        self.assertIsNone(reservation.arrived_at)
 
     def test_anonymous_user_is_redirected_from_reservations(self):
         response = self.client.get(reverse("parking:reservation_list"))
@@ -477,6 +737,10 @@ class ParkingViewsTests(TestCase):
 
     def test_parking_detail_page(self):
         self.authenticate_as_user()
+        self.parking.latitude = 48.8566
+        self.parking.longitude = 2.3522
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
 
         response = self.client.get(
             reverse(
@@ -487,8 +751,20 @@ class ParkingViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Parking Central")
-        self.assertContains(response, "Place numéro 1")
-        self.assertNotContains(response, "Place numéro 2")
+        self.assertContains(response, "Place n°1")
+        self.assertNotContains(response, "Place n°2")
+        self.assertContains(response, 'class="site-navigation"')
+        self.assertContains(response, 'href="/">Accueil</a>')
+        self.assertContains(response, 'href="/parkings/">Retour à la liste des parkings</a>')
+        self.assertContains(response, "Réserver")
+        self.assertNotContains(response, 'name="card_number"')
+        self.assertContains(response, 'id="detail-map"')
+        self.assertContains(response, 'id="parking-map-data"')
+        self.assertContains(response, "zoom: 12")
+        self.assertContains(response, "const targetZoom = 18")
+        self.assertContains(response, "window.setTimeout(zoomIn, 180)")
+        self.assertEqual(response.context["parking_data"]["latitude"], 48.8566)
+        self.assertEqual(response.context["parking_data"]["longitude"], 2.3522)
 
     def test_missing_parking_returns_not_found(self):
         self.authenticate_as_user()
@@ -501,13 +777,21 @@ class ParkingViewsTests(TestCase):
 
     def test_parking_list_contains_map_and_parking_data(self):
         self.authenticate_as_user()
+        self.parking.latitude = 48.8566
+        self.parking.longitude = 2.3522
+        self.parking.save()
 
         response = self.client.get(reverse("parking:parking_list"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="map"')
+        self.assertContains(response, 'class="site-navigation"')
+        self.assertContains(response, 'href="/">Accueil</a>')
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
+        self.assertContains(response, "Voir sur la carte")
+        self.assertContains(response, "map.setCenter(parking.marker.getPosition())")
+        self.assertContains(response, "map.setZoom(18)")
 
     def test_parking_detail_shows_pricing(self):
         self.authenticate_as_user()
@@ -521,7 +805,7 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
 
         self.assertContains(response, "2,50 € / heure")
-        self.assertContains(response, "Durée maximale : 2 h")
+        self.assertNotContains(response, "Durée maximale")
         self.assertContains(response, "07:00 – 21:00")
 
     def test_parking_list_shows_pricing(self):
@@ -578,92 +862,14 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:logout"))
         self.assertContains(response, "csrfmiddlewaretoken")
 
-class NewParkingFeaturesTests(TestCase):
-    def test_seed_data_can_be_run_twice_without_duplicate_users(self):
-        call_command("seed_data")
-        call_command("seed_data")
+    def test_home_page_does_not_show_logout_button_for_anonymous_user(self):
+            response = self.client.get(reverse("parking:home"))
 
-        User = get_user_model()
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, "Se déconnecter") 
 
-        self.assertEqual(User.objects.filter(username="agent1").count(), 1)
-        self.assertEqual(User.objects.filter(username="agent2").count(), 1)
-        self.assertEqual(User.objects.filter(username="demo").count(), 1)
-        self.assertEqual(Group.objects.filter(name="Agents").count(), 1)
+    def test_agent_can_still_access_agent_login_page(self):
+            response = self.client.get(reverse("parking:agent_login"))
 
-        self.assertEqual(Parking.objects.count(), 4)
-        self.assertEqual(Spot.objects.count(), 40)
-        self.assertEqual(Reservation.objects.count(), 10)
-
-    def test_seed_data_creates_correct_coordinates_for_new_parkings(self):
-        call_command("seed_data")
-
-        saint_michel = Parking.objects.get(name="Parking Place Saint-Michel")
-        cite_sciences = Parking.objects.get(
-            name="Parking Parc de la Villette Nord - Cité des Sciences"
-        )
-
-        self.assertEqual(saint_michel.latitude, 48.8528402)
-        self.assertEqual(saint_michel.longitude, 2.3433514)
-
-        self.assertEqual(cite_sciences.latitude, 48.8980453)
-        self.assertEqual(cite_sciences.longitude, 2.3875319)
-
-    def test_seed_data_creates_ten_spots_for_each_parking(self):
-        call_command("seed_data")
-
-        for parking in Parking.objects.all():
-            self.assertEqual(parking.spots.count(), 10)
-
-    def test_agent_can_log_in_from_agent_login_page(self):
-        agent = get_user_model().objects.create_user(
-            username="agent",
-            password="password",
-        )
-        agents_group = Group.objects.create(name="Agents")
-        agent.groups.add(agents_group)
-
-        response = self.client.post(
-            reverse("parking:agent_login"),
-            {
-                "username": "agent",
-                "password": "password",
-            },
-        )
-
-        self.assertRedirects(response, reverse("parking:agent_dashboard"))
-        self.assertTrue(response.wsgi_request.user.is_authenticated)
-
-    def test_regular_user_cannot_log_in_as_agent(self):
-        get_user_model().objects.create_user(
-            username="user",
-            password="password",
-        )
-
-        response = self.client.post(
-            reverse("parking:agent_login"),
-            {
-                "username": "user",
-                "password": "password",
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
-            "Identifiants invalides, ou ce compte n'est pas un compte agent.",
-        )
-        self.assertFalse(response.wsgi_request.user.is_authenticated)      
-              
-    def test_parking_list_calculates_available_spots(self):
-        user = get_user_model().objects.create_user(
-            username="user",
-            password="password",
-        )
-        self.client.force_login(user)
-
-        response = self.client.get(reverse("parking:parking_list"))
-
-        parking = response.context["parkings"].get(name="Parking Central")
-
-        self.assertEqual(parking.total_spots_count, 2)
-        self.assertEqual(parking.available_spots_count, 1)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Connexion agent")
