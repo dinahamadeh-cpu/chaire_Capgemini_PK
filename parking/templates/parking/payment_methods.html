@@ -1,0 +1,66 @@
+{% extends "parking/base.html" %}
+
+{% block title %}Moyen de paiement{% endblock %}
+
+{% block content %}
+    <nav>
+        <a class="button secondary" href="{% url 'parking:home' %}">Accueil</a>
+        <a class="button secondary" href="{% url 'parking:parking_list' %}">Liste des parkings</a>
+    </nav>
+
+    <h1>Moyen de paiement</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if payment_method %}
+        <p class="conforme">Un moyen de paiement simulé est prêt à être utilisé.</p>
+        <p>Les données de carte saisies ne sont pas conservées.</p>
+    {% else %}
+        <p>Ajoute un moyen de paiement simulé pour éviter de ressaisir les informations à chaque réservation.</p>
+    {% endif %}
+
+    {% if form_errors %}
+        <div class="error" role="alert">
+            {% for error in form_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'parking:payment_methods' %}">
+        {% csrf_token %}
+        <p>
+            {{ form.card_number.label_tag }}
+            {{ form.card_number }}
+        </p>
+        <p>
+            {{ form.expiration_date.label_tag }}
+            {{ form.expiration_date }}
+        </p>
+        <p>
+            {{ form.security_code.label_tag }}
+            {{ form.security_code }}
+        </p>
+        <button type="submit">Enregistrer le moyen simulé</button>
+    </form>
+
+    <script>
+        document.querySelectorAll(".numeric-only").forEach((input) => {
+            input.addEventListener("input", () => {
+                input.value = input.value.replace(/[^0-9]/g, "");
+            });
+        });
+
+        const expirationInput = document.querySelector('[name="expiration_date"]');
+        expirationInput.addEventListener("input", () => {
+            const digits = expirationInput.value.replace(/[^0-9]/g, "").slice(0, 4);
+            expirationInput.value = digits.length > 2
+                ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+                : digits;
+        });
+    </script>
+{% endblock %}
