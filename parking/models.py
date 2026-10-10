@@ -76,6 +76,18 @@ class Spot(models.Model):
         return f"{self.parking} - place {self.number}"
 
 
+class DemoPaymentMethod(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="demo_payment_method",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Moyen de paiement simulé de {self.user}"
+
+
 class Reservation(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
@@ -91,8 +103,11 @@ class Reservation(models.Model):
     )
     spot = models.ForeignKey(Spot, on_delete=models.CASCADE, related_name="reservations")
     plate = models.CharField(max_length=9, validators=[plate_validator])
+    duration_hours = models.PositiveSmallIntegerField(default=1)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
+    arrived_at = models.DateTimeField(null=True, blank=True)
     ended_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
