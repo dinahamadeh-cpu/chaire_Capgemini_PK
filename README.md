@@ -74,4 +74,13 @@ uv run python manage.py test
 ## Suivi de l'équipe
 
 ### En cours
-- Mettre les points des parkings sur la carte, avec le focus sur une ville en particulier.
+- Compléter l'historique d'occupation pour faciliter l'analyse des tendances.
+- Compléter la vue agent des places libres et occupées en temps réel.
+- Ajouter au récapitulatif la durée réellement utilisée ainsi que les heures d'arrivée et de départ.
+
+### À faire
+- Filtrer les parkings par type, tarif et distance.
+- Ajouter des parkings aux favoris.
+- Permettre à l'usager d'indiquer son départ.
+- Calculer la durée réelle et ajuster le montant au départ.
+- Géolocaliser une infraction.
