@@ -2,56 +2,168 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>{{ parking.name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ parking.name }} — Parking</title>
+    <style>
+        :root { --primary: #2457c5; --primary-dark: #173d91; --accent: #0e9f72; --ink: #172033; --muted: #60708a; --border: #dbe2ee; --background: #f4f7fb; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; background: var(--background); color: var(--ink); font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+        a { color: var(--primary); }
+        .site-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem, 4vw, 2rem); background: linear-gradient(135deg, var(--primary), var(--primary-dark)); box-shadow: 0 2px 12px rgba(23, 61, 145, .18); }
+        .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
+        .brand { font-size: 1.15rem; }
+        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
+        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
+        .detail-layout { display: grid; grid-template-columns: minmax(280px, 42%) 1fr; gap: 0; min-height: calc(100vh - 68px); }
+        .map-section { position: sticky; top: 0; height: calc(100vh - 68px); background: #dfe7f4; }
+        #detail-map { width: 100%; height: 100%; min-height: 420px; }
+        .parking-details-section { max-width: 840px; width: 100%; padding: clamp(1.25rem, 4vw, 3rem); }
+        .back-link { display: inline-block; margin-bottom: 1.25rem; font-weight: 700; text-decoration: none; }
+        h1 { margin: 0 0 .45rem; font-size: clamp(1.8rem, 4vw, 2.7rem); }
+        h2 { margin: 0; font-size: 1.35rem; }
+        .parking-address { margin: 0; color: var(--muted); line-height: 1.5; }
+        .detail-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin: 1.5rem 0 2rem; }
+        .detail-summary-item { display: flex; flex-direction: column; gap: .35rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+        .detail-summary-item span { color: var(--muted); font-size: .88rem; }
+        .detail-summary-item strong { font-size: 1.08rem; }
+        .section-card { margin-top: 1.25rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: 0 5px 18px rgba(31, 52, 89, .06); }
+        .pricing { display: grid; gap: .75rem; padding: 0; margin: 1rem 0 0; list-style: none; color: var(--muted); }
+        .pricing li { padding-bottom: .65rem; border-bottom: 1px solid #edf0f5; }
+        .pricing li:last-child { padding-bottom: 0; border-bottom: 0; }
+        .section-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 1rem; }
+        .section-heading p { margin: 0; color: var(--muted); }
+        .spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: .75rem; }
+        .spot-card { display: flex; flex-direction: column; gap: .4rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: #fbfdff; color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s, border-color .15s; }
+        .spot-card:hover, .spot-card:focus-visible { border-color: var(--primary); box-shadow: 0 6px 18px rgba(36, 87, 197, .15); transform: translateY(-2px); }
+        .spot-icon { font-size: 1.35rem; }
+        .spot-card span:last-child { color: var(--primary); font-weight: 700; }
+        .empty-state { padding: 1rem; border: 1px dashed #a9bce5; border-radius: 12px; background: #f8fbff; color: var(--muted); }
+        .empty-state p { margin-top: 0; }
+        .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
+        .button:hover, .button:focus-visible { background: var(--primary-dark); }
+        .reservation-form { display: grid; gap: .65rem; margin-top: .8rem; }
+        .reservation-form label { color: var(--muted); font-size: .9rem; font-weight: 600; }
+        .reservation-form input { width: 100%; padding: .65rem .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+        .reservation-form input:focus { outline: 3px solid rgba(36,87,197,.18); border-color: var(--primary); }
+        .reservation-form button { min-height: 42px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
+        .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
+        @media (max-width: 800px) {
+            .detail-layout { display: flex; flex-direction: column; }
+            .parking-details-section { order: 1; }
+            .map-section { order: 2; position: static; height: 360px; min-height: 360px; }
+            #detail-map { min-height: 360px; }
+        }
+        @media (max-width: 560px) {
+            .site-header { align-items: flex-start; flex-direction: column; }
+            .detail-summary { grid-template-columns: 1fr; }
+            .section-heading { display: block; }
+            .section-heading p { margin-top: .35rem; }
+            .spot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+    </style>
 </head>
 <body>
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
+    <header class="site-header">
+        <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
+        <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+    </header>
 
-    <p>
-        <a href="{% url 'parking:home' %}">Accueil</a> ·
-        <a href="{% url 'parking:parking_list' %}">
-            Retour à la liste des parkings
-        </a>
-    </p>
+    <main class="detail-layout">
+        <section class="map-section" aria-label="Localisation du parking">
+            <div id="detail-map"></div>
+        </section>
 
-    <h1>{{ parking.name }}</h1>
+        <section class="parking-details-section">
+            <a class="back-link" href="{% url 'parking:parking_list' %}">← Retour à la liste</a>
 
-    <p>Adresse : {{ parking.address }}</p>
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="message" role="status">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
 
-    <p>
-        Places disponibles : {{ available_spots|length }} / {{ total_spots }}
-    </p>
+            <header>
+                <h1>{{ parking.name }}</h1>
+                <p class="parking-address">{{ parking.address }}</p>
+            </header>
 
-    <h2>Tarif et horaires</h2>
+            <div class="detail-summary">
+                <div class="detail-summary-item">
+                    <span>Places disponibles</span>
+                    <strong>{{ available_spots|length }}/{{ total_spots }}</strong>
+                </div>
+                <div class="detail-summary-item">
+                    <span>Tarif</span>
+                    <strong>{% if parking.hourly_rate is None %}Non renseigné{% elif parking.hourly_rate == 0 %}Gratuit{% else %}{{ parking.hourly_rate|floatformat:2 }} €/h{% endif %}</strong>
+                </div>
+                <div class="detail-summary-item">
+                    <span>Horaires</span>
+                    <strong>{{ parking.opening_hours_display }}</strong>
+                </div>
+            </div>
 
-    {% include "parking/_pricing.html" %}
+            <section class="section-card" aria-labelledby="pricing-title">
+                <h2 id="pricing-title">Tarif et horaires</h2>
+                {% include "parking/_pricing.html" %}
+            </section>
 
-    <h2>Places disponibles</h2>
+            <section class="section-card" aria-labelledby="spots-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="spots-title">Choisir une place</h2>
+                        <p>{{ available_spots|length }} place{{ available_spots|length|pluralize }} disponible{{ available_spots|length|pluralize }}</p>
+                    </div>
+                </div>
 
-    {% if available_spots %}
-        <ul>
-            {% for spot in available_spots %}
-                <li>
-                    Place numéro {{ spot.number }}
-                    {% if user.is_authenticated %}
-                        <form method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
-                            {% csrf_token %}
-                            <label for="plate-{{ spot.id }}">Plaque :</label>
-                            <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
-                            <button type="submit">Réserver</button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Aucune place disponible dans ce parking.</p>
-    {% endif %}
+                {% if available_spots %}
+                    <div class="spot-grid">
+                        {% for spot in available_spots %}
+                            <article class="spot-card">
+                                <span class="spot-icon" aria-hidden="true">🅿️</span>
+                                <strong>Place n°{{ spot.number }}</strong>
+                                {% if user.is_authenticated %}
+                                    <form class="reservation-form" method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
+                                        {% csrf_token %}
+                                        <label for="plate-{{ spot.id }}">Plaque d'immatriculation</label>
+                                        <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
+                                        <button type="submit">Réserver</button>
+                                    </form>
+                                {% else %}
+                                    <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p><strong>Aucune place disponible dans ce parking.</strong></p>
+                        <a class="button" href="{% url 'parking:parking_list' %}">Voir un autre parking</a>
+                    </div>
+                {% endif %}
+            </section>
+        </section>
+    </main>
+
+    {{ parking_data|json_script:"parking-data" }}
+    <script>
+        function initMap() {
+            const parking = JSON.parse(document.getElementById("parking-data").textContent);
+            const map = new google.maps.Map(document.getElementById("detail-map"), {
+                zoom: 15,
+                center: { lat: parking.latitude ?? 48.8566, lng: parking.longitude ?? 2.3522 }
+            });
+            if (parking.latitude !== null && parking.longitude !== null) {
+                const marker = new google.maps.Marker({
+                    position: { lat: parking.latitude, lng: parking.longitude },
+                    map: map,
+                    title: parking.name
+                });
+                const infoWindow = new google.maps.InfoWindow({ content: `<strong>${parking.name}</strong><br>${parking.address}` });
+                marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+            }
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap" async defer></script>
 </body>
 </html>
