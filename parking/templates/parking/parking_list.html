@@ -70,6 +70,16 @@
             height: calc(100vh - 62px);
         }
 
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem clamp(1rem, 4vw, 2rem);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
+        }
+
         .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
         .brand { font-size: 1.15rem; }
         .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
@@ -279,23 +289,18 @@
                         anchor: marker,
                         map: map
                     });
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: `<strong>${parking.name}</strong><br>${parking.address}`
-                    });
-                    marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
-                    parkingMarkers.set(String(parking.id), marker);
-                }
-            });
+                });
+            }
+        });
 
             document.querySelectorAll(".focus-map-button").forEach((button) => {
                 button.addEventListener("click", () => {
-                    const marker = parkingMarkers.get(button.dataset.parkingId);
-                    if (!marker) return;
-                    map.panTo(marker.getPosition());
+                    const parking = parkingMarkers.get(button.dataset.parkingId);
+                    if (!parking) return;
+                    map.panTo(parking.marker.getPosition());
                     map.setZoom(15);
-                    google.maps.event.trigger(marker, "click");
+                    google.maps.event.trigger(parking.marker, "click");
                 });
-            }
         });
 
         document.querySelectorAll("[data-parking-id]").forEach((button) => {
