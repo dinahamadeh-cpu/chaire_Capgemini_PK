@@ -5,7 +5,8 @@
     <p>Connecté en tant que {{ request.user.username }}.</p>
     <nav>
         <a class="button" href="{% url 'parking:agent_plate_check' %}">Vérifier une plaque</a>
-        <a class="button" href="{% url 'parking:agent_stats' %}">Statistiques d'occupation</a>
+        <a class="button" href="{% url 'parking:agent_stats' %}">Occupation en temps réel</a>
+        <a class="button" href="{% url 'parking:agent_affluence' %}">Analyse de l'affluence</a>
     </nav>
     <p><a href="{% url 'parking:agent_logout' %}">Se déconnecter</a></p>
 {% endblock %}

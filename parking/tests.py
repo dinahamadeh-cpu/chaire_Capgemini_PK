@@ -1,4 +1,4 @@
-from datetime import timedelta, time
+from datetime import datetime, timedelta, time
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -25,7 +25,11 @@ class SeedDataTests(TestCase):
         self.assertEqual(Spot.objects.count(), 40)
         self.assertEqual(Reservation.objects.filter(user__in=agents).count(), 0)
         self.assertEqual(Reservation.objects.filter(user=demo_user).count(), 2)
-        self.assertEqual(Reservation.objects.filter(user__isnull=True).count(), 8)
+        self.assertEqual(Reservation.objects.filter(user__isnull=True, arrived_at__isnull=True).count(), 8)
+        history = Reservation.objects.filter(arrived_at__isnull=False)
+        self.assertGreater(history.count(), 0)
+        self.assertFalse(history.filter(status=Reservation.Status.ACTIVE).exists())
+        self.assertFalse(history.filter(created_at__date__gte=timezone.localdate()).exists())
         self.assertEqual(
             Parking.objects.filter(latitude__isnull=False, longitude__isnull=False).count(),
             4,
@@ -873,3 +877,253 @@ class ParkingViewsTests(TestCase):
 
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "Connexion agent")
+
+
+class AgentStatsTests(TestCase):
+    def setUp(self):
+        self.parking = Parking.objects.create(name="Parking Gare", address="2 place de la Gare")
+        self.spot_1 = Spot.objects.create(parking=self.parking, number=1)
+        self.spot_2 = Spot.objects.create(parking=self.parking, number=2)
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+    def test_non_agent_is_redirected(self):
+        self.client.force_login(get_user_model().objects.create_user(username="bob", password="password"))
+
+        response = self.client.get(reverse("parking:agent_stats"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_login')}?next={reverse('parking:agent_stats')}",
+            fetch_redirect_response=False,
+        )
+
+    def test_stats_show_parked_plates_and_occupancy(self):
+        Reservation.objects.create(spot=self.spot_1, plate="AB-123-CD")
+
+        response = self.client.get(reverse("parking:agent_stats"))
+
+        self.assertEqual(response.status_code, 200)
+        entry = response.context["stats"][0]
+        self.assertEqual(entry["occupied"], 1)
+        self.assertEqual(entry["free"], 1)
+        self.assertEqual(entry["rate"], 50)
+        self.assertEqual([r.plate for r in entry["active_reservations"]], ["AB-123-CD"])
+        self.assertContains(response, "AB-123-CD")
+
+    def test_movements_list_plates_with_most_recent_first(self):
+        reservation = Reservation.objects.create(spot=self.spot_1, plate="AB-123-CD")
+        reservation.status = Reservation.Status.COMPLETED
+        reservation.ended_at = reservation.created_at + timedelta(hours=1)
+        reservation.save()
+        Reservation.objects.create(spot=self.spot_2, plate="EF-456-GH")
+
+        response = self.client.get(reverse("parking:agent_stats"))
+
+        entry = response.context["stats"][0]
+        self.assertEqual(entry["occupied"], 1)
+        self.assertEqual(entry["active_reservations"][0].plate, "EF-456-GH")
+        self.assertEqual(
+            [(m["label"], m["plate"]) for m in entry["movements"]],
+            [("Départ", "AB-123-CD"), ("Réservation", "EF-456-GH"), ("Réservation", "AB-123-CD")],
+        )
+        self.assertContains(response, "Départ")
+
+    def test_cancelled_reservation_frees_the_spot(self):
+        reservation = Reservation.objects.create(spot=self.spot_1, plate="AB-123-CD")
+        reservation.status = Reservation.Status.CANCELLED
+        reservation.ended_at = timezone.now()
+        reservation.save()
+
+        response = self.client.get(reverse("parking:agent_stats"))
+
+        entry = response.context["stats"][0]
+        self.assertEqual(entry["occupied"], 0)
+        self.assertEqual(entry["movements"][0]["label"], "Annulation")
+        self.assertEqual(entry["movements"][0]["occupied"], 0)
+
+
+class UserDepartureAndSummaryTests(TestCase):
+    def setUp(self):
+        self.parking = Parking.objects.create(name="Parking Gare", address="2 place de la Gare")
+        self.spot = Spot.objects.create(parking=self.parking, number=1)
+        self.user = get_user_model().objects.create_user(username="alice", password="password")
+        self.client.force_login(self.user)
+
+    def create_reservation(self, **kwargs):
+        return Reservation.objects.create(
+            user=self.user,
+            spot=self.spot,
+            plate="AB-123-CD",
+            duration_hours=2,
+            amount_paid=Decimal("5.00"),
+            **kwargs,
+        )
+
+    def test_user_can_declare_departure_after_arrival(self):
+        reservation = self.create_reservation(arrived_at=timezone.now() - timedelta(minutes=30))
+
+        response = self.client.post(reverse("parking:declare_departure", args=[reservation.id]))
+
+        self.assertRedirects(response, reverse("parking:reservation_summary", args=[reservation.id]))
+        reservation.refresh_from_db()
+        self.spot.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.COMPLETED)
+        self.assertIsNotNone(reservation.ended_at)
+        self.assertTrue(self.spot.is_available)
+
+    def test_departure_requires_confirmed_arrival(self):
+        reservation = self.create_reservation()
+
+        response = self.client.post(reverse("parking:declare_departure", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 404)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
+    def test_user_cannot_declare_departure_for_another_user(self):
+        other = get_user_model().objects.create_user(username="bob", password="password")
+        reservation = Reservation.objects.create(
+            user=other, spot=self.spot, plate="EF-456-GH", arrived_at=timezone.now()
+        )
+
+        response = self.client.post(reverse("parking:declare_departure", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 404)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
+    def test_departure_requires_post(self):
+        reservation = self.create_reservation(arrived_at=timezone.now())
+
+        response = self.client.get(reverse("parking:declare_departure", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_reservation_list_shows_departure_button_only_after_arrival(self):
+        reservation = self.create_reservation()
+        url = reverse("parking:declare_departure", args=[reservation.id])
+
+        self.assertNotContains(self.client.get(reverse("parking:reservation_list")), url)
+
+        reservation.arrived_at = timezone.now()
+        reservation.save()
+        response = self.client.get(reverse("parking:reservation_list"))
+        self.assertContains(response, url)
+        self.assertContains(response, reverse("parking:reservation_summary", args=[reservation.id]))
+
+    def test_summary_shows_arrival_departure_duration_and_amount(self):
+        arrived_at = timezone.now() - timedelta(hours=1, minutes=5)
+        reservation = self.create_reservation(arrived_at=arrived_at)
+        reservation.status = Reservation.Status.COMPLETED
+        reservation.ended_at = arrived_at + timedelta(hours=1, minutes=5)
+        reservation.save()
+
+        response = self.client.get(reverse("parking:reservation_summary", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Parking Gare")
+        self.assertContains(response, "AB-123-CD")
+        self.assertContains(response, "1 h 05")
+        self.assertContains(response, "5,00 €")
+        self.assertNotContains(response, "Durée réservée dépassée")
+
+    def test_summary_flags_exceeded_duration(self):
+        arrived_at = timezone.now() - timedelta(hours=3)
+        reservation = self.create_reservation(arrived_at=arrived_at)
+        reservation.status = Reservation.Status.COMPLETED
+        reservation.ended_at = timezone.now()
+        reservation.save()
+
+        response = self.client.get(reverse("parking:reservation_summary", args=[reservation.id]))
+
+        self.assertContains(response, "Durée réservée dépassée")
+
+    def test_user_cannot_see_summary_of_another_user(self):
+        other = get_user_model().objects.create_user(username="bob", password="password")
+        reservation = Reservation.objects.create(user=other, spot=self.spot, plate="EF-456-GH")
+
+        response = self.client.get(reverse("parking:reservation_summary", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 404)
+
+
+class AgentAffluenceTests(TestCase):
+    def setUp(self):
+        self.parking = Parking.objects.create(name="Parking Gare", address="2 place de la Gare")
+        self.other_parking = Parking.objects.create(name="Parking Nord", address="3 rue du Nord")
+        self.spots = [Spot.objects.create(parking=self.parking, number=n) for n in range(1, 5)]
+        self.other_spot = Spot.objects.create(parking=self.other_parking, number=1)
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+        self.yesterday = timezone.localdate() - timedelta(days=1)
+
+    def at(self, hour, minute=0):
+        return timezone.make_aware(datetime.combine(self.yesterday, time(hour, minute)))
+
+    def create_past_reservation(self, spot, plate, start, end):
+        reservation = Reservation.objects.create(spot=spot, plate=plate, status=Reservation.Status.COMPLETED)
+        Reservation.objects.filter(pk=reservation.pk).update(created_at=start, ended_at=end)
+
+    def create_yesterday_traffic(self):
+        self.create_past_reservation(self.spots[0], "AA-111-AA", self.at(10), self.at(12))
+        self.create_past_reservation(self.spots[1], "BB-222-BB", self.at(11), self.at(11, 30))
+        self.create_past_reservation(self.spots[2], "CC-333-CC", self.at(11, 15), self.at(11, 20))
+        self.create_past_reservation(self.other_spot, "DD-444-DD", self.at(18), self.at(19))
+
+    def test_non_agent_is_redirected(self):
+        self.client.force_login(get_user_model().objects.create_user(username="bob", password="password"))
+
+        response = self.client.get(reverse("parking:agent_affluence"))
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_daily_peak_and_entries(self):
+        self.create_yesterday_traffic()
+
+        response = self.client.get(reverse("parking:agent_affluence"), {"parking": self.parking.id})
+
+        self.assertEqual(response.status_code, 200)
+        yesterday = next(entry for entry in response.context["daily"] if entry["day"] == self.yesterday)
+        self.assertEqual(yesterday["entries"], 3)
+        self.assertEqual(yesterday["peak"], 3)
+        self.assertEqual(yesterday["peak_at"], self.at(11, 15))
+        self.assertEqual(yesterday["peak_rate"], 75)
+        self.assertEqual(response.context["busiest_day"]["day"], self.yesterday)
+
+    def test_busiest_hour_and_weekday(self):
+        self.create_yesterday_traffic()
+
+        response = self.client.get(reverse("parking:agent_affluence"), {"parking": self.parking.id})
+
+        self.assertEqual(response.context["busiest_hour"], 11)
+        weekdays = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+        self.assertEqual(response.context["busiest_weekday"], weekdays[self.yesterday.weekday()])
+        self.assertContains(response, "11 h")
+
+    def test_all_parkings_include_every_reservation(self):
+        self.create_yesterday_traffic()
+
+        response = self.client.get(reverse("parking:agent_affluence"))
+
+        self.assertEqual(response.context["total_entries"], 4)
+        self.assertEqual(response.context["total_spots"], 5)
+
+    def test_period_filter(self):
+        response = self.client.get(reverse("parking:agent_affluence"))
+        self.assertEqual(len(response.context["daily"]), 7)
+
+        response = self.client.get(reverse("parking:agent_affluence"), {"jours": "30"})
+        self.assertEqual(len(response.context["daily"]), 30)
+
+        response = self.client.get(reverse("parking:agent_affluence"), {"jours": "abc"})
+        self.assertEqual(len(response.context["daily"]), 7)
+
+    def test_empty_history(self):
+        response = self.client.get(reverse("parking:agent_affluence"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context["busiest_day"])
+        self.assertIsNone(response.context["busiest_hour"])

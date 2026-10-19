@@ -56,8 +56,10 @@ uv run python manage.py createsuperuser
 - **Détail d'un parking** (`/parkings/<id>/`) : le tarif horaire, la durée maximale, les horaires et les places disponibles du parking.
 - **Connexion agent** (`/agent/login/`) : réservée aux comptes agents.
 - **Vérification de plaque** (`/agent/plaque/`) : l'agent saisit une plaque (format `AA-123-AA`), voit si le véhicule a une réservation en cours et peut enregistrer son départ.
-- **Mes réservations** (`/mes-reservations/`) : un usager connecté consulte et annule ses réservations.
-- **Statistiques** (`/agent/statistiques/`) : nombre de places occupées par parking et historique de l'occupation.
+- **Mes réservations** (`/mes-reservations/`) : un usager connecté consulte et annule ses réservations, confirme son arrivée puis déclare son départ.
+- **Récapitulatif** (`/mes-reservations/<id>/`) : arrivée, départ, durée réservée, durée réelle (avec alerte en cas de dépassement) et montant payé.
+- **Occupation en temps réel** (`/agent/statistiques/`) : taux d'occupation global et par parking, liste des véhicules stationnés (place, plaque, arrivée, fin prévue) et historique des derniers mouvements (réservations, départs, annulations) avec les plaques.
+- **Analyse de l'affluence** (`/agent/affluence/`) : sur 7, 30 ou 90 jours, pour un parking ou tous, le pic d'occupation et le nombre de réservations par jour, l'affluence par heure et par jour de la semaine (heure de pointe, jour le plus chargé).
 - **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (y compris tarif, durée maximale et horaires), des places et des réservations.
 
 Règles déjà en place :
@@ -74,13 +76,10 @@ uv run python manage.py test
 ## Suivi de l'équipe
 
 ### En cours
-- Compléter l'historique d'occupation pour faciliter l'analyse des tendances.
 - Compléter la vue agent des places libres et occupées en temps réel.
-- Ajouter au récapitulatif la durée réellement utilisée ainsi que les heures d'arrivée et de départ.
 
 ### À faire
 - Filtrer les parkings par type, tarif et distance.
 - Ajouter des parkings aux favoris.
-- Permettre à l'usager d'indiquer son départ.
-- Calculer la durée réelle et ajuster le montant au départ.
+- Ajuster le montant au départ selon la durée réelle.
 - Géolocaliser une infraction.

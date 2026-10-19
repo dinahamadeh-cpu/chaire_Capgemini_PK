@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -126,6 +128,25 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Réservation de {self.plate} - {self.spot}"
+
+    @property
+    def actual_duration(self):
+        if self.arrived_at is None or self.ended_at is None:
+            return None
+        return self.ended_at - self.arrived_at
+
+    @property
+    def actual_duration_display(self):
+        if self.actual_duration is None:
+            return None
+        hours, minutes = divmod(int(self.actual_duration.total_seconds()) // 60, 60)
+        if hours:
+            return f"{hours} h {minutes:02d}"
+        return f"{minutes} min"
+
+    @property
+    def exceeded_duration(self):
+        return self.actual_duration is not None and self.actual_duration > timedelta(hours=self.duration_hours)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

@@ -1,34 +1,112 @@
 {% extends "parking/base.html" %}
-{% block title %}Statistiques d'occupation - Parking{% endblock %}
+{% block title %}Occupation en temps réel - Parking{% endblock %}
 {% block content %}
-    <h1>Statistiques d'occupation</h1>
+    <style>
+        .kpis { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1rem 0; }
+        .kpi {
+            flex: 1 1 120px;
+            background: #f0f4fb;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+        }
+        .kpi .value { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); }
+        .kpi .label { font-size: 0.85rem; color: #6b7280; }
+        .gauge { height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; }
+        .gauge span { display: block; height: 100%; background: var(--primary); }
+        .parking-stats { border-top: 1px solid #e5e7eb; margin-top: 2rem; padding-top: 0.5rem; }
+        .parking-stats h3 { margin-bottom: 0.3rem; }
+        .table-scroll { overflow-x: auto; }
+        .table-scroll table { font-size: 0.9rem; }
+        .plate {
+            font-family: Consolas, monospace;
+            font-weight: 700;
+            background: #fff;
+            border: 1px solid #9ca3af;
+            border-radius: 4px;
+            padding: 0.05rem 0.35rem;
+            white-space: nowrap;
+        }
+        .tag { font-size: 0.8rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+        .tag.in { color: #047857; background: #ecfdf5; }
+        .tag.out { color: #b91c1c; background: #fef2f2; }
+        .muted { color: #6b7280; font-size: 0.9rem; }
+    </style>
 
-    {% for entry in history %}
-        <h2>{{ entry.parking.name }}</h2>
-        <p>
-            Places totales : {{ entry.total_spots }}<br>
-            Occupées actuellement : {{ entry.current_occupied }} / {{ entry.total_spots }}
-        </p>
-        {% if entry.timeline %}
-            <table>
-                <thead>
-                    <tr><th>Horodatage</th><th>Places occupées</th></tr>
-                </thead>
-                <tbody>
-                    {% for point in entry.timeline %}
-                        <tr>
-                            <td>{{ point.timestamp }}</td>
-                            <td>{{ point.occupied }} / {{ point.total }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>Aucun historique disponible pour ce parking.</p>
-        {% endif %}
+    <h1>Occupation en temps réel</h1>
+
+    <div class="kpis">
+        <div class="kpi"><span class="value">{{ summary.occupied }} / {{ summary.total_spots }}</span><span class="label">places occupées</span></div>
+        <div class="kpi"><span class="value">{{ summary.free }}</span><span class="label">places libres</span></div>
+        <div class="kpi"><span class="value">{{ summary.rate }} %</span><span class="label">taux d'occupation</span></div>
+    </div>
+
+    {% for entry in stats %}
+        <section class="parking-stats">
+            <h2>{{ entry.parking.name }}</h2>
+            <p class="muted">{{ entry.parking.address }}</p>
+            <p>
+                <strong>{{ entry.occupied }} / {{ entry.total_spots }}</strong> places occupées
+                · {{ entry.free }} libre{{ entry.free|pluralize }} · {{ entry.rate }} %
+            </p>
+            <div class="gauge"><span style="width: {{ entry.rate }}%"></span></div>
+
+            <h3>Véhicules stationnés</h3>
+            {% if entry.active_reservations %}
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr><th>Place</th><th>Plaque</th><th>Réservé le</th><th>Arrivée</th><th>Fin prévue</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for reservation in entry.active_reservations %}
+                                <tr>
+                                    <td>n°{{ reservation.spot.number }}</td>
+                                    <td><span class="plate">{{ reservation.plate }}</span></td>
+                                    <td>{{ reservation.created_at|date:"d/m H:i" }}</td>
+                                    <td>{% if reservation.arrived_at %}{{ reservation.arrived_at|date:"d/m H:i" }}{% else %}<span class="muted">non confirmée</span>{% endif %}</td>
+                                    <td>{{ reservation.expected_end|date:"d/m H:i" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="muted">Aucun véhicule stationné actuellement.</p>
+            {% endif %}
+
+            <h3>Historique des mouvements</h3>
+            {% if entry.movements %}
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Mouvement</th><th>Plaque</th><th>Place</th><th>Occupation</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for movement in entry.movements %}
+                                <tr>
+                                    <td>{{ movement.timestamp|date:"d/m/Y H:i" }}</td>
+                                    <td><span class="tag {% if movement.is_entry %}in{% else %}out{% endif %}">{{ movement.label }}</span></td>
+                                    <td><span class="plate">{{ movement.plate }}</span></td>
+                                    <td>n°{{ movement.spot_number }}</td>
+                                    <td>{{ movement.occupied }} / {{ entry.total_spots }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if entry.has_more_movements %}
+                    <p class="muted">Seuls les {{ movements_limit }} mouvements les plus récents sont affichés.</p>
+                {% endif %}
+            {% else %}
+                <p class="muted">Aucun mouvement enregistré pour ce parking.</p>
+            {% endif %}
+        </section>
     {% empty %}
         <p>Aucun parking enregistré.</p>
     {% endfor %}
 
-    <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+    <p>
+        <a href="{% url 'parking:agent_affluence' %}">Analyse de l'affluence</a> ·
+        <a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a>
+    </p>
 {% endblock %}

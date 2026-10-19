@@ -1,3 +1,5 @@
+from datetime import datetime, time, timedelta
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test
@@ -13,6 +15,11 @@ from django.views.decorators.http import require_POST
 
 from .forms import PaymentDetailsForm, ReservationForm
 from .models import DemoPaymentMethod, Parking, Reservation, Spot
+
+
+STATS_MOVEMENTS_LIMIT = 20
+HISTORY_PERIODS = ["7", "30", "90"]
+WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
 
 def home(request):
@@ -255,6 +262,33 @@ def cancel_reservation(request, reservation_id):
     messages.success(request, "La réservation a bien été annulée.")
     return redirect("parking:reservation_list")
 
+
+@login_required(login_url="parking:login")
+@require_POST
+def declare_departure(request, reservation_id):
+    reservation = get_object_or_404(
+        Reservation,
+        pk=reservation_id,
+        user=request.user,
+        status=Reservation.Status.ACTIVE,
+        arrived_at__isnull=False,
+    )
+    reservation.status = Reservation.Status.COMPLETED
+    reservation.ended_at = timezone.now()
+    reservation.save()
+    messages.success(request, "Votre départ est enregistré. Voici le récapitulatif de votre stationnement.")
+    return redirect("parking:reservation_summary", reservation_id=reservation.id)
+
+
+@login_required(login_url="parking:login")
+def reservation_summary(request, reservation_id):
+    reservation = get_object_or_404(
+        Reservation.objects.select_related("spot", "spot__parking"),
+        pk=reservation_id,
+        user=request.user,
+    )
+    return render(request, "parking/reservation_summary.html", {"reservation": reservation})
+
 def professional_login(request):
     return render(request, "parking/professional_login.html")
 
@@ -312,29 +346,171 @@ def agent_end_reservation(request, reservation_id):
 
 @user_passes_test(_is_agent, login_url="parking:agent_login")
 def agent_stats(request):
-    history = []
+    end_labels = {
+        Reservation.Status.COMPLETED: "Départ",
+        Reservation.Status.CANCELLED: "Annulation",
+    }
+    stats = []
     for parking in Parking.objects.prefetch_related("spots__reservations").all():
+        spots = parking.spots.all()
+        reservations = [reservation for spot in spots for reservation in spot.reservations.all()]
+
+        active_reservations = sorted(
+            (r for r in reservations if r.status == Reservation.Status.ACTIVE),
+            key=lambda r: r.spot.number,
+        )
+        for reservation in active_reservations:
+            reservation.expected_end = reservation.created_at + timedelta(hours=reservation.duration_hours)
+
         events = []
-        for spot in parking.spots.all():
-            for reservation in spot.reservations.all():
-                events.append((reservation.created_at, 1))
-                if reservation.ended_at:
-                    events.append((reservation.ended_at, -1))
+        for reservation in reservations:
+            events.append((reservation.created_at, 1, "Réservation", reservation))
+            if reservation.ended_at:
+                events.append((reservation.ended_at, -1, end_labels.get(reservation.status, "Fin"), reservation))
         events.sort(key=lambda event: event[0])
 
-        total_spots = parking.spots.count()
+        total_spots = len(spots)
         occupied = 0
-        timeline = []
-        for timestamp, delta in events:
+        movements = []
+        for timestamp, delta, label, reservation in events:
             occupied += delta
-            timeline.append({"timestamp": timestamp, "occupied": occupied, "total": total_spots})
+            movements.append(
+                {
+                    "timestamp": timestamp,
+                    "label": label,
+                    "is_entry": delta > 0,
+                    "plate": reservation.plate,
+                    "spot_number": reservation.spot.number,
+                    "occupied": occupied,
+                }
+            )
+        movements.reverse()
 
-        history.append(
+        occupied_now = len(active_reservations)
+        stats.append(
             {
                 "parking": parking,
                 "total_spots": total_spots,
-                "current_occupied": occupied,
-                "timeline": timeline,
+                "occupied": occupied_now,
+                "free": total_spots - occupied_now,
+                "rate": round(occupied_now * 100 / total_spots) if total_spots else 0,
+                "active_reservations": active_reservations,
+                "movements": movements[:STATS_MOVEMENTS_LIMIT],
+                "has_more_movements": len(movements) > STATS_MOVEMENTS_LIMIT,
             }
         )
-    return render(request, "parking/agent_stats.html", {"history": history})
+
+    total_spots = sum(entry["total_spots"] for entry in stats)
+    total_occupied = sum(entry["occupied"] for entry in stats)
+    summary = {
+        "total_spots": total_spots,
+        "occupied": total_occupied,
+        "free": total_spots - total_occupied,
+        "rate": round(total_occupied * 100 / total_spots) if total_spots else 0,
+    }
+    return render(
+        request,
+        "parking/agent_stats.html",
+        {"stats": stats, "summary": summary, "movements_limit": STATS_MOVEMENTS_LIMIT},
+    )
+
+
+@user_passes_test(_is_agent, login_url="parking:agent_login")
+def agent_affluence(request):
+    period = request.GET.get("jours")
+    period_days = int(period if period in HISTORY_PERIODS else HISTORY_PERIODS[0])
+    parkings = Parking.objects.all()
+    selected_parking = parkings.filter(pk=request.GET.get("parking")).first() if request.GET.get("parking", "").isdigit() else None
+
+    today = timezone.localdate()
+    days = [today - timedelta(days=offset) for offset in range(period_days - 1, -1, -1)]
+    period_start = timezone.make_aware(datetime.combine(days[0], time.min))
+
+    spots = Spot.objects.all()
+    reservations = Reservation.objects.filter(
+        Q(ended_at__isnull=True) | Q(ended_at__gte=period_start),
+        created_at__lte=timezone.now(),
+    )
+    if selected_parking:
+        spots = spots.filter(parking=selected_parking)
+        reservations = reservations.filter(spot__parking=selected_parking)
+    total_spots = spots.count()
+
+    # Une réservation occupe sa place de sa création jusqu'à sa fin (départ ou annulation).
+    events = []
+    for created_at, ended_at in reservations.values_list("created_at", "ended_at"):
+        events.append((created_at, 1))
+        if ended_at:
+            events.append((ended_at, -1))
+    events.sort()
+
+    entries_by_hour = [0] * 24
+    entries_by_weekday = [0] * 7
+    daily = []
+    occupied = 0
+    index = 0
+    for day in days:
+        day_start = timezone.make_aware(datetime.combine(day, time.min))
+        day_end = day_start + timedelta(days=1)
+        while index < len(events) and events[index][0] < day_start:
+            occupied += events[index][1]
+            index += 1
+
+        peak, peak_at, entries = occupied, None, 0
+        while index < len(events) and events[index][0] < day_end:
+            timestamp, delta = events[index]
+            occupied += delta
+            index += 1
+            if delta > 0:
+                entries += 1
+                local_timestamp = timezone.localtime(timestamp)
+                entries_by_hour[local_timestamp.hour] += 1
+                entries_by_weekday[local_timestamp.weekday()] += 1
+            if occupied > peak:
+                peak, peak_at = occupied, timestamp
+
+        daily.append(
+            {
+                "day": day,
+                "entries": entries,
+                "peak": peak,
+                "peak_at": peak_at,
+                "peak_rate": round(peak * 100 / total_spots) if total_spots else 0,
+            }
+        )
+
+    def bars(counts, labels):
+        highest = max(counts)
+        return [
+            {
+                "label": label,
+                "count": count,
+                "width": round(count * 100 / highest) if highest else 0,
+                "is_max": highest > 0 and count == highest,
+            }
+            for label, count in zip(labels, counts)
+        ]
+
+    busiest_day = max(daily, key=lambda entry: (entry["peak"], entry["entries"]))
+    busiest_hour = max(range(24), key=lambda hour: entries_by_hour[hour])
+    busiest_weekday = max(range(7), key=lambda weekday: entries_by_weekday[weekday])
+    has_entries = any(entries_by_hour)
+
+    return render(
+        request,
+        "parking/agent_affluence.html",
+        {
+            "parkings": parkings,
+            "selected_parking": selected_parking,
+            "periods": HISTORY_PERIODS,
+            "period_days": period_days,
+            "total_spots": total_spots,
+            "daily": list(reversed(daily)),
+            "total_entries": sum(entry["entries"] for entry in daily),
+            "busiest_day": busiest_day if busiest_day["peak"] else None,
+            "busiest_hour": busiest_hour if has_entries else None,
+            "busiest_weekday": WEEKDAYS[busiest_weekday] if has_entries else None,
+            "hourly": bars(entries_by_hour, [f"{hour:02d} h" for hour in range(24)]),
+            "weekly": bars(entries_by_weekday, WEEKDAYS),
+        },
+    )
