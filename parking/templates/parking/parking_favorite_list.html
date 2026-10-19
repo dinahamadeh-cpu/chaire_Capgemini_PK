@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mes favoris</title>
+</head>
+<body>
+    <header>
+        <a href="{% url 'parking:home' %}">Accueil</a>
+        <a href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+    </header>
+
+    <main>
+        <h1>Mes parkings favoris</h1>
+
+        {% if favorites %}
+            {% for favorite in favorites %}
+                <article>
+                    <h2>
+                        <a href="{% url 'parking:parking_detail' favorite.parking.id %}">
+                            {{ favorite.parking.name }}
+                        </a>
+                    </h2>
+
+                    <p>{{ favorite.parking.address }}</p>
+
+                    <form
+                        method="post"
+                        action="{% url 'parking:toggle_favorite' favorite.parking.id %}"
+                    >
+                        {% csrf_token %}
+                        <button type="submit">
+                            ★ Retirer des favoris
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p>Vous n'avez encore aucun parking favori.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

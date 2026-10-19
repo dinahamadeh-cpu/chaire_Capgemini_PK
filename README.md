@@ -77,10 +77,10 @@ uv run python manage.py test
 - Compléter l'historique d'occupation pour faciliter l'analyse des tendances.
 - Compléter la vue agent des places libres et occupées en temps réel.
 - Ajouter au récapitulatif la durée réellement utilisée ainsi que les heures d'arrivée et de départ.
+- Ajouter des parkings aux favoris.
 
 ### À faire
 - Filtrer les parkings par type, tarif et distance.
-- Ajouter des parkings aux favoris.
 - Permettre à l'usager d'indiquer son départ.
 - Calculer la durée réelle et ajuster le montant au départ.
 - Géolocaliser une infraction.

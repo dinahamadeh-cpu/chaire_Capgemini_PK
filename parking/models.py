@@ -131,3 +131,21 @@ class Reservation(models.Model):
         super().save(*args, **kwargs)
         is_occupied = Reservation.objects.filter(spot=self.spot, status=Reservation.Status.ACTIVE).exists()
         Spot.objects.filter(pk=self.spot_id).update(is_available=not is_occupied)
+
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favorites",
+    )
+    parking = models.ForeignKey(Parking, on_delete=models.CASCADE, related_name="favorited_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "parking"], name="unique_favorite_per_user_parking")
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} aime {self.parking}"
