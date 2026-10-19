@@ -2,12 +2,24 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Liste des parkings</title>
-
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --primary: #2457c5;
+            --primary-dark: #173d91;
+            --accent: #0e9f72;
+            --ink: #172033;
+            --muted: #60708a;
+            --border: #dbe2ee;
+            --surface: #fff;
+            --background: #f4f7fb;
+            --success-bg: #e8f8f1;
+            --warning-bg: #fff7df;
+            --danger-bg: #ffeded;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -58,20 +70,74 @@
             height: calc(100vh - 62px);
         }
 
-        .parking-list-section {
-            padding: 30px;
-            overflow-y: auto;
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem clamp(1rem, 4vw, 2rem);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
         }
+
+        .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
+        .brand { font-size: 1.15rem; }
+        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
+        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
+
+        .page-layout {
+            display: grid;
+            grid-template-columns: minmax(320px, 45%) 1fr;
+            min-height: calc(100vh - 68px);
+        }
+
+        .map-section { position: sticky; top: 0; height: calc(100vh - 68px); background: #dfe7f4; }
+        #map { width: 100%; height: 100%; min-height: 420px; }
+
+        .parking-list-section { padding: clamp(1.25rem, 3vw, 2.5rem); overflow-y: auto; }
+        .content-heading { max-width: 760px; margin-bottom: 1.5rem; }
+        h1 { margin: 0 0 .45rem; font-size: clamp(1.75rem, 3vw, 2.4rem); }
+        .intro { margin: 0; color: var(--muted); line-height: 1.5; }
 
         .parking-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
+            max-width: 760px;
+            margin: 0 0 1rem;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            box-shadow: 0 5px 18px rgba(31, 52, 89, .06);
+            transition: transform .15s, box-shadow .15s, border-color .15s;
         }
+        .parking-card:hover { border-color: #a9bce5; box-shadow: 0 9px 24px rgba(31, 52, 89, .11); transform: translateY(-2px); }
+        .parking-card-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .parking-card h2 { margin: 0; font-size: 1.3rem; }
+        .parking-card h2 a { text-decoration: none; }
+        .parking-address { margin: .45rem 0 0; color: var(--muted); line-height: 1.45; }
+        .parking-icon { font-size: 1.8rem; }
 
-        .parking-card h2 {
-            margin-top: 0;
+        .availability-badge { display: inline-flex; margin: 1rem 0 .7rem; padding: .35rem .65rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+        .availability-ok { color: #06734f; background: var(--success-bg); }
+        .availability-low { color: #946500; background: var(--warning-bg); }
+        .availability-full { color: #a52222; background: var(--danger-bg); }
+        .availability-count { margin: 0; font-size: 1.05rem; }
+
+        .pricing { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: 0; margin: 1rem 0; list-style: none; color: var(--muted); }
+        .pricing li { line-height: 1.4; }
+        .parking-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.1rem; }
+        .button, .focus-map-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+        .button:hover, .button:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: var(--primary-dark); }
+        .button.secondary, .focus-map-button { background: #fff; color: var(--primary); }
+        .button.secondary:hover, .button.secondary:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: #edf3ff; }
+        .empty-state { max-width: 760px; padding: 1.5rem; border: 1px dashed #a9bce5; border-radius: 14px; background: #fff; color: var(--muted); }
+
+        @media (max-width: 800px) {
+            .page-layout { display: flex; flex-direction: column; }
+            .parking-list-section { order: 1; }
+            .map-section { order: 2; position: static; height: 360px; min-height: 360px; }
+            #map { min-height: 360px; }
+            .site-header { align-items: flex-start; flex-direction: column; }
+            .parking-card { padding: 1rem; }
         }
 
         .parking-card-actions {
@@ -115,62 +181,63 @@
         }
     </style>
 </head>
-
 <body>
-    <header class="site-navigation">
-        <a href="{% url 'parking:home' %}">Accueil</a>
+    <header class="site-header">
+        <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
+        <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
     </header>
 
     <main class="page-layout">
-        <section class="map-section">
+        <section class="map-section" aria-label="Carte des parkings">
             <div id="map"></div>
         </section>
 
         <section class="parking-list-section">
-            <h1>Liste des parkings</h1>
+            <div class="content-heading">
+                <h1>Liste des parkings</h1>
+                <p class="intro">Comparez les disponibilités, les tarifs et les horaires, puis choisissez le parking qui vous convient.</p>
+            </div>
 
             {% if parkings %}
                 {% for parking in parkings %}
                     <article class="parking-card">
-                        <h2>
-                            <a href="{% url 'parking:parking_detail' parking.id %}">
-                                {{ parking.name }}
-                            </a>
-                        </h2>
+                        <div class="parking-card-header">
+                            <div>
+                                <h2><a href="{% url 'parking:parking_detail' parking.id %}">{{ parking.name }}</a></h2>
+                                <p class="parking-address">{{ parking.address }}</p>
+                            </div>
+                            <span class="parking-icon" aria-hidden="true">🅿️</span>
+                        </div>
 
-                        <p>Adresse : {{ parking.address }}</p>
+                        {% if parking.available_spots_count == 0 %}
+                            <span class="availability-badge availability-full">Complet</span>
+                        {% elif parking.available_spots_count <= 3 %}
+                            <span class="availability-badge availability-low">Presque complet</span>
+                        {% else %}
+                            <span class="availability-badge availability-ok">Places disponibles</span>
+                        {% endif %}
 
-                        <p>
-                            Places disponibles :
+                        <p class="availability-count">
                             <strong>{{ parking.available_spots_count }}</strong>
-                            / {{ parking.total_spots_count }}
+                            place{{ parking.available_spots_count|pluralize }} disponible{{ parking.available_spots_count|pluralize }}
+                            sur {{ parking.total_spots_count }}
                         </p>
 
                         {% include "parking/_pricing.html" %}
 
-                        {% if parking.latitude is not None and parking.longitude is not None %}
-                            <p>
-                                Coordonnées :
-                                {{ parking.latitude }},
-                                {{ parking.longitude }}
-                            </p>
-                            <div class="parking-card-actions">
-                                <button
-                                    class="focus-map-button"
-                                    type="button"
-                                    data-parking-id="{{ parking.id }}"
-                                >
-                                    Voir sur la carte
-                                </button>
-                            </div>
-                        {% else %}
-                            <p>Position du parking non renseignée.</p>
-                        {% endif %}
+                        <div class="parking-card-actions">
+                            <a class="button" href="{% url 'parking:parking_detail' parking.id %}">Voir le détail</a>
+                            {% if parking.latitude is not None and parking.longitude is not None %}
+                                <button class="focus-map-button" type="button" data-parking-id="{{ parking.id }}">Voir sur la carte</button>
+                            {% endif %}
+                        </div>
                     </article>
                 {% endfor %}
             {% else %}
-                <p>Aucun parking n'est encore enregistré.</p>
-                <p>Les parkings peuvent être ajoutés depuis l'administration.</p>
+                <div class="empty-state">
+                    <p><strong>Aucun parking n'est encore enregistré.</strong></p>
+                    <p>Les parkings peuvent être ajoutés depuis l'administration.</p>
+                </div>
             {% endif %}
         </section>
     </main>
@@ -178,10 +245,8 @@
     {{ parking_data|json_script:"parkings-data" }}
 
     <script>
-    function initMap() {
-        const map = new google.maps.Map(
-            document.getElementById("map"),
-            {
+        function initMap() {
+            const map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 12,
                 center: {
                     lat: 48.8566,
@@ -226,6 +291,16 @@
                     });
                 });
             }
+        });
+
+            document.querySelectorAll(".focus-map-button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const parking = parkingMarkers.get(button.dataset.parkingId);
+                    if (!parking) return;
+                    map.panTo(parking.marker.getPosition());
+                    map.setZoom(15);
+                    google.maps.event.trigger(parking.marker, "click");
+                });
         });
 
         document.querySelectorAll("[data-parking-id]").forEach((button) => {
