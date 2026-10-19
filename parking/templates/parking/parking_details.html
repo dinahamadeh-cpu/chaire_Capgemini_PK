@@ -41,12 +41,6 @@
         .empty-state p { margin-top: 0; }
         .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .button:hover, .button:focus-visible { background: var(--primary-dark); }
-        .reservation-form { display: grid; gap: .65rem; margin-top: .8rem; }
-        .reservation-form label { color: var(--muted); font-size: .9rem; font-weight: 600; }
-        .reservation-form input { width: 100%; padding: .65rem .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
-        .reservation-form input:focus { outline: 3px solid rgba(36,87,197,.18); border-color: var(--primary); }
-        .reservation-form button { min-height: 42px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-        .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
         @media (max-width: 800px) {
             .detail-layout { display: flex; flex-direction: column; }
@@ -123,12 +117,7 @@
                                 <span class="spot-icon" aria-hidden="true">🅿️</span>
                                 <strong>Place n°{{ spot.number }}</strong>
                                 {% if user.is_authenticated %}
-                                    <form class="reservation-form" method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
-                                        {% csrf_token %}
-                                        <label for="plate-{{ spot.id }}">Plaque d'immatriculation</label>
-                                        <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
-                                        <button type="submit">Réserver</button>
-                                    </form>
+                                    <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver</a>
                                 {% else %}
                                     <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
                                 {% endif %}

@@ -757,18 +757,33 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Parking Central")
         self.assertContains(response, "Place n°1")
         self.assertNotContains(response, "Place n°2")
-        self.assertContains(response, 'class="site-navigation"')
-        self.assertContains(response, 'href="/">Accueil</a>')
-        self.assertContains(response, 'href="/parkings/">Retour à la liste des parkings</a>')
+        self.assertContains(response, 'class="site-header"')
+        self.assertContains(response, 'href="/parkings/">Tous les parkings</a>')
+        self.assertContains(response, 'href="/parkings/">← Retour à la liste</a>')
         self.assertContains(response, "Réserver")
         self.assertNotContains(response, 'name="card_number"')
         self.assertContains(response, 'id="detail-map"')
-        self.assertContains(response, 'id="parking-map-data"')
-        self.assertContains(response, "zoom: 12")
-        self.assertContains(response, "const targetZoom = 18")
-        self.assertContains(response, "window.setTimeout(zoomIn, 180)")
+        self.assertContains(response, 'id="parking-data"')
+        self.assertContains(response, "zoom: 15")
         self.assertEqual(response.context["parking_data"]["latitude"], 48.8566)
         self.assertEqual(response.context["parking_data"]["longitude"], 2.3522)
+
+    def test_parking_detail_links_to_checkout_without_plate_field(self):
+        self.authenticate_as_user()
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.get(
+            reverse(
+                "parking:parking_detail",
+                args=[self.parking.id],
+            )
+        )
+
+        self.assertNotContains(response, 'name="plate"')
+        self.assertContains(
+            response,
+            f'href="{reverse("parking:reserve_spot", args=[self.parking.id, spot.id])}"',
+        )
 
     def test_missing_parking_returns_not_found(self):
         self.authenticate_as_user()
@@ -789,7 +804,7 @@ class ParkingViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="map"')
-        self.assertContains(response, 'class="site-navigation"')
+        self.assertContains(response, 'class="site-header"')
         self.assertContains(response, 'href="/">Accueil</a>')
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
@@ -809,7 +824,7 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(reverse("parking:parking_detail", args=[self.parking.id]))
 
         self.assertContains(response, "2,50 € / heure")
-        self.assertNotContains(response, "Durée maximale")
+        self.assertContains(response, "Durée maximale : 2 h")
         self.assertContains(response, "07:00 – 21:00")
 
     def test_parking_list_shows_pricing(self):
