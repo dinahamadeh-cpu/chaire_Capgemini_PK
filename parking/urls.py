@@ -33,6 +33,16 @@ urlpatterns = [
         name="cancel_reservation",
     ),
     path(
+        "mes-reservations/<int:reservation_id>/depart/",
+        views.declare_departure,
+        name="declare_departure",
+    ),
+    path(
+        "mes-reservations/<int:reservation_id>/",
+        views.reservation_summary,
+        name="reservation_summary",
+    ),
+    path(
         "parkings/<int:parking_id>/places/<int:spot_id>/reserver/",
         views.reserve_spot,
         name="reserve_spot",
@@ -47,5 +57,6 @@ urlpatterns = [
         name="agent_end_reservation",
     ),
     path("agent/statistiques/", views.agent_stats, name="agent_stats"),
+    path("agent/affluence/", views.agent_affluence, name="agent_affluence"),
     path("acces-professionnel/", views.professional_login,name="professional_login"),
 ]

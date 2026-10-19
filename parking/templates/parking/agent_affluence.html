@@ -1,0 +1,112 @@
+{% extends "parking/base.html" %}
+{% block title %}Analyse de l'affluence - Parking{% endblock %}
+{% block content %}
+    <style>
+        .filters { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: flex-end; }
+        .filters select { padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; }
+        .kpis { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.2rem 0; }
+        .kpi { flex: 1 1 140px; background: #f0f4fb; border-radius: 10px; padding: 0.7rem 1rem; }
+        .kpi .value { display: block; font-size: 1.3rem; font-weight: 700; color: var(--primary-dark); }
+        .kpi .label { font-size: 0.85rem; color: #6b7280; }
+        .bars { margin: 0.5rem 0 1rem; }
+        .bar-row { display: grid; grid-template-columns: 5.5rem 1fr 2.5rem; gap: 0.5rem; align-items: center; font-size: 0.85rem; margin: 2px 0; }
+        .bar-track { background: #eef2fb; border-radius: 4px; height: 14px; overflow: hidden; }
+        .bar-fill { display: block; height: 100%; background: #93b4ee; }
+        .bar-row.max .bar-fill { background: var(--primary); }
+        .bar-row.max { font-weight: 700; }
+        .bar-count { text-align: right; }
+        .table-scroll { overflow-x: auto; }
+        .table-scroll table { font-size: 0.9rem; }
+        .muted { color: #6b7280; font-size: 0.9rem; }
+    </style>
+
+    <h1>Analyse de l'affluence</h1>
+
+    <form method="get" class="filters">
+        <p>
+            <label for="parking">Parking</label><br>
+            <select id="parking" name="parking">
+                <option value="">Tous les parkings</option>
+                {% for parking in parkings %}
+                    <option value="{{ parking.id }}" {% if parking == selected_parking %}selected{% endif %}>{{ parking.name }}</option>
+                {% endfor %}
+            </select>
+        </p>
+        <p>
+            <label for="jours">Période</label><br>
+            <select id="jours" name="jours">
+                {% for period in periods %}
+                    <option value="{{ period }}" {% if period == period_days|stringformat:"d" %}selected{% endif %}>{{ period }} derniers jours</option>
+                {% endfor %}
+            </select>
+        </p>
+        <p><button type="submit">Afficher</button></p>
+    </form>
+
+    <div class="kpis">
+        <div class="kpi">
+            <span class="value">{{ total_entries }}</span>
+            <span class="label">réservations sur la période</span>
+        </div>
+        <div class="kpi">
+            <span class="value">{% if busiest_day %}{{ busiest_day.day|date:"d/m" }}{% else %}—{% endif %}</span>
+            <span class="label">jour le plus chargé{% if busiest_day %} ({{ busiest_day.peak }} / {{ total_spots }} places){% endif %}</span>
+        </div>
+        <div class="kpi">
+            <span class="value">{% if busiest_hour is not None %}{{ busiest_hour|stringformat:"02d" }} h{% else %}—{% endif %}</span>
+            <span class="label">heure de pointe</span>
+        </div>
+        <div class="kpi">
+            <span class="value">{{ busiest_weekday|default:"—" }}</span>
+            <span class="label">jour de la semaine le plus fréquenté</span>
+        </div>
+    </div>
+
+    <h2>Occupation par jour</h2>
+    <p class="muted">Le pic correspond au nombre maximal de places occupées en même temps dans la journée.</p>
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr><th>Jour</th><th>Réservations</th><th>Pic d'occupation</th><th>Heure du pic</th></tr>
+            </thead>
+            <tbody>
+                {% for entry in daily %}
+                    <tr>
+                        <td>{{ entry.day|date:"l d/m" }}</td>
+                        <td>{{ entry.entries }}</td>
+                        <td>{{ entry.peak }} / {{ total_spots }} ({{ entry.peak_rate }} %)</td>
+                        <td>{% if entry.peak_at %}{{ entry.peak_at|time:"H:i" }}{% elif entry.peak %}<span class="muted">depuis la veille</span>{% else %}—{% endif %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Affluence par heure</h2>
+    <p class="muted">Nombre de réservations commencées à chaque heure de la journée, sur la période.</p>
+    <div class="bars">
+        {% for bar in hourly %}
+            <div class="bar-row{% if bar.is_max %} max{% endif %}">
+                <span>{{ bar.label }}</span>
+                <span class="bar-track"><span class="bar-fill" style="width: {{ bar.width }}%"></span></span>
+                <span class="bar-count">{{ bar.count }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <h2>Affluence par jour de la semaine</h2>
+    <div class="bars">
+        {% for bar in weekly %}
+            <div class="bar-row{% if bar.is_max %} max{% endif %}">
+                <span>{{ bar.label }}</span>
+                <span class="bar-track"><span class="bar-fill" style="width: {{ bar.width }}%"></span></span>
+                <span class="bar-count">{{ bar.count }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <p>
+        <a href="{% url 'parking:agent_stats' %}">Occupation en temps réel</a> ·
+        <a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a>
+    </p>
+{% endblock %}
