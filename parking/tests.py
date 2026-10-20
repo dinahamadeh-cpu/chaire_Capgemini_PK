@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import DemoPaymentMethod, Parking, Reservation, Spot
+from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot
 
 
 class SeedDataTests(TestCase):
@@ -727,6 +727,83 @@ class ParkingViewsTests(TestCase):
         )
         reservation.refresh_from_db()
         self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
+    def test_agent_can_create_a_contravention_for_a_non_conforming_plate(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.post(
+            reverse("parking:create_contravention"),
+            {"plate": "AA-123-AA", "reason": "Stationnement sans réservation"},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_plate_check')}?plate=AA-123-AA",
+        )
+        contravention = Contravention.objects.get()
+        self.assertEqual(contravention.agent, agent)
+        self.assertEqual(contravention.plate, "AA-123-AA")
+        self.assertEqual(contravention.reason, "Stationnement sans réservation")
+
+    def test_non_agent_cannot_create_a_contravention(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("parking:create_contravention"),
+            {"plate": "AA-123-AA", "reason": "Motif"},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_login')}?next={reverse('parking:create_contravention')}",
+        )
+        self.assertFalse(Contravention.objects.exists())
+
+    def test_agent_cannot_create_a_contravention_for_an_active_reservation(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        Reservation.objects.create(
+            user=agent,
+            spot=self.parking.spots.get(number=1),
+            plate="AA-123-AA",
+        )
+        self.client.force_login(agent)
+
+        response = self.client.post(
+            reverse("parking:create_contravention"),
+            {"plate": "AA-123-AA", "reason": "Motif"},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_plate_check')}?plate=AA-123-AA",
+        )
+        self.assertFalse(Contravention.objects.exists())
+
+    def test_plate_check_shows_contravention_form_only_for_non_conforming_plate(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.get(
+            reverse("parking:agent_plate_check"),
+            {"plate": "AA-123-AA"},
+        )
+        self.assertContains(response, "Créer une contravention")
+
+        Reservation.objects.create(
+            user=agent,
+            spot=self.parking.spots.get(number=1),
+            plate="BB-234-BB",
+        )
+        response = self.client.get(
+            reverse("parking:agent_plate_check"),
+            {"plate": "BB-234-BB"},
+        )
+        self.assertNotContains(response, "Créer une contravention")
 
     def test_parking_list_page(self):
         self.authenticate_as_user()

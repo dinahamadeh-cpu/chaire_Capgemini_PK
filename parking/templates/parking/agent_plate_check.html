@@ -36,6 +36,16 @@
             </form>
         {% else %}
             <p class="non-conforme">Non conforme — aucun stationnement actif trouvé pour cette plaque.</p>
+            <h3>Créer une contravention</h3>
+            <form method="post" action="{% url 'parking:create_contravention' %}">
+                {% csrf_token %}
+                {{ contravention_form.plate }}
+                <p>
+                    {{ contravention_form.reason.label_tag }}<br>
+                    {{ contravention_form.reason }}
+                </p>
+                <button type="submit">Créer la contravention</button>
+            </form>
         {% endif %}
     {% endif %}
 

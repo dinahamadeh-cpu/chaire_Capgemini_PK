@@ -152,3 +152,17 @@ class Reservation(models.Model):
         super().save(*args, **kwargs)
         is_occupied = Reservation.objects.filter(spot=self.spot, status=Reservation.Status.ACTIVE).exists()
         Spot.objects.filter(pk=self.spot_id).update(is_available=not is_occupied)
+
+
+class Contravention(models.Model):
+    agent = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="contraventions",
+    )
+    plate = models.CharField(max_length=9, validators=[plate_validator])
+    reason = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Contravention {self.plate} - {self.created_at:%d/%m/%Y}"

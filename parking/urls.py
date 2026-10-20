@@ -52,6 +52,11 @@ urlpatterns = [
     path("agent/", views.agent_dashboard, name="agent_dashboard"),
     path("agent/plaque/", views.agent_plate_check, name="agent_plate_check"),
     path(
+        "agent/contraventions/creer/",
+        views.create_contravention,
+        name="create_contravention",
+    ),
+    path(
         "agent/reservations/<int:reservation_id>/terminer/",
         views.agent_end_reservation,
         name="agent_end_reservation",
