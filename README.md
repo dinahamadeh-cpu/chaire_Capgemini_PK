@@ -64,11 +64,12 @@ uv run python manage.py createsuperuser
 - **Connexion agent** (`/agent/login/`) : réservée aux comptes du groupe « Agents ».
 - **Tableau de bord agent** (`/agent/`) : accès aux outils de l'agent.
 - **Vérification de plaque** (`/agent/plaque/`) : l'agent saisit une plaque, voit si le véhicule a une réservation en cours (et si l'arrivée a été confirmée) et peut clôturer le stationnement.
+- **Contraventions** (`/agent/plaque/`) : pour une plaque sans réservation active, l'agent peut enregistrer un motif de contravention.
 - **Occupation en temps réel** (`/agent/statistiques/`) : taux d'occupation global et par parking, liste des véhicules stationnés (place, plaque, arrivée, fin prévue) et historique des derniers mouvements (réservations, départs, annulations) avec les plaques.
 - **Analyse de l'affluence** (`/agent/affluence/`) : sur 7, 30 ou 90 jours, pour un parking ou tous, le pic d'occupation et le nombre de réservations par jour, l'affluence par heure et par jour de la semaine (heure de pointe, jour le plus chargé).
 
 ### Administration
-- **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (tarif, durée maximale, horaires, coordonnées GPS), des places et des réservations.
+- **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (tarif, durée maximale, horaires, coordonnées GPS), des places, des réservations et consulter les contraventions.
 
 ### Règles en place
 - une plaque ne peut avoir qu'une seule réservation active à la fois ;

@@ -13,8 +13,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import PaymentDetailsForm, ReservationForm
-from .models import DemoPaymentMethod, Parking, Reservation, Spot
+from .forms import ContraventionForm, PaymentDetailsForm, ReservationForm
+from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot
 
 
 STATS_MOVEMENTS_LIMIT = 20
@@ -326,7 +326,40 @@ def agent_plate_check(request):
             .first()
         )
         result = {"plate": plate, "reservation": reservation}
-    return render(request, "parking/agent_plate_check.html", {"plate": plate, "result": result})
+    contravention_form = None
+    if result and result["reservation"] is None:
+        contravention_form = ContraventionForm(initial={"plate": plate})
+    return render(
+        request,
+        "parking/agent_plate_check.html",
+        {"plate": plate, "result": result, "contravention_form": contravention_form},
+    )
+
+
+@user_passes_test(_is_agent, login_url="parking:agent_login")
+@require_POST
+def create_contravention(request):
+    form = ContraventionForm(request.POST)
+    plate = request.POST.get("plate", "").strip().upper()
+    if not form.is_valid():
+        messages.error(request, "La plaque et le motif sont invalides.")
+        return redirect(f"{reverse('parking:agent_plate_check')}?plate={plate}")
+
+    plate = form.cleaned_data["plate"]
+    if Reservation.objects.filter(
+        plate=plate,
+        status=Reservation.Status.ACTIVE,
+    ).exists():
+        messages.error(request, "Ce véhicule possède une réservation active.")
+        return redirect(f"{reverse('parking:agent_plate_check')}?plate={plate}")
+
+    Contravention.objects.create(
+        agent=request.user,
+        plate=plate,
+        reason=form.cleaned_data["reason"],
+    )
+    messages.success(request, "La contravention a bien été créée.")
+    return redirect(f"{reverse('parking:agent_plate_check')}?plate={plate}")
 
 
 @user_passes_test(_is_agent, login_url="parking:agent_login")

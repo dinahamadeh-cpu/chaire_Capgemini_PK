@@ -105,3 +105,28 @@ class ReservationForm(PaymentDetailsForm):
 
     def clean_plate(self):
         return self.cleaned_data["plate"].strip().upper()
+
+
+class ContraventionForm(forms.Form):
+    plate = forms.CharField(
+        max_length=9,
+        label="Plaque d'immatriculation",
+        validators=[plate_validator],
+        widget=forms.HiddenInput(),
+    )
+    reason = forms.CharField(
+        max_length=255,
+        label="Motif",
+        widget=forms.TextInput(
+            attrs={"placeholder": "Ex. stationnement sans réservation"}
+        ),
+    )
+
+    def clean_plate(self):
+        return self.cleaned_data["plate"].strip().upper()
+
+    def clean_reason(self):
+        reason = self.cleaned_data["reason"].strip()
+        if not reason:
+            raise forms.ValidationError("Le motif est obligatoire.")
+        return reason
