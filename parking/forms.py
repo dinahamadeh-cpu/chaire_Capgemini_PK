@@ -78,9 +78,10 @@ class ReservationForm(PaymentDetailsForm):
         widget=forms.RadioSelect,
     )
 
-    def __init__(self, *args, has_saved_payment_method=False, **kwargs):
+    def __init__(self, *args, has_saved_payment_method=False, max_duration_minutes=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.has_saved_payment_method = has_saved_payment_method
+        self.max_duration_minutes = max_duration_minutes
         if has_saved_payment_method:
             self.fields["payment_method"].initial = "saved"
         for field_name in ("card_number", "expiration_date", "security_code"):
@@ -101,6 +102,9 @@ class ReservationForm(PaymentDetailsForm):
             for field_name in ("card_number", "expiration_date", "security_code"):
                 if not cleaned_data.get(field_name):
                     self.add_error(field_name, "Ce champ est obligatoire.")
+        duration = cleaned_data.get("duration_hours")
+        if self.max_duration_minutes is not None and duration and duration * 60 > self.max_duration_minutes:
+            self.add_error("duration_hours", "La durée dépasse la limite de ce parking.")
         return cleaned_data
 
     def clean_plate(self):
