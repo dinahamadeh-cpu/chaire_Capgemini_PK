@@ -99,7 +99,7 @@ class Command(BaseCommand):
                 user.set_password(agent["password"])
                 user.is_staff = True
                 user.save()
-                self.stdout.write(f"Agent créé : {agent['username']} / {agent['password']}")
+                self.stdout.write(f"Agent créé : {agent['username']}")
             else:
                 self.stdout.write(f"Agent déjà existant : {agent['username']}")
             user.groups.add(agents_group)
@@ -111,9 +111,7 @@ class Command(BaseCommand):
         if created:
             demo_user.set_password(DEMO_USER["password"])
             demo_user.save()
-            self.stdout.write(
-                f"Utilisateur de démonstration créé : {DEMO_USER['username']} / {DEMO_USER['password']}"
-            )
+            self.stdout.write(f"Utilisateur de démonstration créé : {DEMO_USER['username']}")
         else:
             self.stdout.write(f"Utilisateur déjà existant : {DEMO_USER['username']}")
 

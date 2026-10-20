@@ -1,20 +1,20 @@
 from datetime import datetime, time, timedelta
 
-from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db.models import Count, Q
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import ContraventionForm, PaymentDetailsForm, ReservationForm
-from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot
+from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot, plate_validator
 
 
 STATS_MOVEMENTS_LIMIT = 20
@@ -26,6 +26,7 @@ def home(request):
     return render(request, "parking/home.html")
 
 
+@require_http_methods(["GET", "POST"])
 def signup(request):
     form = UserCreationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -90,6 +91,7 @@ def parking_detail(request, parking_id):
 
 
 @login_required(login_url="parking:login")
+@require_http_methods(["GET", "POST"])
 def payment_methods(request):
     payment_method = DemoPaymentMethod.objects.filter(user=request.user).first()
 
@@ -108,6 +110,7 @@ def payment_methods(request):
             for field, errors in form.errors.items()
             for error in errors
         ]
+        form = PaymentDetailsForm()
     else:
         form = PaymentDetailsForm()
         form_errors = []
@@ -124,6 +127,7 @@ def payment_methods(request):
 
 
 @login_required(login_url="parking:login")
+@require_http_methods(["GET", "POST"])
 def reserve_spot(request, parking_id, spot_id):
     spot = get_object_or_404(Spot, pk=spot_id, parking_id=parking_id)
     if spot.parking.hourly_rate is None:
@@ -141,7 +145,10 @@ def reserve_spot(request, parking_id, spot_id):
     rate_cents = int(spot.parking.hourly_rate * 100)
 
     if request.method == "GET":
-        form = ReservationForm(has_saved_payment_method=saved_payment_method)
+        form = ReservationForm(
+            has_saved_payment_method=saved_payment_method,
+            max_duration_minutes=spot.parking.max_duration_minutes,
+        )
         return render(
             request,
             "parking/reservation_checkout.html",
@@ -160,6 +167,7 @@ def reserve_spot(request, parking_id, spot_id):
     form = ReservationForm(
         request.POST,
         has_saved_payment_method=saved_payment_method,
+        max_duration_minutes=spot.parking.max_duration_minutes,
     )
     if not form.is_valid():
         form_errors = [
@@ -169,6 +177,7 @@ def reserve_spot(request, parking_id, spot_id):
         ]
         safe_form = ReservationForm(
             has_saved_payment_method=saved_payment_method,
+            max_duration_minutes=spot.parking.max_duration_minutes,
             initial={
                 "duration_hours": request.POST.get("duration_hours", ""),
                 "plate": request.POST.get("plate", ""),
@@ -246,10 +255,8 @@ def confirm_arrival(request, reservation_id):
 
 
 @login_required(login_url="parking:login")
+@require_POST
 def cancel_reservation(request, reservation_id):
-    if request.method != "POST":
-        return redirect("parking:reservation_list")
-
     reservation = get_object_or_404(
         Reservation,
         pk=reservation_id,
@@ -292,6 +299,7 @@ def reservation_summary(request, reservation_id):
 def professional_login(request):
     return render(request, "parking/professional_login.html")
 
+@require_http_methods(["GET", "POST"])
 def agent_login(request):
     error = None
     if request.method == "POST":
@@ -305,6 +313,7 @@ def agent_login(request):
     return render(request, "parking/agent_login.html", {"error": error})
 
 
+@require_POST
 def agent_logout(request):
     logout(request)
     return redirect("parking:home")
@@ -318,6 +327,12 @@ def agent_dashboard(request):
 @user_passes_test(_is_agent, login_url="parking:agent_login")
 def agent_plate_check(request):
     plate = request.GET.get("plate", "").strip().upper()
+    try:
+        if not plate or len(plate) > 9:
+            raise ValidationError("Plaque invalide")
+        plate_validator(plate)
+    except ValidationError:
+        plate = ""
     result = None
     if plate:
         reservation = (
@@ -453,7 +468,10 @@ def agent_affluence(request):
     period = request.GET.get("jours")
     period_days = int(period if period in HISTORY_PERIODS else HISTORY_PERIODS[0])
     parkings = Parking.objects.all()
-    selected_parking = parkings.filter(pk=request.GET.get("parking")).first() if request.GET.get("parking", "").isdigit() else None
+    parking_id = request.GET.get("parking", "")
+    selected_parking = None
+    if parking_id.isascii() and parking_id.isdigit() and len(parking_id) <= 18:
+        selected_parking = parkings.filter(pk=parking_id).first()
 
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(period_days - 1, -1, -1)]

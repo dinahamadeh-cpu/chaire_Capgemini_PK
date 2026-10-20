@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, time
 from decimal import Decimal
+from io import StringIO
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -15,7 +16,10 @@ from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot
 
 class SeedDataTests(TestCase):
     def test_seed_data_keeps_stationings_out_of_agent_reservations(self):
-        call_command("seed_data")
+        output = StringIO()
+        call_command("seed_data", stdout=output)
+        self.assertNotIn("agent1234", output.getvalue())
+        self.assertNotIn("demo1234", output.getvalue())
 
         User = get_user_model()
         agents = User.objects.filter(groups__name="Agents")
@@ -316,6 +320,28 @@ class ParkingViewsTests(TestCase):
         self.assertRedirects(response, reverse("parking:parking_list"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
+    def test_login_rejects_external_next_redirect(self):
+        get_user_model().objects.create_user(username="alice", password="password")
+
+        response = self.client.post(
+            f"{reverse('parking:login')}?next=https://example.com/",
+            {"username": "alice", "password": "password"},
+        )
+
+        self.assertRedirects(response, reverse("parking:parking_list"))
+
+    def test_inactive_user_cannot_log_in(self):
+        user = get_user_model().objects.create_user(username="alice", password="password", is_active=False)
+
+        response = self.client.post(
+            reverse("parking:login"),
+            {"username": "alice", "password": "password"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+        self.assertTrue(user.check_password("password"))
+
     def test_authenticated_user_can_reserve_a_spot(self):
         self.parking.hourly_rate = Decimal("2.50")
         self.parking.save()
@@ -490,7 +516,7 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Numéro de carte")
         self.assertFalse(Reservation.objects.filter(plate="GG-789-GG").exists())
 
-    def test_reservation_does_not_enforce_parking_max_duration(self):
+    def test_reservation_enforces_parking_max_duration(self):
         self.authenticate_as_user()
         self.parking.hourly_rate = Decimal("2.50")
         self.parking.max_duration_minutes = 120
@@ -508,9 +534,26 @@ class ParkingViewsTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("parking:parking_detail", args=[self.parking.id]))
-        reservation = Reservation.objects.get(plate="GG-789-GG")
-        self.assertEqual(reservation.duration_hours, 3)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "La durée dépasse la limite de ce parking.")
+        self.assertFalse(Reservation.objects.filter(plate="GG-789-GG").exists())
+
+    def test_invalid_payment_details_are_not_echoed_back(self):
+        self.authenticate_as_user()
+
+        response = self.client.post(
+            reverse("parking:payment_methods"),
+            {
+                "card_number": "1234567890123456",
+                "expiration_date": "13/30",
+                "security_code": "987",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "1234567890123456")
+        self.assertNotContains(response, "987")
+        self.assertFalse(DemoPaymentMethod.objects.exists())
 
     def test_anonymous_user_is_redirected_before_reserving(self):
         spot = self.parking.spots.get(number=1)
@@ -667,6 +710,21 @@ class ParkingViewsTests(TestCase):
         reservation.refresh_from_db()
         self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
 
+    def test_cancellation_requires_post(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        reservation = Reservation.objects.create(
+            user=user,
+            spot=self.parking.spots.get(number=1),
+            plate="EE-567-EE",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:cancel_reservation", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 405)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
     def test_agent_requires_agents_group(self):
         user = get_user_model().objects.create_user(username="agent", password="password")
         user.is_staff = True
@@ -707,6 +765,45 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(reservation.status, Reservation.Status.COMPLETED)
         self.assertIsNotNone(reservation.ended_at)
         self.assertTrue(reservation.spot.is_available)
+
+    def test_agent_closure_requires_post(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        reservation = Reservation.objects.create(
+            spot=self.parking.spots.get(number=1),
+            plate="EE-567-EE",
+        )
+        self.client.force_login(agent)
+
+        response = self.client.get(reverse("parking:agent_end_reservation", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 405)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+
+    def test_agent_plate_filter_rejects_invalid_and_overlong_input(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.get(
+            reverse("parking:agent_plate_check"),
+            {"plate": "x" * 100},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["plate"], "")
+        self.assertIsNone(response.context["result"])
+
+    def test_agent_logout_requires_post(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.get(reverse("parking:agent_logout"))
+
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue(response.wsgi_request.user.is_authenticated)
 
     def test_non_agent_cannot_end_an_active_reservation(self):
         user = get_user_model().objects.create_user(username="alice", password="password")
@@ -868,6 +965,13 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(
             reverse("parking:parking_detail", args=[999])
         )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_out_of_range_database_id_returns_not_found(self):
+        self.authenticate_as_user()
+
+        response = self.client.get("/parkings/999999999999999999999999/")
 
         self.assertEqual(response.status_code, 404)
 
@@ -1093,6 +1197,17 @@ class UserDepartureAndSummaryTests(TestCase):
 
         self.assertEqual(response.status_code, 405)
 
+    def test_user_deletion_frees_spot_after_reservation_cascade(self):
+        reservation = self.create_reservation()
+        self.spot.refresh_from_db()
+        self.assertFalse(self.spot.is_available)
+
+        self.user.delete()
+
+        self.spot.refresh_from_db()
+        self.assertTrue(self.spot.is_available)
+        self.assertFalse(Reservation.objects.filter(pk=reservation.pk).exists())
+
     def test_reservation_list_shows_departure_button_only_after_arrival(self):
         reservation = self.create_reservation()
         url = reverse("parking:declare_departure", args=[reservation.id])
@@ -1213,9 +1328,83 @@ class AgentAffluenceTests(TestCase):
         response = self.client.get(reverse("parking:agent_affluence"), {"jours": "abc"})
         self.assertEqual(len(response.context["daily"]), 7)
 
+    def test_oversized_parking_filter_is_ignored(self):
+        response = self.client.get(reverse("parking:agent_affluence"), {"parking": "9" * 100})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context["selected_parking"])
+
     def test_empty_history(self):
         response = self.client.get(reverse("parking:agent_affluence"))
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.context["busiest_day"])
         self.assertIsNone(response.context["busiest_hour"])
+
+
+class CsrfProtectionTests(TestCase):
+    def setUp(self):
+        self.parking = Parking.objects.create(
+            name="Parking sécurisé",
+            address="1 rue du Centre",
+            hourly_rate=Decimal("2.50"),
+        )
+        self.spot = Spot.objects.create(parking=self.parking, number=1)
+        self.user = get_user_model().objects.create_user(username="alice", password="password")
+        self.agent = get_user_model().objects.create_user(username="agent", password="password")
+        self.agent.groups.add(Group.objects.create(name="Agents"))
+        self.client = Client(enforce_csrf_checks=True)
+
+    def test_user_mutations_require_csrf_token(self):
+        self.client.force_login(self.user)
+        active = Reservation.objects.create(user=self.user, spot=self.spot, plate="AA-123-AA")
+        arrived = Reservation.objects.create(
+            user=self.user,
+            spot=Spot.objects.create(parking=self.parking, number=2),
+            plate="BB-234-BB",
+            arrived_at=timezone.now(),
+        )
+        urls_and_data = [
+            (
+                reverse("parking:reserve_spot", args=[self.parking.id, Spot.objects.create(parking=self.parking, number=3).id]),
+                {
+                    "plate": "CC-345-CC",
+                    "duration_hours": "1",
+                    "card_number": "1234567890123456",
+                    "expiration_date": "12/30",
+                    "security_code": "123",
+                },
+            ),
+            (reverse("parking:cancel_reservation", args=[active.id]), {}),
+            (reverse("parking:confirm_arrival", args=[active.id]), {}),
+            (reverse("parking:declare_departure", args=[arrived.id]), {}),
+            (
+                reverse("parking:payment_methods"),
+                {"card_number": "1234567890123456", "expiration_date": "12/30", "security_code": "123"},
+            ),
+        ]
+
+        for url, data in urls_and_data:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.post(url, data).status_code, 403)
+
+        self.assertFalse(Reservation.objects.filter(plate="CC-345-CC").exists())
+        self.assertFalse(DemoPaymentMethod.objects.exists())
+        active.refresh_from_db()
+        self.assertIsNone(active.arrived_at)
+        self.assertEqual(active.status, Reservation.Status.ACTIVE)
+        arrived.refresh_from_db()
+        self.assertEqual(arrived.status, Reservation.Status.ACTIVE)
+
+    def test_agent_closure_requires_csrf_token(self):
+        self.client.force_login(self.agent)
+        reservation = Reservation.objects.create(
+            spot=self.spot,
+            plate="DD-456-DD",
+        )
+
+        response = self.client.post(reverse("parking:agent_end_reservation", args=[reservation.id]))
+
+        self.assertEqual(response.status_code, 403)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)

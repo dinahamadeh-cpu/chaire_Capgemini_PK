@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 plate_validator = RegexValidator(
@@ -149,9 +151,22 @@ class Reservation(models.Model):
         return self.actual_duration is not None and self.actual_duration > timedelta(hours=self.duration_hours)
 
     def save(self, *args, **kwargs):
+        previous_spot_id = None
+        if self.pk:
+            previous_spot_id = Reservation.objects.filter(pk=self.pk).values_list("spot_id", flat=True).first()
         super().save(*args, **kwargs)
-        is_occupied = Reservation.objects.filter(spot=self.spot, status=Reservation.Status.ACTIVE).exists()
-        Spot.objects.filter(pk=self.spot_id).update(is_available=not is_occupied)
+        for spot_id in {previous_spot_id, self.spot_id} - {None}:
+            occupied = Reservation.objects.filter(spot_id=spot_id, status=Reservation.Status.ACTIVE).exists()
+            Spot.objects.filter(pk=spot_id).update(is_available=not occupied)
+
+
+@receiver(post_delete, sender=Reservation)
+def update_spot_availability_after_reservation_delete(sender, instance, **kwargs):
+    occupied = Reservation.objects.filter(
+        spot_id=instance.spot_id,
+        status=Reservation.Status.ACTIVE,
+    ).exists()
+    Spot.objects.filter(pk=instance.spot_id).update(is_available=not occupied)
 
 
 class Contravention(models.Model):

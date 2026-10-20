@@ -8,5 +8,8 @@
         <a class="button" href="{% url 'parking:agent_stats' %}">Occupation en temps réel</a>
         <a class="button" href="{% url 'parking:agent_affluence' %}">Analyse de l'affluence</a>
     </nav>
-    <p><a href="{% url 'parking:agent_logout' %}">Se déconnecter</a></p>
+    <form method="post" action="{% url 'parking:agent_logout' %}">
+        {% csrf_token %}
+        <button type="submit">Se déconnecter</button>
+    </form>
 {% endblock %}
