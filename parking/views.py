@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import ContraventionForm, PaymentDetailsForm, ReservationForm
-from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot, plate_validator
+from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot, Favorite, plate_validator
 
 
 STATS_MOVEMENTS_LIMIT = 20
@@ -47,6 +47,11 @@ def parking_list(request):
         total_spots_count=Count("spots"),
         available_spots_count=Count("spots", filter=Q(spots__is_available=True)),
     )
+    
+    favorite_parking_ids = set(
+        Favorite.objects.filter(user=request.user)
+        .values_list("parking_id", flat=True)
+    )
 
     parking_data = list(
         parkings.values(
@@ -64,9 +69,46 @@ def parking_list(request):
         {
             "parkings": parkings,
             "parking_data": parking_data,
+            "favorite_parking_ids": favorite_parking_ids,
         },
     )
 
+@login_required(login_url="parking:login")
+@require_POST
+def toggle_favorite(request, parking_id):
+    parking = get_object_or_404(Parking, pk=parking_id)
+
+    favorite, created = Favorite.objects.get_or_create(
+        user=request.user,
+        parking=parking,
+    )
+
+    if created:
+        messages.success(
+            request,
+            f"{parking.name} a été ajouté à vos favoris.",
+        )
+    else:
+        favorite.delete()
+        messages.success(
+            request,
+            f"{parking.name} a été retiré de vos favoris.",
+        )
+
+    return redirect("parking:parking_list")
+
+@login_required(login_url="parking:login")
+def favorite_list(request):
+    favorites = (
+        Favorite.objects.filter(user=request.user)
+        .select_related("parking")
+    )
+
+    return render(
+        request,
+        "parking/favorite_list.html",
+        {"favorites": favorites},
+    )
 
 @login_required(login_url="parking:login")
 def parking_detail(request, parking_id):
