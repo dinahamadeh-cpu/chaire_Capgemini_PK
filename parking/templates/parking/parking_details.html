@@ -41,6 +41,13 @@
         .empty-state p { margin-top: 0; }
         .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .button:hover, .button:focus-visible { background: var(--primary-dark); }
+        .reservation-form { display: grid; gap: .65rem; margin-top: .8rem; }
+        .reservation-form label { color: var(--muted); font-size: .9rem; font-weight: 600; }
+        .reservation-form input { width: 100%; padding: .65rem .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+        .reservation-form input:focus { outline: 3px solid rgba(36,87,197,.18); border-color: var(--primary); }
+        .reservation-form button { min-height: 42px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
+        .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
         .message-success { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
         .message-error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
@@ -64,6 +71,10 @@
 <body>
     <header class="site-header">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
+        <nav class="site-navigation" aria-label="Navigation">
+            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+            <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+        </nav>
         <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
     </header>
 
@@ -73,6 +84,13 @@
         </section>
 
         <section class="parking-details-section">
+            <a class="back-link" href="{% url 'parking:parking_list' %}">Retour à la liste des parkings</a>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="message" role="status">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
             <a class="back-link" href="{% url 'parking:parking_list' %}">← Retour à la liste</a>
 
             {% include "parking/_messages.html" %}
@@ -121,6 +139,12 @@
                                 <span class="spot-icon" aria-hidden="true">🅿️</span>
                                 <strong>Place n°{{ spot.number }}</strong>
                                 {% if user.is_authenticated %}
+                                    <form class="reservation-form" method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
+                                        {% csrf_token %}
+                                        <label for="plate-{{ spot.id }}">Plaque d'immatriculation</label>
+                                        <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
+                                        <button type="submit">Réserver</button>
+                                    </form>
                                     <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver la place n°{{ spot.number }}</a>
                                 {% else %}
                                     <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
@@ -138,12 +162,12 @@
         </section>
     </main>
 
-    {{ parking_data|json_script:"parking-data" }}
+    {{ parking_data|json_script:"parking-map-data" }}
     <script>
         function initMap() {
-            const parking = JSON.parse(document.getElementById("parking-data").textContent);
+            const parking = JSON.parse(document.getElementById("parking-map-data").textContent);
             const map = new google.maps.Map(document.getElementById("detail-map"), {
-                zoom: 15,
+                zoom: 12,
                 center: { lat: parking.latitude ?? 48.8566, lng: parking.longitude ?? 2.3522 }
             });
             if (parking.latitude !== null && parking.longitude !== null) {
@@ -154,6 +178,11 @@
                 });
                 const infoWindow = new google.maps.InfoWindow({ content: `<strong>${parking.name}</strong><br>${parking.address}` });
                 marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+                const targetZoom = 18;
+                function zoomIn() {
+                    map.setZoom(targetZoom);
+                }
+                window.setTimeout(zoomIn, 180);
             }
         }
     </script>

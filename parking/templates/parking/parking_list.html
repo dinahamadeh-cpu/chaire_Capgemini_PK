@@ -23,53 +23,43 @@
 
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: var(--background);
+            color: var(--ink);
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
         }
 
-        .site-navigation {
+        a { color: var(--primary); }
+
+        .site-header {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 14px 30px;
-            background: #f5f7fb;
-            border-bottom: 1px solid #dbe2ee;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem clamp(1rem, 4vw, 2rem);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
         }
 
-        .site-navigation a {
-            display: inline-block;
-            padding: 10px 16px;
-            border: 1px solid #2457c5;
-            border-radius: 7px;
-            background: #fff;
-            color: #2457c5;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background-color 0.15s, color 0.15s;
-        }
-
-        .site-navigation a:hover,
-        .site-navigation a:focus-visible {
-            background: #2457c5;
-            color: #fff;
-        }
+        .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
+        .brand { font-size: 1.15rem; }
+        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
+        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
 
         .page-layout {
             display: grid;
-            grid-template-columns: 45% 55%;
-            min-height: calc(100vh - 62px);
+            grid-template-columns: minmax(320px, 45%) 1fr;
+            min-height: calc(100vh - 68px);
         }
 
-        .map-section {
-            min-height: calc(100vh - 62px);
-            position: sticky;
-            top: 0;
-        }
+        .map-section { position: sticky; top: 0; height: calc(100vh - 68px); background: #dfe7f4; }
+        #map { width: 100%; height: 100%; min-height: 420px; }
 
-        #map {
-            width: 100%;
-            height: calc(100vh - 62px);
-        }
-
+        .parking-list-section { padding: clamp(1.25rem, 3vw, 2.5rem); overflow-y: auto; }
+        .content-heading { max-width: 760px; margin-bottom: 1.5rem; }
+        h1 { margin: 0 0 .45rem; font-size: clamp(1.75rem, 3vw, 2.4rem); }
+        .intro { margin: 0; color: var(--muted); line-height: 1.5; }
         .site-header {
             display: flex;
             align-items: center;
@@ -144,12 +134,50 @@
             .site-header { align-items: flex-start; flex-direction: column; }
             .parking-card { padding: 1rem; }
         }
+        .parking-card:hover { border-color: #a9bce5; box-shadow: 0 9px 24px rgba(31, 52, 89, .11); transform: translateY(-2px); }
+        .parking-card-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .parking-card h2 { margin: 0; font-size: 1.3rem; }
+        .parking-card h2 a { text-decoration: none; }
+        .parking-address { margin: .45rem 0 0; color: var(--muted); line-height: 1.45; }
+        .parking-icon { font-size: 1.8rem; }
+
+        .availability-badge { display: inline-flex; margin: 1rem 0 .7rem; padding: .35rem .65rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+        .availability-ok { color: #06734f; background: var(--success-bg); }
+        .availability-low { color: #946500; background: var(--warning-bg); }
+        .availability-full { color: #a52222; background: var(--danger-bg); }
+        .availability-count { margin: 0; font-size: 1.05rem; }
+
+        .pricing { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: 0; margin: 1rem 0; list-style: none; color: var(--muted); }
+        .pricing li { line-height: 1.4; }
+        .parking-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.1rem; }
+        .button, .focus-map-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+        .button:hover, .button:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: var(--primary-dark); }
+        .button.secondary, .focus-map-button { background: #fff; color: var(--primary); }
+        .button.secondary:hover, .button.secondary:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: #edf3ff; }
+        .empty-state { max-width: 760px; padding: 1.5rem; border: 1px dashed #a9bce5; border-radius: 14px; background: #fff; color: var(--muted); }
 
         .parking-card-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 22px;
+        }
+        
+        .favorite-button {
+            min-height: 42px;
+            padding: .65rem .9rem;
+            border: 1px solid #e3a008;
+            border-radius: 9px;
+            background: #fffaf0;
+            color: #946500;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .favorite-button:hover,
+        .favorite-button:focus-visible,
+        .favorite-button.is-favorite {
+            background: #fff0b8;
         }
 
         .focus-map-button {
@@ -167,29 +195,26 @@
         }
 
         @media (max-width: 800px) {
-            .page-layout {
-                display: block;
-            }
+            .page-layout { display: flex; flex-direction: column; }
+            .parking-list-section { order: 1; }
+            .map-section { order: 2; position: static; height: 360px; min-height: 360px; }
+            #map { min-height: 360px; }
+            .site-header { align-items: flex-start; flex-direction: column; }
+            .parking-card { padding: 1rem; }
+        }
 
-            .map-section {
-                position: static;
-                min-height: 400px;
-            }
-
-            #map {
-                height: 400px;
-            }
-
-            .parking-list-section {
-                padding: 20px;
-            }
+        @media (max-width: 480px) {
+            .parking-card-actions .button, .parking-card-actions .focus-map-button { width: 100%; }
         }
     </style>
 </head>
 <body>
     <header class="site-header">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
-        <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+        <nav class="site-navigation" aria-label="Navigation">
+            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+            <a class="header-link" href="{% url 'parking:favorite_list' %}">★</a>
+        </nav>
     </header>
 
     <main class="page-layout">
@@ -203,6 +228,12 @@
                 <h1>Liste des parkings</h1>
                 <p class="intro">Comparez les disponibilités, les tarifs et les horaires, puis choisissez le parking qui vous convient.</p>
             </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="message" role="status">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
 
             {% if parkings %}
                 {% for parking in parkings %}
@@ -233,8 +264,32 @@
 
                         <div class="parking-card-actions">
                             <a class="button" href="{% url 'parking:parking_detail' parking.id %}">Voir le détail</a>
+
+                            <form
+                                method="post"
+                                action="{% url 'parking:toggle_favorite' parking.id %}"
+                            >
+                                {% csrf_token %}
+
+                                {% if parking.id in favorite_parking_ids %}
+                                    <button type="submit" class="favorite-button is-favorite">
+                                        ★ Retirer des favoris
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="favorite-button">
+                                        ☆ Ajouter aux favoris
+                                    </button>
+                                {% endif %}
+                            </form>
+
                             {% if parking.latitude is not None and parking.longitude is not None %}
-                                <button class="focus-map-button" type="button" data-parking-id="{{ parking.id }}">Voir sur la carte</button>
+                                <button
+                                    class="focus-map-button"
+                                    type="button"
+                                    data-parking-id="{{ parking.id }}"
+                                >
+                                    Voir sur la carte
+                                </button>
                             {% endif %}
                         </div>
                     </article>
@@ -254,47 +309,24 @@
         function initMap() {
             const map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 12,
-                center: {
-                    lat: 48.8566,
-                    lng: 2.3522
-                }
-            }
-        );
+                center: { lat: 48.8566, lng: 2.3522 }
+            });
+            const parkings = JSON.parse(document.getElementById("parkings-data").textContent);
+            const parkingMarkers = new Map();
 
-        const parkings = JSON.parse(
-            document.getElementById("parkings-data").textContent
-        );
-        const parkingMarkers = new Map();
-
-        parkings.forEach((parking) => {
-            if (parking.latitude !== null &&
-                parking.longitude !== null) {
-
-                const marker = new google.maps.Marker({
-                    position: {
-                        lat: parking.latitude,
-                        lng: parking.longitude
-                    },
-                    map: map,
-                    title: parking.name
-                });
-
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `
-                        <strong>${parking.name}</strong>
-                        <br>
-                        ${parking.address}
-                    `
-                });
-                parkingMarkers.set(String(parking.id), { marker, infoWindow });
-
-                marker.addListener("click", () => {
-                    map.setCenter(marker.getPosition());
-                    map.setZoom(18);
-                    infoWindow.open({
-                        anchor: marker,
-                        map: map
+            parkings.forEach((parking) => {
+                if (parking.latitude !== null && parking.longitude !== null) {
+                    const marker = new google.maps.Marker({
+                        position: { lat: parking.latitude, lng: parking.longitude },
+                        map: map,
+                        title: parking.name
                     });
+                    parking.marker = marker;
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `<strong>${parking.name}</strong><br>${parking.address}`
+                    });
+                    marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+                    parkingMarkers.set(String(parking.id), marker);
                 });
             }
         });
@@ -315,20 +347,20 @@
                 if (!parking) {
                     return;
                 }
+            });
 
-                map.setCenter(parking.marker.getPosition());
-                map.setZoom(18);
-                parking.infoWindow.open({
-                    anchor: parking.marker,
-                    map: map
+            document.querySelectorAll(".focus-map-button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const marker = parkingMarkers.get(button.dataset.parkingId);
+                    if (!marker) return;
+                    parking.marker = marker;
+                    map.setCenter(parking.marker.getPosition());
+                    map.setZoom(18);
+                    google.maps.event.trigger(marker, "click");
                 });
             });
-        });
-    }
-</script>
-
-<script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap"
-    async
-    defer>
-</script>
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap" async defer></script>
+</body>
+</html>

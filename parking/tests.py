@@ -11,7 +11,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot
+from .models import DemoPaymentMethod, Parking, Reservation, Spot, Favorite, Spot
 
 
 class SeedDataTests(TestCase):
@@ -1174,6 +1174,223 @@ class ParkingViewsTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "Connexion agent")
 
+class FavoriteTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="alice",
+            password="password123",
+        )
+        self.parking = Parking.objects.create(
+            name="Parking Central",
+            address="1 rue du Centre",
+        )
+
+    def test_user_can_create_favorite(self):
+        favorite = Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        self.assertEqual(Favorite.objects.count(), 1)
+        self.assertEqual(favorite.user, self.user)
+        self.assertEqual(favorite.parking, self.parking)
+
+    def test_same_parking_cannot_be_favorited_twice_by_same_user(self):
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        with self.assertRaises(IntegrityError):
+            Favorite.objects.create(
+                user=self.user,
+                parking=self.parking,
+            )
+
+    def test_different_users_can_favorite_same_parking(self):
+        another_user = get_user_model().objects.create_user(
+            username="bob",
+            password="password123",
+        )
+
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+        Favorite.objects.create(
+            user=another_user,
+            parking=self.parking,
+        )
+
+        self.assertEqual(
+            Favorite.objects.filter(parking=self.parking).count(),
+            2,
+        )
+
+    def test_deleting_parking_deletes_its_favorites(self):
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        self.parking.delete()
+
+        self.assertEqual(Favorite.objects.count(), 0)
+
+    def test_deleting_user_deletes_their_favorites(self):
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        self.user.delete()
+
+        self.assertEqual(Favorite.objects.count(), 0)
+
+class FavoriteViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="alice",
+            password="password123",
+        )
+        self.other_user = get_user_model().objects.create_user(
+            username="bob",
+            password="password123",
+        )
+        self.parking = Parking.objects.create(
+            name="Parking Central",
+            address="1 rue du Centre",
+        )
+
+        self.toggle_url = reverse(
+            "parking:toggle_favorite",
+            kwargs={"parking_id": self.parking.id},
+        )
+        self.favorite_list_url = reverse("parking:favorite_list")
+        self.parking_list_url = reverse("parking:parking_list")
+
+    def test_authenticated_user_can_add_parking_to_favorites(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.toggle_url)
+
+        self.assertRedirects(response, self.parking_list_url)
+        self.assertTrue(
+            Favorite.objects.filter(
+                user=self.user,
+                parking=self.parking,
+            ).exists()
+        )
+
+    def test_authenticated_user_can_remove_parking_from_favorites(self):
+        self.client.force_login(self.user)
+
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        response = self.client.post(self.toggle_url)
+
+        self.assertRedirects(response, self.parking_list_url)
+        self.assertFalse(
+            Favorite.objects.filter(
+                user=self.user,
+                parking=self.parking,
+            ).exists()
+        )
+
+    def test_get_request_is_not_allowed_for_toggle_favorite(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.toggle_url)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(Favorite.objects.exists())
+
+    def test_anonymous_user_is_redirected_to_login(self):
+        response = self.client.post(self.toggle_url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/connexion/", response.url)
+        self.assertFalse(Favorite.objects.exists())
+
+    def test_user_cannot_see_another_users_favorites(self):
+        self.client.force_login(self.user)
+
+        Favorite.objects.create(
+            user=self.other_user,
+            parking=self.parking,
+        )
+
+        response = self.client.get(self.favorite_list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.parking.name)
+
+    def test_favorite_list_contains_current_user_favorites(self):
+        self.client.force_login(self.user)
+
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        response = self.client.get(self.favorite_list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.parking.name)
+
+    def test_parking_list_contains_parking_as_favorite(self):
+        self.client.force_login(self.user)
+
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        response = self.client.get(self.parking_list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            self.parking.id,
+            response.context["favorite_parking_ids"],
+        )
+        self.assertContains(response, "Retirer des favoris")
+
+    def test_parking_list_contains_add_favorite_button(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.parking_list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ajouter aux favoris")
+        self.assertNotContains(response, "Retirer des favoris")
+
+    def test_add_favorite_displays_success_message(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.toggle_url, follow=True)
+
+        self.assertContains(
+            response,
+            "Parking Central a été ajouté à vos favoris.",
+        )
+
+    def test_remove_favorite_displays_success_message(self):
+        self.client.force_login(self.user)
+
+        Favorite.objects.create(
+            user=self.user,
+            parking=self.parking,
+        )
+
+        response = self.client.post(self.toggle_url, follow=True)
+
+        self.assertContains(
+            response,
+            "Parking Central a été retiré de vos favoris.",
+        )
 
 class AgentStatsTests(TestCase):
     def setUp(self):

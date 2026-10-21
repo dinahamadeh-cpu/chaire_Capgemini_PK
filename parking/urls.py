@@ -79,4 +79,6 @@ urlpatterns = [
     path("agent/statistiques/", views.agent_stats, name="agent_stats"),
     path("agent/affluence/", views.agent_affluence, name="agent_affluence"),
     path("acces-professionnel/", views.professional_login,name="professional_login"),
+    path("parkings/<int:parking_id>/favori/", views.toggle_favorite, name="toggle_favorite"),
+    path("mes-favoris/", views.favorite_list, name="favorite_list"),
 ]
