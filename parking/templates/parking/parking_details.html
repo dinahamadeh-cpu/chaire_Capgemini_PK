@@ -66,7 +66,10 @@
 <body>
     <header class="site-header">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
-        <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+        <nav class="site-navigation" aria-label="Navigation">
+            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+            <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+        </nav>
     </header>
 
     <main class="detail-layout">
@@ -75,7 +78,7 @@
         </section>
 
         <section class="parking-details-section">
-            <a class="back-link" href="{% url 'parking:parking_list' %}">← Retour à la liste</a>
+            <a class="back-link" href="{% url 'parking:parking_list' %}">Retour à la liste des parkings</a>
 
             {% if messages %}
                 {% for message in messages %}
@@ -145,12 +148,12 @@
         </section>
     </main>
 
-    {{ parking_data|json_script:"parking-data" }}
+    {{ parking_data|json_script:"parking-map-data" }}
     <script>
         function initMap() {
-            const parking = JSON.parse(document.getElementById("parking-data").textContent);
+            const parking = JSON.parse(document.getElementById("parking-map-data").textContent);
             const map = new google.maps.Map(document.getElementById("detail-map"), {
-                zoom: 15,
+                zoom: 12,
                 center: { lat: parking.latitude ?? 48.8566, lng: parking.longitude ?? 2.3522 }
             });
             if (parking.latitude !== null && parking.longitude !== null) {
@@ -161,6 +164,11 @@
                 });
                 const infoWindow = new google.maps.InfoWindow({ content: `<strong>${parking.name}</strong><br>${parking.address}` });
                 marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+                const targetZoom = 18;
+                function zoomIn() {
+                    map.setZoom(targetZoom);
+                }
+                window.setTimeout(zoomIn, 180);
             }
         }
     </script>

@@ -148,8 +148,10 @@
 <body>
     <header class="site-header">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
-        <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
-        <a class="header-link" href="{% url 'parking:favorite_list' %}">★</a>
+        <nav class="site-navigation" aria-label="Navigation">
+            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+            <a class="header-link" href="{% url 'parking:favorite_list' %}">★</a>
+        </nav>
     </header>
 
     <main class="page-layout">
@@ -162,6 +164,12 @@
                 <h1>Liste des parkings</h1>
                 <p class="intro">Comparez les disponibilités, les tarifs et les horaires, puis choisissez le parking qui vous convient.</p>
             </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="message" role="status">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
 
             {% if parkings %}
                 {% for parking in parkings %}
@@ -249,6 +257,7 @@
                         map: map,
                         title: parking.name
                     });
+                    parking.marker = marker;
                     const infoWindow = new google.maps.InfoWindow({
                         content: `<strong>${parking.name}</strong><br>${parking.address}`
                     });
@@ -261,8 +270,9 @@
                 button.addEventListener("click", () => {
                     const marker = parkingMarkers.get(button.dataset.parkingId);
                     if (!marker) return;
-                    map.panTo(marker.getPosition());
-                    map.setZoom(15);
+                    parking.marker = marker;
+                    map.setCenter(parking.marker.getPosition());
+                    map.setZoom(18);
                     google.maps.event.trigger(marker, "click");
                 });
             });

@@ -93,6 +93,13 @@ def favorite_list(request):
     favorites = (
         Favorite.objects.filter(user=request.user)
         .select_related("parking")
+        .annotate(
+            total_spots_count=Count("parking__spots"),
+            available_spots_count=Count(
+                "parking__spots",
+                filter=Q(parking__spots__is_available=True),
+            ),
+        )
     )
 
     return render(

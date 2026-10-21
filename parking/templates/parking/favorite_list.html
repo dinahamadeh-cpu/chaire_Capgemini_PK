@@ -20,18 +20,14 @@
         }
 
         * { box-sizing: border-box; }
-
         body {
             margin: 0;
             min-height: 100vh;
-            overflow-x: hidden;
             background: var(--background);
             color: var(--ink);
             font-family: "Segoe UI", Roboto, Arial, sans-serif;
         }
-
         a { color: var(--primary); }
-
         .site-header {
             display: flex;
             align-items: center;
@@ -41,55 +37,119 @@
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
         }
-
         .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
         .brand { font-size: 1.15rem; }
+        .site-navigation { display: flex; gap: .65rem; }
         .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
         .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
+        .parking-list-section { max-width: 900px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); }
+        .content-heading { margin-bottom: 1.5rem; }
+        h1 { margin: 0 0 .45rem; font-size: clamp(1.75rem, 3vw, 2.4rem); }
+        .intro { margin: 0; color: var(--muted); line-height: 1.5; }
+        .parking-card {
+            margin: 0 0 1rem;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            box-shadow: 0 5px 18px rgba(31, 52, 89, .06);
+            transition: transform .15s, box-shadow .15s, border-color .15s;
+        }
+        .parking-card:hover { border-color: #a9bce5; box-shadow: 0 9px 24px rgba(31, 52, 89, .11); transform: translateY(-2px); }
+        .parking-card-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .parking-card h2 { margin: 0; font-size: 1.3rem; }
+        .parking-card h2 a { text-decoration: none; }
+        .parking-address { margin: .45rem 0 0; color: var(--muted); line-height: 1.45; }
+        .parking-icon { font-size: 1.8rem; }
+        .availability-badge { display: inline-flex; margin: 1rem 0 .7rem; padding: .35rem .65rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+        .availability-ok { color: #06734f; background: var(--success-bg); }
+        .availability-low { color: #946500; background: var(--warning-bg); }
+        .availability-full { color: #a52222; background: var(--danger-bg); }
+        .availability-count { margin: 0; font-size: 1.05rem; }
+        .pricing { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: 0; margin: 1rem 0; list-style: none; color: var(--muted); }
+        .pricing li { line-height: 1.4; }
+        .parking-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.1rem; }
+        .button, .favorite-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: .65rem .9rem;
+            border-radius: 9px;
+            font: inherit;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .button { border: 1px solid var(--primary); background: var(--primary); color: #fff; }
+        .button:hover, .button:focus-visible { background: var(--primary-dark); }
+        .favorite-button { border: 1px solid #e3a008; background: #fff0b8; color: #946500; }
+        .favorite-button:hover, .favorite-button:focus-visible { background: #ffe58a; }
+        .empty-state { padding: 1.5rem; border: 1px dashed #a9bce5; border-radius: 14px; background: #fff; color: var(--muted); }
+        .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
+        @media (max-width: 600px) {
+            .site-header { align-items: flex-start; flex-direction: column; }
+            .site-navigation { flex-wrap: wrap; }
+            .parking-card { padding: 1rem; }
+        }
     </style>
 </head>
 <body>
     <header class="site-header">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
-        <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+        <nav class="site-navigation" aria-label="Navigation">
+            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+            <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+        </nav>
     </header>
-    <main>
-        <h1>Mes parkings favoris</h1>
+
+    <main class="parking-list-section">
+        <div class="content-heading">
+            <h1>Mes parkings favoris</h1>
+            <p class="intro">Retrouvez ici les parkings que vous avez enregistrés.</p>
+        </div>
 
         {% if favorites %}
             {% for favorite in favorites %}
-                <article>
-                    <h2>
-                        <a href="{% url 'parking:parking_detail' favorite.parking.id %}">
-    </header>
+                <article class="parking-card">
+                    <div class="parking-card-header">
+                        <div>
+                            <h2><a href="{% url 'parking:parking_detail' favorite.parking.id %}">{{ favorite.parking.name }}</a></h2>
+                            <p class="parking-address">{{ favorite.parking.address }}</p>
+                        </div>
+                        <span class="parking-icon" aria-hidden="true">🅿️</span>
+                    </div>
 
-    <main>
-        <h1>Mes parkings favoris</h1>
+                    {% if favorite.available_spots_count == 0 %}
+                        <span class="availability-badge availability-full">Complet</span>
+                    {% elif favorite.available_spots_count <= 3 %}
+                        <span class="availability-badge availability-low">Presque complet</span>
+                    {% else %}
+                        <span class="availability-badge availability-ok">Places disponibles</span>
+                    {% endif %}
 
-        {% if favorites %}
-            {% for favorite in favorites %}
-                <article>
-                    <h2>
-                        <a href="{% url 'parking:parking_detail' favorite.parking.id %}">
-                            {{ favorite.parking.name }}
-                        </a>
-                    </h2>
+                    <p class="availability-count">
+                        <strong>{{ favorite.available_spots_count }}</strong>
+                        place{{ favorite.available_spots_count|pluralize }} disponible{{ favorite.available_spots_count|pluralize }}
+                        sur {{ favorite.total_spots_count }}
+                    </p>
 
-                    <p>{{ favorite.parking.address }}</p>
+                    {% include "parking/_pricing.html" with parking=favorite.parking %}
 
-                    <form
-                        method="post"
-                        action="{% url 'parking:toggle_favorite' favorite.parking.id %}"
-                    >
-                        {% csrf_token %}
-                        <button type="submit">
-                            ★ Retirer des favoris
-                        </button>
-                    </form>
+                    <div class="parking-card-actions">
+                        <a class="button" href="{% url 'parking:parking_detail' favorite.parking.id %}">Voir le détail</a>
+                        <form method="post" action="{% url 'parking:toggle_favorite' favorite.parking.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="favorite-button">★ Retirer des favoris</button>
+                        </form>
+                    </div>
                 </article>
             {% endfor %}
         {% else %}
-            <p>Vous n'avez encore aucun parking favori.</p>
+            <div class="empty-state">
+                <p><strong>Vous n'avez encore aucun parking favori.</strong></p>
+                <p>Ajoutez des parkings à vos favoris depuis la liste des parkings.</p>
+            </div>
         {% endif %}
     </main>
 </body>
