@@ -47,7 +47,7 @@
 
     <h1>Réserver une place</h1>
     <p><strong>{{ parking.name }}</strong> — place n°{{ spot.number }}</p>
-    <p>Tarif : {{ parking.hourly_rate|floatformat:2 }} € / heure</p>
+    <p>Tarif horaire : {{ parking.hourly_rate|floatformat:2 }} €</p>
 
     {% if form_errors %}
         <div class="error" role="alert">
@@ -74,8 +74,24 @@
             {{ form.plate }}
         </p>
 
+        <section aria-labelledby="reservation-preview-title">
+            <h2 id="reservation-preview-title">Récapitulatif avant validation</h2>
+            <dl>
+                <dt>Parking et place</dt>
+                <dd>{{ parking.name }} — place n°{{ spot.number }}</dd>
+                <dt>Plaque</dt>
+                <dd id="reservation-plate">À saisir</dd>
+                <dt>Durée</dt>
+                <dd id="reservation-duration">À choisir</dd>
+                <dt>Moyen de paiement</dt>
+                <dd id="reservation-payment">Nouveau moyen de paiement simulé</dd>
+                <dt>Montant total simulé</dt>
+                <dd><strong><output id="reservation-total">Choisissez une durée</output></strong></dd>
+            </dl>
+        </section>
+
         <fieldset>
-            <legend>Moyen de paiement</legend>
+            <legend>Moyen de paiement simulé</legend>
             {% if has_saved_payment_method %}
                 <div class="payment-method-choices">
                     {% for radio in form.payment_method %}
@@ -87,7 +103,7 @@
                 </div>
             {% else %}
                 <input type="hidden" name="payment_method" value="new">
-                <p class="payment-method-choice">Nouveau moyen de paiement</p>
+                <p class="payment-method-choice">Nouveau moyen de paiement simulé</p>
             {% endif %}
             <div id="new-payment-fields">
                 <p>
@@ -105,11 +121,8 @@
             </div>
         </fieldset>
 
-        <p>
-            Montant à payer :
-            <strong><output id="reservation-total">Saisis une durée</output></strong>
-        </p>
-        <button type="submit">Payer et réserver</button>
+        <p>Aucun débit réel n'est effectué et les données de carte saisies ne sont pas enregistrées.</p>
+        <button type="submit">Confirmer la réservation et le paiement simulé</button>
     </form>
 
     <script>
@@ -117,6 +130,10 @@
         const hourlyRateCents = Number(checkoutForm.dataset.hourlyRateCents);
         const durationInput = checkoutForm.querySelector('[name="duration_hours"]');
         const totalOutput = document.getElementById("reservation-total");
+        const plateInput = checkoutForm.querySelector('[name="plate"]');
+        const plateOutput = document.getElementById("reservation-plate");
+        const durationOutput = document.getElementById("reservation-duration");
+        const paymentOutput = document.getElementById("reservation-payment");
         const paymentFields = document.getElementById("new-payment-fields");
         const paymentRadios = checkoutForm.querySelectorAll('[name="payment_method"]');
         const currencyFormatter = new Intl.NumberFormat("fr-FR", {
@@ -126,12 +143,20 @@
 
         const updateTotal = () => {
             const hours = Number(durationInput.value);
-            totalOutput.textContent = Number.isInteger(hours) && hours > 0
+            const validHours = Number.isInteger(hours) && hours > 0;
+            durationOutput.textContent = validHours ? `${hours} h` : "À choisir";
+            totalOutput.textContent = validHours
                 ? currencyFormatter.format((hourlyRateCents * hours) / 100)
-                : "Saisis une durée";
+                : "Choisissez une durée";
         };
         durationInput.addEventListener("input", updateTotal);
         updateTotal();
+
+        const updatePlate = () => {
+            plateOutput.textContent = plateInput.value.trim().toUpperCase() || "À saisir";
+        };
+        plateInput.addEventListener("input", updatePlate);
+        updatePlate();
 
         const updatePaymentFields = () => {
             const selectedMethod = checkoutForm.querySelector(
@@ -139,6 +164,9 @@
             );
             const useNewMethod = !selectedMethod || selectedMethod.value === "new";
             paymentFields.hidden = !useNewMethod;
+            paymentOutput.textContent = useNewMethod
+                ? "Nouveau moyen de paiement simulé"
+                : "Moyen de paiement simulé enregistré";
             paymentFields.querySelectorAll("input").forEach((input) => {
                 input.required = useNewMethod;
             });

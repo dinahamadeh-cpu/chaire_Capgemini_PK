@@ -22,8 +22,8 @@
                         {% if reservation.amount_paid is not None %}
                             Paiement simulé : {{ reservation.amount_paid|floatformat:2 }} €<br>
                         {% endif %}
-                        Statut : {{ reservation.get_status_display }}<br>
-                        Créée le : {{ reservation.created_at }}
+                        Statut : <strong>{{ reservation.get_status_display }}</strong><br>
+                        Créée le : {{ reservation.created_at|date:"d/m/Y à H:i" }}
                     </p>
 
                     {% if reservation.status == "active" %}
@@ -53,8 +53,10 @@
                             {% csrf_token %}
                             <button type="submit">Annuler la réservation</button>
                         </form>
+                    {% elif reservation.status == "cancelled" %}
+                        <p>Annulée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
                     {% elif reservation.ended_at %}
-                        <p>Terminée le : {{ reservation.ended_at }}</p>
+                        <p>Terminée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
                     {% endif %}
                     <p><a href="{% url 'parking:reservation_summary' reservation.id %}">Voir le récapitulatif</a></p>
                 </li>

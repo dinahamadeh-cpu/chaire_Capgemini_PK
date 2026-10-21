@@ -92,6 +92,10 @@
                     <strong>{% if parking.hourly_rate is None %}Non renseigné{% elif parking.hourly_rate == 0 %}Gratuit{% else %}{{ parking.hourly_rate|floatformat:2 }} €/h{% endif %}</strong>
                 </div>
                 <div class="detail-summary-item">
+                    <span>Durée maximale</span>
+                    <strong>{{ parking.max_duration_display }}</strong>
+                </div>
+                <div class="detail-summary-item">
                     <span>Horaires</span>
                     <strong>{{ parking.opening_hours_display }}</strong>
                 </div>
@@ -117,7 +121,7 @@
                                 <span class="spot-icon" aria-hidden="true">🅿️</span>
                                 <strong>Place n°{{ spot.number }}</strong>
                                 {% if user.is_authenticated %}
-                                    <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver</a>
+                                    <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver la place n°{{ spot.number }}</a>
                                 {% else %}
                                     <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
                                 {% endif %}

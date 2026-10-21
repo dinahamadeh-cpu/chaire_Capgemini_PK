@@ -480,6 +480,25 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, 'name="security_code"')
         self.assertNotContains(response, "Ces informations sont uniquement vérifiées")
 
+    def test_checkout_preview_shows_reservation_details_without_card_data(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+        spot = self.parking.spots.get(number=1)
+
+        response = self.client.get(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id])
+        )
+
+        self.assertContains(response, "Récapitulatif avant validation")
+        self.assertContains(response, "Parking Central — place n°1")
+        self.assertContains(response, 'id="reservation-plate"')
+        self.assertContains(response, 'id="reservation-duration"')
+        self.assertContains(response, 'id="reservation-payment"')
+        self.assertContains(response, 'id="reservation-total"')
+        self.assertContains(response, "Nouveau moyen de paiement simulé")
+        self.assertContains(response, "les données de carte saisies ne sont pas enregistrées")
+
     def test_reservation_requires_all_payment_details(self):
         self.authenticate_as_user()
         self.parking.hourly_rate = Decimal("2.50")
@@ -557,6 +576,14 @@ class ParkingViewsTests(TestCase):
 
     def test_anonymous_user_is_redirected_before_reserving(self):
         spot = self.parking.spots.get(number=1)
+
+        response = self.client.get(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id])
+        )
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:reserve_spot', args=[self.parking.id, spot.id])}",
+        )
 
         response = self.client.post(
             reverse("parking:reserve_spot", args=[self.parking.id, spot.id]),
@@ -975,6 +1002,9 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, 'href="/parkings/">Tous les parkings</a>')
         self.assertContains(response, 'href="/parkings/">← Retour à la liste</a>')
         self.assertContains(response, "Réserver")
+        self.assertContains(response, "Places disponibles")
+        self.assertContains(response, "1/2")
+        self.assertContains(response, "Réserver la place n°1")
         self.assertNotContains(response, 'name="card_number"')
         self.assertContains(response, 'id="detail-map"')
         self.assertContains(response, 'id="parking-data"')
@@ -1259,6 +1289,36 @@ class UserDepartureAndSummaryTests(TestCase):
         response = self.client.get(reverse("parking:reservation_list"))
         self.assertContains(response, url)
         self.assertContains(response, reverse("parking:reservation_summary", args=[reservation.id]))
+
+    def test_closed_reservations_show_status_without_active_actions(self):
+        cancelled = self.create_reservation()
+        cancelled.status = Reservation.Status.CANCELLED
+        cancelled.ended_at = timezone.now()
+        cancelled.save()
+        completed = Reservation.objects.create(
+            user=self.user,
+            spot=self.spot,
+            plate="EF-456-GH",
+            duration_hours=2,
+            amount_paid=Decimal("5.00"),
+            arrived_at=timezone.now(),
+        )
+        completed.status = Reservation.Status.COMPLETED
+        completed.ended_at = timezone.now()
+        completed.save()
+
+        response = self.client.get(reverse("parking:reservation_list"))
+
+        self.assertContains(response, "Annulée")
+        self.assertContains(response, "Terminée")
+        self.assertContains(response, "Annulée le :")
+        self.assertContains(response, "Terminée le :")
+        for reservation in (cancelled, completed):
+            for view_name in ("confirm_arrival", "declare_departure", "cancel_reservation"):
+                self.assertNotContains(
+                    response,
+                    reverse(f"parking:{view_name}", args=[reservation.id]),
+                )
 
     def test_summary_shows_arrival_departure_duration_and_amount(self):
         arrived_at = timezone.now() - timedelta(hours=1, minutes=5)
