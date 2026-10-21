@@ -1104,6 +1104,9 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "2,50 € / heure")
         self.assertContains(response, "Durée maximale : 2 h")
         self.assertContains(response, "07:00 – 21:00")
+        self.assertContains(response, "Places disponibles")
+        self.assertContains(response, "1/2")
+        self.assertContains(response, "Réserver la place n°1")
 
     def test_parking_list_shows_pricing(self):
         self.authenticate_as_user()
