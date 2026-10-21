@@ -5,12 +5,6 @@
 {% block content %}
     <h1>Mes réservations</h1>
 
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-
     {% if reservations %}
         <ul>
             {% for reservation in reservations %}

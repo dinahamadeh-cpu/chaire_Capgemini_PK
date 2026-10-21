@@ -42,6 +42,10 @@
         .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .button:hover, .button:focus-visible { background: var(--primary-dark); }
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
+        .message-success { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
+        .message-error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
+        .message-warning { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
+        .message-info { color: #1d4ea0; background: #eff6ff; border: 1px solid #bfdbfe; }
         @media (max-width: 800px) {
             .detail-layout { display: flex; flex-direction: column; }
             .parking-details-section { order: 1; }
@@ -71,11 +75,7 @@
         <section class="parking-details-section">
             <a class="back-link" href="{% url 'parking:parking_list' %}">← Retour à la liste</a>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <p class="message" role="status">{{ message }}</p>
-                {% endfor %}
-            {% endif %}
+            {% include "parking/_messages.html" %}
 
             <header>
                 <h1>{{ parking.name }}</h1>

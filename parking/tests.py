@@ -300,11 +300,14 @@ class ParkingViewsTests(TestCase):
                 "password1": "A-valid-password-123!",
                 "password2": "A-valid-password-123!",
             },
+            follow=True,
         )
 
         self.assertRedirects(response, reverse("parking:parking_list"))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
         self.assertTrue(get_user_model().objects.filter(username="alice").exists())
+        self.assertContains(response, "message-success")
+        self.assertContains(response, "Votre compte a été créé. Bienvenue !")
 
     def test_user_can_log_in(self):
         get_user_model().objects.create_user(
@@ -363,13 +366,37 @@ class ParkingViewsTests(TestCase):
                 "expiration_date": "12/30",
                 "security_code": "123",
             },
+            follow=True,
         )
 
         self.assertRedirects(response, reverse("parking:parking_detail", args=[self.parking.id]))
+        self.assertContains(response, "message-success")
+        self.assertContains(response, "Paiement simulé de 7.50 € confirmé.")
         reservation = Reservation.objects.get(plate="GG-789-GG")
         self.assertEqual(reservation.user, user)
         self.assertEqual(reservation.duration_hours, 3)
         self.assertEqual(reservation.amount_paid, Decimal("7.50"))
+
+    def test_reservation_conflict_shows_a_user_facing_error(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+        spot = self.parking.spots.get(number=2)
+
+        response = self.client.post(
+            reverse("parking:reserve_spot", args=[self.parking.id, spot.id]),
+            {
+                "plate": "AA-123-AA",
+                "duration_hours": "1",
+                "card_number": "1234567890123456",
+                "expiration_date": "12/30",
+                "security_code": "123",
+            },
+            follow=True,
+        )
+
+        self.assertContains(response, "message-error")
+        self.assertContains(response, "Cette place n&#x27;est plus disponible.")
 
     def test_checkout_calculates_total_from_integer_cents(self):
         self.authenticate_as_user()

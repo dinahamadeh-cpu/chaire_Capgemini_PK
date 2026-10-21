@@ -10,12 +10,6 @@
 
     <h1>Moyen de paiement</h1>
 
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-
     {% if payment_method %}
         <p class="conforme">Un moyen de paiement simulé est prêt à être utilisé.</p>
         <p>Les données de carte saisies ne sont pas conservées.</p>

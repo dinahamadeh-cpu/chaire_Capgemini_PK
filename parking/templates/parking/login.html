@@ -54,14 +54,20 @@
         .error {
             color: #b91c1c;
         }
+        .message { margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid; border-radius: 8px; }
+        .message-success { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+        .message-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+        .message-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+        .message-info { color: #1d4ea0; background: #eff6ff; border-color: #bfdbfe; }
     </style>
 </head>
 <body>
     <main>
+        {% include "parking/_messages.html" %}
         <h1>Se connecter</h1>
 
         {% if form.errors %}
-            <p class="error">Nom d’utilisateur ou mot de passe incorrect.</p>
+            <p class="message message-error" role="alert">Nom d’utilisateur ou mot de passe incorrect. Vérifiez vos identifiants puis réessayez.</p>
         {% endif %}
 
         <form method="post">

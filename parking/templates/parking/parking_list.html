@@ -98,6 +98,11 @@
         .content-heading { max-width: 760px; margin-bottom: 1.5rem; }
         h1 { margin: 0 0 .45rem; font-size: clamp(1.75rem, 3vw, 2.4rem); }
         .intro { margin: 0; color: var(--muted); line-height: 1.5; }
+        .message { max-width: 760px; margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid; border-radius: 9px; }
+        .message-success { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+        .message-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+        .message-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+        .message-info { color: #1d4ea0; background: #eff6ff; border-color: #bfdbfe; }
 
         .parking-card {
             max-width: 760px;
@@ -193,6 +198,7 @@
         </section>
 
         <section class="parking-list-section">
+            {% include "parking/_messages.html" %}
             <div class="content-heading">
                 <h1>Liste des parkings</h1>
                 <p class="intro">Comparez les disponibilités, les tarifs et les horaires, puis choisissez le parking qui vous convient.</p>
