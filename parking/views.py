@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Count, Q
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -200,13 +200,14 @@ def reserve_spot(request, parking_id, spot_id):
 
     amount_paid = spot.parking.hourly_rate * form.cleaned_data["duration_hours"]
     try:
-        Reservation.objects.create(
-            user=request.user,
-            spot=spot,
-            plate=form.cleaned_data["plate"],
-            duration_hours=form.cleaned_data["duration_hours"],
-            amount_paid=amount_paid,
-        )
+        with transaction.atomic():
+            Reservation.objects.create(
+                user=request.user,
+                spot=spot,
+                plate=form.cleaned_data["plate"],
+                duration_hours=form.cleaned_data["duration_hours"],
+                amount_paid=amount_paid,
+            )
     except IntegrityError:
         messages.error(
             request,
