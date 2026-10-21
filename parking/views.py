@@ -321,7 +321,17 @@ def agent_logout(request):
 
 @user_passes_test(_is_agent, login_url="parking:agent_login")
 def agent_dashboard(request):
-    return render(request, "parking/agent_dashboard.html")
+    total_spots = Spot.objects.count()
+    occupied = Reservation.objects.filter(status=Reservation.Status.ACTIVE).count()
+    return render(
+        request,
+        "parking/agent_dashboard.html",
+        {
+            "occupied": occupied,
+            "total_spots": total_spots,
+            "occupancy_rate": round(occupied * 100 / total_spots) if total_spots else None,
+        },
+    )
 
 
 @user_passes_test(_is_agent, login_url="parking:agent_login")

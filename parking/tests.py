@@ -769,6 +769,46 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(reverse("parking:agent_dashboard"))
         self.assertEqual(response.status_code, 200)
 
+    def test_agent_dashboard_shows_actions_and_current_occupancy(self):
+        agent = get_user_model().objects.create_user(username="dashboard-agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        Reservation.objects.create(
+            spot=self.parking.spots.get(number=1),
+            plate="AA-123-AA",
+        )
+        self.client.force_login(agent)
+
+        response = self.client.get(reverse("parking:agent_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["occupied"], 1)
+        self.assertContains(response, "50 %")
+        for name in ("agent_plate_check", "agent_stats", "agent_affluence"):
+            self.assertContains(response, reverse(f"parking:{name}"))
+        self.assertContains(response, "Contraventions")
+
+    def test_agent_dashboard_handles_no_parking_data(self):
+        agent = get_user_model().objects.create_user(username="dashboard-agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        Parking.objects.all().delete()
+        self.client.force_login(agent)
+
+        response = self.client.get(reverse("parking:agent_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Aucune place n’est configurée")
+        self.assertEqual(response.context["occupied"], 0)
+
+    def test_non_agent_and_anonymous_cannot_access_agent_dashboard(self):
+        url = reverse("parking:agent_dashboard")
+        response = self.client.get(url)
+        self.assertRedirects(response, f"{reverse('parking:agent_login')}?next={url}")
+
+        user = get_user_model().objects.create_user(username="regular-user", password="password")
+        self.client.force_login(user)
+        response = self.client.get(url)
+        self.assertRedirects(response, f"{reverse('parking:agent_login')}?next={url}")
+
     def test_agent_can_end_an_active_reservation(self):
         agent = get_user_model().objects.create_user(username="agent", password="password")
         agent.groups.add(Group.objects.create(name="Agents"))
