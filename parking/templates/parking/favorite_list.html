@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mes favoris</title>
+    <style>
+        :root {
+            --primary: #2457c5;
+            --primary-dark: #173d91;
+            --accent: #0e9f72;
+            --ink: #172033;
+            --muted: #60708a;
+            --border: #dbe2ee;
+            --surface: #fff;
+            --background: #f4f7fb;
+            --success-bg: #e8f8f1;
+            --warning-bg: #fff7df;
+            --danger-bg: #ffeded;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: var(--background);
+            color: var(--ink);
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        a { color: var(--primary); }
+
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem clamp(1rem, 4vw, 2rem);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
+        }
+
+        .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
+        .brand { font-size: 1.15rem; }
+        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
+        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
+        <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+    </header>
+    <main>
+        <h1>Mes parkings favoris</h1>
+
+        {% if favorites %}
+            {% for favorite in favorites %}
+                <article>
+                    <h2>
+                        <a href="{% url 'parking:parking_detail' favorite.parking.id %}">
+    </header>
+
+    <main>
+        <h1>Mes parkings favoris</h1>
+
+        {% if favorites %}
+            {% for favorite in favorites %}
+                <article>
+                    <h2>
+                        <a href="{% url 'parking:parking_detail' favorite.parking.id %}">
+                            {{ favorite.parking.name }}
+                        </a>
+                    </h2>
+
+                    <p>{{ favorite.parking.address }}</p>
+
+                    <form
+                        method="post"
+                        action="{% url 'parking:toggle_favorite' favorite.parking.id %}"
+                    >
+                        {% csrf_token %}
+                        <button type="submit">
+                            ★ Retirer des favoris
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p>Vous n'avez encore aucun parking favori.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

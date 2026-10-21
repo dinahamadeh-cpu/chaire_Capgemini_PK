@@ -149,6 +149,7 @@
     <header class="site-header">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
         <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
+        <a class="header-link" href="{% url 'parking:favorite_list' %}">★</a>
     </header>
 
     <main class="page-layout">
@@ -190,12 +191,7 @@
                         {% include "parking/_pricing.html" %}
 
                         <div class="parking-card-actions">
-                            <a
-                                class="button"
-                                href="{% url 'parking:parking_detail' parking.id %}"
-                            >
-                                Voir le détail
-                            </a>
+                            <a class="button" href="{% url 'parking:parking_detail' parking.id %}">Voir le détail</a>
 
                             <form
                                 method="post"

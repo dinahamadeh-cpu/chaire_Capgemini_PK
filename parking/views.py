@@ -60,7 +60,7 @@ def parking_list(request):
         {
             "parkings": parkings,
             "parking_data": parking_data,
-            "favorite_parking_id":favorite_parking_ids,
+            "favorite_parking_ids": favorite_parking_ids,
         },
     )
 
