@@ -11,7 +11,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import DemoPaymentMethod, Parking, Reservation, Spot, Favorite, Spot
+from .models import DemoPaymentMethod, Parking, Reservation, Spot, Favorite, Spot, Contravention 
 
 
 class SeedDataTests(TestCase):

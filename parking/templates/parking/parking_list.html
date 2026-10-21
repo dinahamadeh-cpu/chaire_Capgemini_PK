@@ -327,9 +327,8 @@
                     });
                     marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
                     parkingMarkers.set(String(parking.id), marker);
-                });
-            }
-        });
+                }
+            });
 
             document.querySelectorAll(".focus-map-button").forEach((button) => {
                 button.addEventListener("click", () => {
@@ -339,7 +338,8 @@
                     map.setZoom(15);
                     google.maps.event.trigger(parking.marker, "click");
                 });
-        });
+            });
+
 
         document.querySelectorAll("[data-parking-id]").forEach((button) => {
             button.addEventListener("click", () => {
@@ -348,6 +348,7 @@
                     return;
                 }
             });
+        });
 
             document.querySelectorAll(".focus-map-button").forEach((button) => {
                 button.addEventListener("click", () => {
@@ -359,7 +360,7 @@
                     google.maps.event.trigger(marker, "click");
                 });
             });
-        }
+        };
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap" async defer></script>
 </body>
