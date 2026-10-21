@@ -78,9 +78,10 @@ class ReservationForm(PaymentDetailsForm):
         widget=forms.RadioSelect,
     )
 
-    def __init__(self, *args, has_saved_payment_method=False, **kwargs):
+    def __init__(self, *args, has_saved_payment_method=False, max_duration_minutes=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.has_saved_payment_method = has_saved_payment_method
+        self.max_duration_minutes = max_duration_minutes
         if has_saved_payment_method:
             self.fields["payment_method"].initial = "saved"
         for field_name in ("card_number", "expiration_date", "security_code"):
@@ -101,7 +102,35 @@ class ReservationForm(PaymentDetailsForm):
             for field_name in ("card_number", "expiration_date", "security_code"):
                 if not cleaned_data.get(field_name):
                     self.add_error(field_name, "Ce champ est obligatoire.")
+        duration = cleaned_data.get("duration_hours")
+        if self.max_duration_minutes is not None and duration and duration * 60 > self.max_duration_minutes:
+            self.add_error("duration_hours", "La durée dépasse la limite de ce parking.")
         return cleaned_data
 
     def clean_plate(self):
         return self.cleaned_data["plate"].strip().upper()
+
+
+class ContraventionForm(forms.Form):
+    plate = forms.CharField(
+        max_length=9,
+        label="Plaque d'immatriculation",
+        validators=[plate_validator],
+        widget=forms.HiddenInput(),
+    )
+    reason = forms.CharField(
+        max_length=255,
+        label="Motif",
+        widget=forms.TextInput(
+            attrs={"placeholder": "Ex. stationnement sans réservation"}
+        ),
+    )
+
+    def clean_plate(self):
+        return self.cleaned_data["plate"].strip().upper()
+
+    def clean_reason(self):
+        reason = self.cleaned_data["reason"].strip()
+        if not reason:
+            raise forms.ValidationError("Le motif est obligatoire.")
+        return reason

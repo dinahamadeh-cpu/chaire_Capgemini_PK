@@ -48,6 +48,11 @@
         .reservation-form button { min-height: 42px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
         .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
+        .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
+        .message-success { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
+        .message-error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
+        .message-warning { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
+        .message-info { color: #1d4ea0; background: #eff6ff; border: 1px solid #bfdbfe; }
         @media (max-width: 800px) {
             .detail-layout { display: flex; flex-direction: column; }
             .parking-details-section { order: 1; }
@@ -70,6 +75,7 @@
             <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
             <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
         </nav>
+        <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
     </header>
 
     <main class="detail-layout">
@@ -85,6 +91,9 @@
                     <p class="message" role="status">{{ message }}</p>
                 {% endfor %}
             {% endif %}
+            <a class="back-link" href="{% url 'parking:parking_list' %}">← Retour à la liste</a>
+
+            {% include "parking/_messages.html" %}
 
             <header>
                 <h1>{{ parking.name }}</h1>
@@ -99,6 +108,10 @@
                 <div class="detail-summary-item">
                     <span>Tarif</span>
                     <strong>{% if parking.hourly_rate is None %}Non renseigné{% elif parking.hourly_rate == 0 %}Gratuit{% else %}{{ parking.hourly_rate|floatformat:2 }} €/h{% endif %}</strong>
+                </div>
+                <div class="detail-summary-item">
+                    <span>Durée maximale</span>
+                    <strong>{{ parking.max_duration_display }}</strong>
                 </div>
                 <div class="detail-summary-item">
                     <span>Horaires</span>
@@ -132,6 +145,7 @@
                                         <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
                                         <button type="submit">Réserver</button>
                                     </form>
+                                    <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver la place n°{{ spot.number }}</a>
                                 {% else %}
                                     <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
                                 {% endif %}

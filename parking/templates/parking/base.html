@@ -77,6 +77,11 @@
             padding: 0.6rem 1rem;
             border-radius: 8px;
         }
+        .message { margin: 0 0 1rem; padding: 0.75rem 1rem; border: 1px solid; border-radius: 8px; }
+        .message-success { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+        .message-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+        .message-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+        .message-info { color: #1d4ea0; background: #eff6ff; border-color: #bfdbfe; }
         .conforme {
             display: inline-block;
             color: #047857;
@@ -106,6 +111,7 @@
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parking</a>
     </header>
     <main class="card">
+        {% include "parking/_messages.html" %}
         {% block content %}{% endblock %}
     </main>
 </body>

@@ -1,4 +1,5 @@
-from datetime import time, timedelta
+import random
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -76,6 +77,12 @@ STATIONED_PLATES = [
 LEFT_PLATES = ["YY-111-YY", "ZZ-222-ZZ"]
 DEMO_RESERVATION_PLATES = {STATIONED_PLATES[0], LEFT_PLATES[0]}
 
+HISTORY_DAYS = 30
+# Poids d'arrivée par heure (0 h à 23 h) : pics le matin, le midi et en fin de journée.
+HOURLY_WEIGHTS = [1, 1, 1, 1, 1, 2, 4, 9, 12, 8, 5, 5, 7, 7, 5, 5, 6, 9, 10, 7, 4, 3, 2, 1]
+# Nombre moyen d'arrivées par parking selon le jour de la semaine (lundi à dimanche).
+DAILY_ARRIVALS = [12, 13, 13, 14, 17, 20, 8]
+
 
 class Command(BaseCommand):
     help = "Crée des données factices : parkings, places, comptes agents et réservations (plaques stationnées)."
@@ -92,7 +99,7 @@ class Command(BaseCommand):
                 user.set_password(agent["password"])
                 user.is_staff = True
                 user.save()
-                self.stdout.write(f"Agent créé : {agent['username']} / {agent['password']}")
+                self.stdout.write(f"Agent créé : {agent['username']}")
             else:
                 self.stdout.write(f"Agent déjà existant : {agent['username']}")
             user.groups.add(agents_group)
@@ -104,9 +111,7 @@ class Command(BaseCommand):
         if created:
             demo_user.set_password(DEMO_USER["password"])
             demo_user.save()
-            self.stdout.write(
-                f"Utilisateur de démonstration créé : {DEMO_USER['username']} / {DEMO_USER['password']}"
-            )
+            self.stdout.write(f"Utilisateur de démonstration créé : {DEMO_USER['username']}")
         else:
             self.stdout.write(f"Utilisateur déjà existant : {DEMO_USER['username']}")
 
@@ -154,4 +159,63 @@ class Command(BaseCommand):
             Reservation.objects.filter(pk=reservation.pk).update(created_at=started, ended_at=ended)
         self.stdout.write(f"{len(LEFT_PLATES)} véhicules déjà partis (historique).")
 
+        history_count = self.create_history(timezone.localdate())
+        self.stdout.write(f"{history_count} réservations passées sur {HISTORY_DAYS} jours (affluence).")
+
         self.stdout.write(self.style.SUCCESS("Données factices créées avec succès."))
+
+    def create_history(self, today):
+        """Crée des stationnements terminés sur les jours précédents, sans chevauchement sur une même place."""
+        rng = random.Random(42)
+        reservations = []
+        starts = []
+        for parking in Parking.objects.prefetch_related("spots"):
+            spots = list(parking.spots.all())
+            max_hours = (parking.max_duration_minutes or 240) // 60
+            open_hours = [
+                hour
+                for hour in range(24)
+                if parking.opening_time is None
+                or parking.opening_time.hour <= hour < parking.closing_time.hour - max_hours
+            ]
+            for offset in range(HISTORY_DAYS, 0, -1):
+                day = today - timedelta(days=offset)
+                arrivals_count = max(0, DAILY_ARRIVALS[day.weekday()] + rng.randint(-3, 3))
+                hours = rng.choices(open_hours, weights=[HOURLY_WEIGHTS[h] for h in open_hours], k=arrivals_count)
+                free_at = {spot.pk: None for spot in spots}
+                for hour in sorted(hours):
+                    start = timezone.make_aware(datetime.combine(day, time(hour, rng.randrange(0, 60, 5))))
+                    spot = next(
+                        (s for s in spots if free_at[s.pk] is None or free_at[s.pk] <= start),
+                        None,
+                    )
+                    if spot is None:
+                        continue
+                    end = start + timedelta(minutes=rng.randrange(30, max_hours * 60 + 1, 15))
+                    free_at[spot.pk] = end
+                    reservations.append(
+                        Reservation(
+                            spot=spot,
+                            plate=random_plate(rng),
+                            duration_hours=-(-(end - start).seconds // 3600),
+                            status=Reservation.Status.COMPLETED,
+                            arrived_at=start,
+                            ended_at=end,
+                        )
+                    )
+                    starts.append(start)
+
+        Reservation.objects.bulk_create(reservations)
+        # created_at est rempli automatiquement à la création : on le remet à l'heure d'arrivée simulée.
+        for reservation, start in zip(reservations, starts):
+            reservation.created_at = start
+        Reservation.objects.bulk_update(reservations, ["created_at"])
+        return len(reservations)
+
+
+def random_plate(rng):
+    letters = "ABCDEFGHJKLMNPQRSTVWXYZ"
+    return (
+        f"{rng.choice(letters)}{rng.choice(letters)}-{rng.randint(100, 999)}-"
+        f"{rng.choice(letters)}{rng.choice(letters)}"
+    )

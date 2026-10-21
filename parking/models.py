@@ -1,7 +1,11 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 plate_validator = RegexValidator(
@@ -127,7 +131,29 @@ class Reservation(models.Model):
     def __str__(self):
         return f"Réservation de {self.plate} - {self.spot}"
 
+    @property
+    def actual_duration(self):
+        if self.arrived_at is None or self.ended_at is None:
+            return None
+        return self.ended_at - self.arrived_at
+
+    @property
+    def actual_duration_display(self):
+        if self.actual_duration is None:
+            return None
+        hours, minutes = divmod(int(self.actual_duration.total_seconds()) // 60, 60)
+        if hours:
+            return f"{hours} h {minutes:02d}"
+        return f"{minutes} min"
+
+    @property
+    def exceeded_duration(self):
+        return self.actual_duration is not None and self.actual_duration > timedelta(hours=self.duration_hours)
+
     def save(self, *args, **kwargs):
+        previous_spot_id = None
+        if self.pk:
+            previous_spot_id = Reservation.objects.filter(pk=self.pk).values_list("spot_id", flat=True).first()
         super().save(*args, **kwargs)
         is_occupied = Reservation.objects.filter(spot=self.spot, status=Reservation.Status.ACTIVE).exists()
         Spot.objects.filter(pk=self.spot_id).update(is_available=not is_occupied)
@@ -149,3 +175,29 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user} aime {self.parking}"
+        for spot_id in {previous_spot_id, self.spot_id} - {None}:
+            occupied = Reservation.objects.filter(spot_id=spot_id, status=Reservation.Status.ACTIVE).exists()
+            Spot.objects.filter(pk=spot_id).update(is_available=not occupied)
+
+
+@receiver(post_delete, sender=Reservation)
+def update_spot_availability_after_reservation_delete(sender, instance, **kwargs):
+    occupied = Reservation.objects.filter(
+        spot_id=instance.spot_id,
+        status=Reservation.Status.ACTIVE,
+    ).exists()
+    Spot.objects.filter(pk=instance.spot_id).update(is_available=not occupied)
+
+
+class Contravention(models.Model):
+    agent = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="contraventions",
+    )
+    plate = models.CharField(max_length=9, validators=[plate_validator])
+    reason = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Contravention {self.plate} - {self.created_at:%d/%m/%Y}"

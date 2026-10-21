@@ -3,7 +3,7 @@
 {% block content %}
     <h1>Connexion agent</h1>
     {% if error %}
-        <p class="error">{{ error }}</p>
+        <p class="message message-error" role="alert">{{ error }}</p>
     {% endif %}
     <form method="post">
         {% csrf_token %}
