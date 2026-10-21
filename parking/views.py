@@ -32,6 +32,7 @@ def signup(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
+        messages.success(request, "Votre compte a été créé. Bienvenue !")
         return redirect("parking:parking_list")
     return render(request, "parking/signup.html", {"form": form})
 
@@ -207,7 +208,10 @@ def reserve_spot(request, parking_id, spot_id):
             amount_paid=amount_paid,
         )
     except IntegrityError:
-        messages.error(request, "Cette place ou cette plaque est déjà réservée.")
+        messages.error(
+            request,
+            "Une réservation utilise déjà cette place ou cette plaque. Vérifiez vos réservations.",
+        )
     else:
         messages.success(
             request,

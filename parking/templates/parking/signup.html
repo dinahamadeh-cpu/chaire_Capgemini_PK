@@ -54,6 +54,11 @@
         .errorlist {
             color: #b91c1c;
         }
+        .message { margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid; border-radius: 8px; }
+        .message-success { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+        .message-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+        .message-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+        .message-info { color: #1d4ea0; background: #eff6ff; border-color: #bfdbfe; }
 
         .helptext {
             display: block;
@@ -65,6 +70,7 @@
 </head>
 <body>
     <main>
+        {% include "parking/_messages.html" %}
         <h1>Créer un compte</h1>
 
         <form method="post">

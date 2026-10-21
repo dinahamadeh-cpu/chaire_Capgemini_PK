@@ -5,12 +5,6 @@
 {% block content %}
     <h1>Récapitulatif du stationnement</h1>
 
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-
     <p>Statut : <strong>{{ reservation.get_status_display }}</strong></p>
 
     <table>
