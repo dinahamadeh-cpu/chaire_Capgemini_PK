@@ -11,6 +11,11 @@
         a { color: var(--primary); }
         .site-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem, 4vw, 2rem); background: linear-gradient(135deg, var(--primary), var(--primary-dark)); box-shadow: 0 2px 12px rgba(23, 61, 145, .18); }
         .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
+        .site-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+        .site-navigation form { margin: 0; }
+        .site-navigation button { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; background: transparent; color: #fff; font: inherit; cursor: pointer; }
+        .site-navigation .agent-link { background: rgba(16,185,129,.22); }
+        .site-navigation .admin-link { background: rgba(31,41,55,.22); }
         .brand { font-size: 1.15rem; }
         .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
         .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
@@ -74,8 +79,13 @@
         <nav class="site-navigation" aria-label="Navigation">
             <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
             <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
+            <a class="header-link" href="{% url 'parking:reservation_list' %}">Mes réservations</a>
+            <a class="header-link" href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
+            <span>{{ request.user.username }}</span>
+            {% for group in request.user.groups.all %}{% if group.name == "Agents" %}<a class="header-link agent-link" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>{% endif %}{% endfor %}
+            {% if request.user.is_staff %}<a class="header-link admin-link" href="{% url 'admin:index' %}">Administration</a>{% endif %}
+            <form method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button type="submit">Déconnexion</button></form>
         </nav>
-        <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
     </header>
 
     <main class="detail-layout">

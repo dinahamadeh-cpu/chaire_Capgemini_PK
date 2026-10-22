@@ -11,9 +11,7 @@
         Connexion agent
     </a>
 
-    <a class="button" href="{% url 'admin:index' %}">
-        Administration
-    </a>
+    {% if user.is_staff %}<a class="button" href="{% url 'admin:index' %}">Administration</a>{% endif %}
 
     <p>
         <a href="{% url 'parking:home' %}">Retour à l’accueil</a>

@@ -30,6 +30,13 @@
             font-weight: 700;
             text-decoration: none;
         }
+        .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+        .site-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+        .site-navigation a, .site-navigation button { padding: .45rem .7rem; margin: 0; border: 1px solid rgba(255,255,255,.45); border-radius: 7px; background: transparent; color: #fff; font: inherit; text-decoration: none; }
+        .site-navigation button { cursor: pointer; }
+        .site-navigation .agent-link { background: rgba(16,185,129,.22); }
+        .site-navigation .admin-link { background: rgba(31,41,55,.22); }
+        .site-navigation .user-name { color: #fff; }
         main.card {
             max-width: 700px;
             margin: 2rem auto;
@@ -109,6 +116,24 @@
 <body>
     <header class="topbar">
         <a class="brand" href="{% url 'parking:home' %}">🅿️ Parking</a>
+        <nav class="site-navigation" aria-label="Navigation principale">
+            <a href="{% url 'parking:home' %}">Accueil</a>
+            {% if request.user.is_authenticated %}
+                <span class="user-name">{{ request.user.username }}</span>
+                <a href="{% url 'parking:parking_list' %}">Parkings</a>
+                <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
+                <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
+                {% for group in request.user.groups.all %}{% if group.name == "Agents" %}
+                    <a class="agent-link" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
+                {% endif %}{% endfor %}
+                {% if request.user.is_staff %}<a class="admin-link" href="{% url 'admin:index' %}">Administration</a>{% endif %}
+                <form method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button type="submit">Déconnexion</button></form>
+            {% else %}
+                <a href="{% url 'parking:login' %}">Connexion</a>
+                <a href="{% url 'parking:signup' %}">Inscription</a>
+                <a class="agent-link" href="{% url 'parking:agent_login' %}">Connexion agent</a>
+            {% endif %}
+        </nav>
     </header>
     <main class="card">
         {% include "parking/_messages.html" %}
