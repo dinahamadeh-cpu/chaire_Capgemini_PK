@@ -230,8 +230,56 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:signup"))
         self.assertContains(response, reverse("parking:login"))
         self.assertContains(response, reverse("parking:agent_login"))
-        self.assertContains(response, reverse("admin:index"))
+        self.assertNotContains(response, reverse("admin:index"))
         self.assertNotContains(response, reverse("parking:reservation_list"))
+
+    def test_staff_user_sees_administration_link(self):
+        user = get_user_model().objects.create_user(
+            username="site-admin",
+            password="test-password-123",
+            is_staff=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:home"))
+
+        self.assertContains(response, reverse("admin:index"))
+
+    def test_authenticated_navigation_shows_user_links_and_name(self):
+        user = get_user_model().objects.create_user(
+            username="alice",
+            password="test-password-123",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:reservation_list"))
+
+        self.assertContains(response, "alice")
+        self.assertContains(response, reverse("parking:home"))
+        self.assertContains(response, reverse("parking:parking_list"))
+        self.assertContains(response, reverse("parking:payment_methods"))
+        self.assertContains(response, reverse("parking:logout"))
+        self.assertNotContains(response, reverse("parking:agent_dashboard"))
+        self.assertNotContains(response, reverse("admin:index"))
+
+    def test_agent_navigation_shows_agent_space(self):
+        user = get_user_model().objects.create_user(
+            username="parking-agent",
+            password="test-password-123",
+        )
+        user.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("parking:agent_dashboard"))
+
+        self.assertContains(response, reverse("parking:agent_dashboard"))
+        self.assertContains(response, "Espace agent")
+        self.assertNotContains(response, reverse("admin:index"))
+
+    def test_professional_login_hides_admin_from_non_staff(self):
+        response = self.client.get(reverse("parking:professional_login"))
+
+        self.assertNotContains(response, reverse("admin:index"))
 
     def test_authenticated_home_page_links_to_reservations(self):
         user = get_user_model().objects.create_user(

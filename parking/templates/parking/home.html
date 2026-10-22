@@ -349,6 +349,7 @@
             <section class="role-card user" aria-labelledby="user-title">
                 <span class="role-label">Espace usager</span>
                 <h2 id="user-title">Trouvez une place</h2>
+                {% if user.is_authenticated %}<p>Connecté en tant que {{ user.username }}.</p>{% endif %}
                 <p>
                     Consultez la carte, comparez les parkings et gérez vos réservations
                     en quelques clics.
@@ -392,16 +393,18 @@
                     des places et gestion des départs.
                 </p>
                 <div class="actions">
-                    <a class="button" href="{% url 'parking:agent_login' %}">
-                        Connexion agent
-                    </a>
+                    {% if user.is_authenticated %}
+                        {% for group in user.groups.all %}{% if group.name == "Agents" %}
+                            <a class="button" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
+                        {% endif %}{% endfor %}
+                    {% else %}
+                        <a class="button" href="{% url 'parking:agent_login' %}">Connexion agent</a>
+                    {% endif %}
                 </div>
             </section>
         </div>
 
-        <footer class="admin-link">
-            <a href="{% url 'admin:index' %}">Administration du site</a>
-        </footer>
+        {% if user.is_staff %}<footer class="admin-link"><a href="{% url 'admin:index' %}">Administration du site</a></footer>{% endif %}
     </main>
     <footer>
         <a
