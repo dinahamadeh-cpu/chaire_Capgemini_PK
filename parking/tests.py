@@ -959,6 +959,17 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.context["plate"], "")
         self.assertIsNone(response.context["result"])
 
+    def test_plate_check_explains_when_no_plate_has_been_checked(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.get(reverse("parking:agent_plate_check"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Aucune plaque vérifiée")
+        self.assertContains(response, "Saisissez une plaque")
+
     def test_agent_logout_requires_post(self):
         agent = get_user_model().objects.create_user(username="agent", password="password")
         agent.groups.add(Group.objects.create(name="Agents"))
@@ -997,6 +1008,7 @@ class ParkingViewsTests(TestCase):
         response = self.client.post(
             reverse("parking:create_contravention"),
             {"plate": "AA-123-AA", "reason": "Stationnement sans réservation"},
+            follow=True,
         )
 
         self.assertRedirects(
@@ -1007,6 +1019,7 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(contravention.agent, agent)
         self.assertEqual(contravention.plate, "AA-123-AA")
         self.assertEqual(contravention.reason, "Stationnement sans réservation")
+        self.assertContains(response, "La contravention a bien été créée.")
 
     def test_non_agent_cannot_create_a_contravention(self):
         user = get_user_model().objects.create_user(username="alice", password="password")
@@ -1015,6 +1028,7 @@ class ParkingViewsTests(TestCase):
         response = self.client.post(
             reverse("parking:create_contravention"),
             {"plate": "AA-123-AA", "reason": "Motif"},
+            follow=True,
         )
 
         self.assertRedirects(
@@ -1036,6 +1050,7 @@ class ParkingViewsTests(TestCase):
         response = self.client.post(
             reverse("parking:create_contravention"),
             {"plate": "AA-123-AA", "reason": "Motif"},
+            follow=True,
         )
 
         self.assertRedirects(
@@ -1043,6 +1058,25 @@ class ParkingViewsTests(TestCase):
             f"{reverse('parking:agent_plate_check')}?plate=AA-123-AA",
         )
         self.assertFalse(Contravention.objects.exists())
+        self.assertContains(response, "Ce véhicule possède une réservation active.")
+
+    def test_invalid_contravention_shows_an_error_message(self):
+        agent = get_user_model().objects.create_user(username="agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.post(
+            reverse("parking:create_contravention"),
+            {"plate": "AA-123-AA", "reason": "   "},
+            follow=True,
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:agent_plate_check')}?plate=AA-123-AA",
+        )
+        self.assertFalse(Contravention.objects.exists())
+        self.assertContains(response, "La plaque et le motif sont invalides.")
 
     def test_plate_check_shows_contravention_form_only_for_non_conforming_plate(self):
         agent = get_user_model().objects.create_user(username="agent", password="password")
@@ -1054,8 +1088,12 @@ class ParkingViewsTests(TestCase):
             {"plate": "AA-123-AA"},
         )
         self.assertContains(response, "Créer une contravention")
+        self.assertContains(response, "Non conforme — aucune réservation active")
+        self.assertContains(response, 'name="reason"')
+        self.assertContains(response, "obligatoire")
+        self.assertContains(response, "confirm('Créer une contravention")
 
-        Reservation.objects.create(
+        reservation = Reservation.objects.create(
             user=agent,
             spot=self.parking.spots.get(number=1),
             plate="BB-234-BB",
@@ -1064,6 +1102,19 @@ class ParkingViewsTests(TestCase):
             reverse("parking:agent_plate_check"),
             {"plate": "BB-234-BB"},
         )
+        self.assertContains(response, "Non confirmée")
+
+        reservation.arrived_at = timezone.now()
+        reservation.save()
+        response = self.client.get(
+            reverse("parking:agent_plate_check"),
+            {"plate": "BB-234-BB"},
+        )
+        self.assertContains(response, "BB-234-BB")
+        self.assertContains(response, "Parking Central")
+        self.assertContains(response, "Place")
+        self.assertContains(response, "Confirmée le")
+        self.assertContains(response, "Clôturer le stationnement")
         self.assertNotContains(response, "Créer une contravention")
 
     def test_parking_list_page(self):

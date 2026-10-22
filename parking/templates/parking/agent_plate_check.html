@@ -1,46 +1,80 @@
 {% extends "parking/base.html" %}
 {% block title %}Vérification plaque - Parking{% endblock %}
 {% block content %}
-    <h1>Vérifier une plaque</h1>
+    <style>
+        .plate-check-form { max-width: 28rem; }
+        .plate-result { margin-top: 1.5rem; padding: 1rem; border: 1px solid #dbe3f0; border-radius: 12px; }
+        .plate-result h2, .plate-result h3 { margin-top: 0; }
+        .plate-details { display: grid; grid-template-columns: minmax(8rem, auto) 1fr; gap: .5rem 1rem; }
+        .plate-details dt { font-weight: 700; }
+        .plate-details dd { margin: 0; overflow-wrap: anywhere; }
+        .contravention-form { margin-top: 1.25rem; }
+        @media (max-width: 480px) {
+            .plate-details { grid-template-columns: 1fr; gap: .2rem; }
+            .plate-details dd { margin-bottom: .6rem; }
+            .plate-check-form button, .contravention-form button { width: 100%; }
+        }
+    </style>
 
-    <form method="get">
+    <h1>Vérifier une plaque</h1>
+    <p>Recherchez une plaque pour vérifier si un stationnement est actif.</p>
+
+    <form method="get" class="plate-check-form">
         <p>
-            <label for="plate">Plaque d'immatriculation</label><br>
-            <input type="text" id="plate" name="plate" placeholder="AA-123-AA" value="{{ plate }}">
+            <label for="plate">Plaque d'immatriculation</label>
+            <input type="text" id="plate" name="plate" placeholder="AA-123-AA" value="{{ plate }}" autocomplete="off">
         </p>
-        <button type="submit">Vérifier</button>
+        <button type="submit">Vérifier la plaque</button>
     </form>
 
     {% if result %}
-        <h2>Résultat pour {{ result.plate }}</h2>
         {% if result.reservation %}
-            <p class="conforme">Conforme — véhicule stationné.</p>
-            <p>
-                Parking : {{ result.reservation.spot.parking.name }}<br>
-                Place n°{{ result.reservation.spot.number }}<br>
-                {% if result.reservation.arrived_at %}
-                    Arrivée confirmée : {{ result.reservation.arrived_at }}
-                {% else %}
-                    Arrivée non confirmée par l'usager
-                {% endif %}
-            </p>
-            <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
-                {% csrf_token %}
-                <button type="submit">Enregistrer le départ</button>
-            </form>
+            <section class="plate-result" aria-labelledby="plate-result-title">
+                <h2 id="plate-result-title">Résultat pour {{ result.plate }}</h2>
+                <p class="conforme">Conforme — réservation active</p>
+                <dl class="plate-details">
+                    <dt>Plaque</dt>
+                    <dd>{{ result.plate }}</dd>
+                    <dt>Parking</dt>
+                    <dd>{{ result.reservation.spot.parking.name }}</dd>
+                    <dt>Place</dt>
+                    <dd>n°{{ result.reservation.spot.number }}</dd>
+                    <dt>Arrivée</dt>
+                    <dd>
+                        {% if result.reservation.arrived_at %}
+                            Confirmée le {{ result.reservation.arrived_at|date:"d/m/Y à H:i" }}
+                        {% else %}
+                            Non confirmée
+                        {% endif %}
+                    </dd>
+                </dl>
+                <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
+                    {% csrf_token %}
+                    <button type="submit">Clôturer le stationnement</button>
+                </form>
+            </section>
         {% else %}
-            <p class="non-conforme">Non conforme — aucun stationnement actif trouvé pour cette plaque.</p>
-            <h3>Créer une contravention</h3>
-            <form method="post" action="{% url 'parking:create_contravention' %}">
-                {% csrf_token %}
-                {{ contravention_form.plate }}
-                <p>
-                    {{ contravention_form.reason.label_tag }}<br>
-                    {{ contravention_form.reason }}
-                </p>
-                <button type="submit">Créer la contravention</button>
-            </form>
+            <section class="plate-result" aria-labelledby="plate-result-title">
+                <h2 id="plate-result-title">Résultat pour {{ result.plate }}</h2>
+                <p class="non-conforme">Non conforme — aucune réservation active</p>
+                <p>Aucun stationnement actif n'a été trouvé pour cette plaque.</p>
+                <div class="contravention-form">
+                    <h3>Créer une contravention</h3>
+                    <p>Le motif est obligatoire. Vérifiez la plaque et le motif avant de confirmer.</p>
+                    <form method="post" action="{% url 'parking:create_contravention' %}" onsubmit="return confirm('Créer une contravention pour la plaque {{ result.plate }} ?');">
+                        {% csrf_token %}
+                        {{ contravention_form.plate }}
+                        <p>
+                            {{ contravention_form.reason.label_tag }}
+                            {{ contravention_form.reason }}
+                        </p>
+                        <button type="submit">Créer la contravention</button>
+                    </form>
+                </div>
+            </section>
         {% endif %}
+    {% else %}
+        <p class="plate-result" role="status">Aucune plaque vérifiée. Saisissez une plaque pour afficher son statut.</p>
     {% endif %}
 
     <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
