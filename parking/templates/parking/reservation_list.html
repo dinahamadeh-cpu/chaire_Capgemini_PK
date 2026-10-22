@@ -57,15 +57,13 @@
                     {% elif reservation.ended_at %}
                         <p>Terminée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
                     {% endif %}
-                    <p><a href="{% url 'parking:reservation_summary' reservation.id %}">Voir le récapitulatif</a></p>
+                    <p><a class="button secondary" href="{% url 'parking:reservation_summary' reservation.id %}">Voir le récapitulatif</a></p>
                 </li>
             {% endfor %}
         </ul>
     {% else %}
         <p>Vous n'avez aucune réservation.</p>
     {% endif %}
-
-    <p><a href="{% url 'parking:parking_list' %}">Voir les parkings</a></p>
 
     <script>
         const formatRemainingTime = (totalSeconds) => {

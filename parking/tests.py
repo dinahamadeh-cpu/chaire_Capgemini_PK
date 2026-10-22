@@ -275,6 +275,7 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "alice")
         self.assertContains(response, reverse("parking:home"))
         self.assertContains(response, reverse("parking:parking_list"))
+        self.assertContains(response, reverse("parking:favorite_list"))
         self.assertContains(response, reverse("parking:payment_methods"))
         self.assertContains(response, reverse("parking:logout"))
         self.assertNotContains(response, reverse("parking:agent_dashboard"))
@@ -291,7 +292,11 @@ class ParkingViewsTests(TestCase):
         response = self.client.get(reverse("parking:agent_dashboard"))
 
         self.assertContains(response, reverse("parking:agent_dashboard"))
+        self.assertContains(response, reverse("parking:agent_plate_check"))
         self.assertContains(response, "Espace agent")
+        self.assertNotContains(response, reverse("parking:parking_list"))
+        self.assertNotContains(response, reverse("parking:reservation_list"))
+        self.assertNotContains(response, reverse("parking:payment_methods"))
         self.assertNotContains(response, reverse("admin:index"))
 
     def test_professional_login_hides_admin_from_non_staff(self):
@@ -320,6 +325,26 @@ class ParkingViewsTests(TestCase):
         self.assertContains(payment, "Numéro de carte")
         self.assertContains(payment, 'for="id_expiration_date"')
         self.assertContains(payment, 'for="id_security_code"')
+
+    def test_anonymous_user_is_redirected_to_login_from_payment_methods(self):
+        response = self.client.get(reverse("parking:payment_methods"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('parking:login')}?next={reverse('parking:payment_methods')}",
+        )
+
+    def test_saved_demo_payment_method_shows_status_without_card_data(self):
+        self.authenticate_as_user()
+        DemoPaymentMethod.objects.create(user=get_user_model().objects.get(username="parking-viewer"))
+
+        response = self.client.get(reverse("parking:payment_methods"))
+
+        self.assertContains(response, "Un moyen de paiement simulé est enregistré.")
+        self.assertContains(response, "rien ne sera réellement débité")
+        self.assertContains(response, "Remplacer le moyen simulé")
+        self.assertNotContains(response, "1234567890123456")
+        self.assertNotContains(response, 'name="card_number" value=')
 
     def test_authenticated_home_page_links_to_reservations(self):
         user = get_user_model().objects.create_user(
@@ -606,6 +631,7 @@ class ParkingViewsTests(TestCase):
         )
 
         self.assertContains(response, "Récapitulatif avant validation")
+        self.assertContains(response, 'class="section-card checkout-summary"')
         self.assertContains(response, "Parking Central — place n°1")
         self.assertContains(response, 'id="reservation-plate"')
         self.assertContains(response, 'id="reservation-duration"')
@@ -1164,9 +1190,9 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Parking Central")
         self.assertContains(response, "Place n°1")
         self.assertNotContains(response, "Place n°2")
-        self.assertContains(response, 'class="site-header"')
-        self.assertContains(response, 'href="/parkings/">Tous les parkings</a>')
-        self.assertContains(response, 'href="/parkings/">← Retour à la liste</a>')
+        self.assertContains(response, 'class="topbar"')
+        self.assertContains(response, 'href="/parkings/">Parkings</a>')
+        self.assertContains(response, 'href="/parkings/">Retour à la liste des parkings</a>')
         self.assertContains(response, "Réserver")
         self.assertContains(response, "Places disponibles")
         self.assertContains(response, "1/2")
@@ -1221,7 +1247,7 @@ class ParkingViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="map"')
-        self.assertContains(response, 'class="site-header"')
+        self.assertContains(response, 'class="topbar"')
         self.assertContains(response, 'href="/">Accueil</a>')
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
