@@ -1,114 +1,10 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mes favoris</title>
-    <style>
-        :root {
-            --primary: #2457c5;
-            --primary-dark: #173d91;
-            --accent: #0e9f72;
-            --ink: #172033;
-            --muted: #60708a;
-            --border: #dbe2ee;
-            --surface: #fff;
-            --background: #f4f7fb;
-            --success-bg: #e8f8f1;
-            --warning-bg: #fff7df;
-            --danger-bg: #ffeded;
-        }
+{% extends "parking/base.html" %}
 
-        * { box-sizing: border-box; }
-        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--background);
-            color: var(--ink);
-            font-family: "Segoe UI", Roboto, Arial, sans-serif;
-        }
-        a { color: var(--primary); }
-        .site-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: 1rem clamp(1rem, 4vw, 2rem);
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
-        }
-        .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
-        .brand { font-size: 1.15rem; }
-        .site-navigation { display: flex; gap: .65rem; }
-        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
-        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
-        .parking-list-section { max-width: 900px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); }
-        .content-heading { margin-bottom: 1.5rem; }
-        h1 { margin: 0 0 .45rem; font-size: clamp(1.75rem, 3vw, 2.4rem); }
-        .intro { margin: 0; color: var(--muted); line-height: 1.5; }
-        .parking-card {
-            margin: 0 0 1rem;
-            padding: 1.25rem;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            background: var(--surface);
-            box-shadow: 0 5px 18px rgba(31, 52, 89, .06);
-            transition: transform .15s, box-shadow .15s, border-color .15s;
-        }
-        .parking-card:hover { border-color: #a9bce5; box-shadow: 0 9px 24px rgba(31, 52, 89, .11); transform: translateY(-2px); }
-        .parking-card-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
-        .parking-card h2 { margin: 0; font-size: 1.3rem; }
-        .parking-card h2 a { text-decoration: none; }
-        .parking-address { margin: .45rem 0 0; color: var(--muted); line-height: 1.45; }
-        .parking-icon { font-size: 1.8rem; }
-        .availability-badge { display: inline-flex; margin: 1rem 0 .7rem; padding: .35rem .65rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
-        .availability-ok { color: #06734f; background: var(--success-bg); }
-        .availability-low { color: #946500; background: var(--warning-bg); }
-        .availability-full { color: #a52222; background: var(--danger-bg); }
-        .availability-count { margin: 0; font-size: 1.05rem; }
-        .pricing { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: 0; margin: 1rem 0; list-style: none; color: var(--muted); }
-        .pricing li { line-height: 1.4; }
-        .parking-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.1rem; }
-        .button, .favorite-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 44px;
-            padding: .65rem .9rem;
-            border-radius: 9px;
-            font: inherit;
-            font-weight: 700;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .button { border: 1px solid var(--primary); background: var(--primary); color: #fff; }
-        .button:hover, .button:focus-visible { background: var(--primary-dark); }
-        .favorite-button { border: 1px solid #e3a008; background: #fff0b8; color: #946500; }
-        .favorite-button:hover, .favorite-button:focus-visible { background: #ffe58a; }
-        .empty-state { padding: 1.5rem; border: 1px dashed #a9bce5; border-radius: 14px; background: #fff; color: var(--muted); }
-        .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
-        @media (max-width: 600px) {
-            .site-header { align-items: flex-start; flex-direction: column; }
-            .site-navigation { width: 100%; flex-wrap: wrap; }
-            .header-link { min-height: 44px; display: inline-flex; align-items: center; }
-            .parking-card { padding: 1rem; }
-            .parking-card-header > div { min-width: 0; }
-            .parking-card h2 { overflow-wrap: anywhere; }
-            .parking-card-actions form, .parking-card-actions .button { width: 100%; }
-        }
-    </style>
-</head>
-<body>
-    <header class="site-header">
-        <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
-        <nav class="site-navigation" aria-label="Navigation">
-            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
-            <a class="header-link" href="{% url 'parking:parking_list' %}">Tous les parkings</a>
-        </nav>
-    </header>
+{% block title %}Mes favoris - Parking{% endblock %}
+{% block main_class %}card--wide{% endblock %}
 
-    <main class="parking-list-section">
+{% block content %}
+    <section class="content-section favorites-page">
         <div class="content-heading">
             <h1>Mes parkings favoris</h1>
             <p class="intro">Retrouvez ici les parkings que vous avez enregistrés.</p>
@@ -133,12 +29,7 @@
                         <span class="availability-badge availability-ok">Places disponibles</span>
                     {% endif %}
 
-                    <p class="availability-count">
-                        <strong>{{ favorite.available_spots_count }}</strong>
-                        place{{ favorite.available_spots_count|pluralize }} disponible{{ favorite.available_spots_count|pluralize }}
-                        sur {{ favorite.total_spots_count }}
-                    </p>
-
+                    <p class="availability-count"><strong>{{ favorite.available_spots_count }}</strong> place{{ favorite.available_spots_count|pluralize }} disponible{{ favorite.available_spots_count|pluralize }} sur {{ favorite.total_spots_count }}</p>
                     {% include "parking/_pricing.html" with parking=favorite.parking %}
 
                     <div class="parking-card-actions">
@@ -154,8 +45,32 @@
             <div class="empty-state">
                 <p><strong>Vous n'avez encore aucun parking favori.</strong></p>
                 <p>Ajoutez des parkings à vos favoris depuis la liste des parkings.</p>
+                <a class="button" href="{% url 'parking:parking_list' %}">Découvrir les parkings</a>
             </div>
         {% endif %}
-    </main>
-</body>
-</html>
+    </section>
+{% endblock %}
+
+{% block extra_styles %}
+    .favorites-page { max-width: 1000px; }
+    .content-heading { margin-bottom: 1.5rem; }
+    .content-heading h1 { margin-bottom: .4rem; }
+    .intro, .parking-address { color: var(--muted); }
+    .parking-card { margin-bottom: 1rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: 0 4px 16px rgba(31,52,89,.05); }
+    .parking-card-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+    .parking-card h2 { margin: 0; font-size: 1.3rem; }
+    .parking-card h2 a { text-decoration: none; }
+    .parking-address { margin: .4rem 0 0; }
+    .parking-icon { font-size: 1.8rem; }
+    .availability-badge { display: inline-flex; margin: 1rem 0 .7rem; padding: .35rem .65rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+    .availability-ok { color: #06734f; background: #e8f8f1; }
+    .availability-low { color: #805700; background: #fff7df; }
+    .availability-full { color: #982222; background: #ffeded; }
+    .availability-count { margin: 0; }
+    .parking-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin-top: 1rem; }
+    .parking-card-actions > * { margin: 0; }
+    .favorite-button { min-height: 44px; border: 1px solid #946500; border-radius: 9px; background: #fff0b8; color: #624300; font: inherit; font-weight: 700; cursor: pointer; }
+    .favorite-button:hover { background: #ffe58a; }
+    .empty-state { padding: 1.5rem; border: 1px dashed #a9bce5; border-radius: 14px; background: #fff; color: var(--muted); }
+    @media (max-width: 600px) { .parking-card { padding: 1rem; } .parking-card-actions > *, .parking-card-actions .button { width: 100%; } }
+{% endblock %}

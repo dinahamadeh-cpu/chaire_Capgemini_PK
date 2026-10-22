@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Liste des parkings</title>
-    <style>
+{% extends "parking/base.html" %}
+{% block title %}Liste des parkings - Parking{% endblock %}
+{% block main_class %}card--wide{% endblock %}
+
+{% block extra_styles %}
         :root {
             --primary: #2457c5;
             --primary-dark: #173d91;
@@ -32,54 +30,6 @@
         }
 
         a { color: var(--primary); }
-
-        .site-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: 1rem clamp(1rem, 4vw, 2rem);
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
-        }
-
-        .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
-        .site-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
-        .site-navigation form { margin: 0; }
-        .site-navigation button { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; background: transparent; color: #fff; font: inherit; cursor: pointer; }
-        .site-navigation .agent-link { background: rgba(16,185,129,.22); }
-        .site-navigation .admin-link { background: rgba(31,41,55,.22); }
-        .brand { font-size: 1.15rem; }
-        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
-        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
-
-        .page-layout {
-            display: grid;
-            grid-template-columns: minmax(320px, 45%) 1fr;
-            min-height: calc(100vh - 68px);
-        }
-
-        .map-section { position: sticky; top: 0; height: calc(100vh - 68px); background: #dfe7f4; }
-        #map { width: 100%; height: 100%; min-height: 420px; }
-
-        .parking-list-section { padding: clamp(1.25rem, 3vw, 2.5rem); overflow-y: auto; }
-        .content-heading { max-width: 760px; margin-bottom: 1.5rem; }
-        h1 { margin: 0 0 .45rem; font-size: clamp(1.75rem, 3vw, 2.4rem); }
-        .intro { margin: 0; color: var(--muted); line-height: 1.5; }
-        .site-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: 1rem clamp(1rem, 4vw, 2rem);
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            box-shadow: 0 2px 12px rgba(23, 61, 145, .18);
-        }
-
-        .brand, .site-header a { color: #fff; text-decoration: none; font-weight: 700; }
-        .brand { font-size: 1.15rem; }
-        .header-link { padding: .55rem .8rem; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
-        .header-link:hover, .header-link:focus-visible { background: rgba(255,255,255,.14); }
 
         .page-layout {
             display: grid;
@@ -137,8 +87,6 @@
             .parking-list-section { order: 1; }
             .map-section { order: 2; position: static; height: 360px; min-height: 360px; }
             #map { min-height: 360px; }
-            .site-header { align-items: flex-start; flex-direction: column; }
-            .site-navigation { width: 100%; flex-wrap: wrap; }
             .parking-card { padding: 1rem; }
         }
         .parking-card:hover { border-color: #a9bce5; box-shadow: 0 9px 24px rgba(31, 52, 89, .11); transform: translateY(-2px); }
@@ -206,7 +154,6 @@
             .parking-list-section { order: 1; }
             .map-section { order: 2; position: static; height: 360px; min-height: 360px; }
             #map { min-height: 360px; }
-            .site-header { align-items: flex-start; flex-direction: column; }
             .parking-card { padding: 1rem; }
         }
 
@@ -261,10 +208,6 @@
             font-size: .85rem;
         }
         @media (max-width: 600px) {
-            .site-header { align-items: flex-start; flex-direction: column; }
-            .site-navigation { width: 100%; flex-wrap: wrap; }
-            .site-navigation > a, .site-navigation button { min-height: 44px; display: inline-flex; align-items: center; }
-            .site-navigation form { display: flex; }
             .parking-list-section { padding: 1rem; }
             .parking-card-header { min-width: 0; }
             .parking-card-header > div { min-width: 0; }
@@ -276,25 +219,12 @@
             .map-section { height: 320px; min-height: 320px; }
             #map { min-height: 320px; }
         }
-    </style>
-</head>
-<body>
-    <header class="site-header">
-        <a class="brand" href="{% url 'parking:home' %}">🅿️ Parkings</a>
-        <nav class="site-navigation" aria-label="Navigation">
-            <a class="header-link" href="{% url 'parking:home' %}">Accueil</a>
-            <a class="header-link" href="{% url 'parking:parking_list' %}">Parkings</a>
-            <a class="header-link" href="{% url 'parking:reservation_list' %}">Mes réservations</a>
-            <a class="header-link" href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
-            <a class="header-link" href="{% url 'parking:favorite_list' %}">Mes favoris</a>
-            <span>{{ request.user.username }}</span>
-            {% for group in request.user.groups.all %}{% if group.name == "Agents" %}<a class="header-link agent-link" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>{% endif %}{% endfor %}
-            {% if request.user.is_staff %}<a class="header-link admin-link" href="{% url 'admin:index' %}">Administration</a>{% endif %}
-            <form method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button type="submit">Déconnexion</button></form>
-        </nav>
-    </header>
+{% endblock %}
 
-    <main class="page-layout">
+{% block page_main %}
+    <main class="card card--wide">
+      {% include "parking/_messages.html" %}
+      <div class="page-layout">
         <section class="map-section" aria-label="Carte des parkings">
             <div id="map"></div>
         </section>
@@ -345,17 +275,10 @@
                 {% endif %}
             </section>
 
-            {% include "parking/_messages.html" %}
             <div class="content-heading">
                 <h1>Liste des parkings</h1>
                 <p class="intro">Comparez les disponibilités, les tarifs et les horaires, puis choisissez le parking qui vous convient.</p>
             </div>
-
-            {% if messages %}
-                {% for message in messages %}
-                    <p class="message" role="status">{{ message }}</p>
-                {% endfor %}
-            {% endif %}
 
             {% if parkings %}
                 {% for parking in parkings %}
@@ -424,6 +347,7 @@
                 </div>
             {% endif %}
         </section>
+      </div>
     </main>
 
     {{ parking_data|json_script:"parkings-data" }}
@@ -486,5 +410,4 @@
         };
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap" async defer></script>
-</body>
-</html>
+{% endblock %}

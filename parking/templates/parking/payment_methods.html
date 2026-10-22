@@ -1,31 +1,39 @@
 {% extends "parking/base.html" %}
 
-{% block title %}Moyen de paiement{% endblock %}
+{% block title %}Moyens de paiement - Parking{% endblock %}
 
 {% block content %}
-    <nav>
-        <a class="button secondary" href="{% url 'parking:home' %}">Accueil</a>
-        <a class="button secondary" href="{% url 'parking:parking_list' %}">Liste des parkings</a>
-    </nav>
-
-    <h1>Moyen de paiement</h1>
+    <header class="content-heading">
+        <p class="eyebrow">Votre compte</p>
+        <h1>Moyens de paiement</h1>
+        <p>Utilisez un moyen de paiement simulé pour éviter de ressaisir les informations lors de vos réservations.</p>
+    </header>
 
     {% if payment_method %}
-        <p class="conforme">Un moyen de paiement simulé est prêt à être utilisé.</p>
-        <p>Les données de carte saisies ne sont pas conservées.</p>
+        <section class="message message-success" role="status" aria-live="polite">
+            <strong>Un moyen de paiement simulé est enregistré.</strong>
+            <p>Il vous sera proposé lors de vos prochaines réservations. Aucune donnée de carte n’est conservée et rien ne sera réellement débité.</p>
+        </section>
+        <h2>Remplacer le moyen simulé</h2>
+        <p>Vous pouvez saisir un nouveau moyen simulé ci-dessous. Les données saisies servent uniquement à valider ce parcours.</p>
     {% else %}
-        <p>Ajoute un moyen de paiement simulé pour éviter de ressaisir les informations à chaque réservation.</p>
+        <section class="section-card payment-notice" aria-label="À propos du paiement simulé">
+            <h2>Moyen de paiement simulé</h2>
+            <p>Cette application ne réalise aucun paiement. Les informations saisies ne sont pas conservées et aucun débit réel n’est effectué.</p>
+        </section>
+        <h2>Informations du moyen simulé</h2>
     {% endif %}
 
     {% if form_errors %}
-        <div class="error" role="alert">
-            {% for error in form_errors %}
-                <p>{{ error }}</p>
-            {% endfor %}
+        <div class="message message-error" role="alert">
+            <strong>Vérifiez les informations saisies :</strong>
+            <ul class="field-errors">
+                {% for error in form_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
         </div>
     {% endif %}
 
-    <form method="post" action="{% url 'parking:payment_methods' %}">
+    <form method="post" action="{% url 'parking:payment_methods' %}" class="payment-form">
         {% csrf_token %}
         <p>
             {{ form.card_number.label_tag }}
@@ -39,7 +47,7 @@
             {{ form.security_code.label_tag }}
             {{ form.security_code }}
         </p>
-        <button type="submit">Enregistrer le moyen simulé</button>
+        <button type="submit">{% if payment_method %}Remplacer le moyen simulé{% else %}Enregistrer le moyen simulé{% endif %}</button>
     </form>
 
     <script>
@@ -57,4 +65,18 @@
                 : digits;
         });
     </script>
+{% endblock %}
+
+{% block extra_styles %}
+    .content-heading { margin-bottom: 1.25rem; }
+    .content-heading p:last-child { color: var(--muted); margin-bottom: 0; }
+    .eyebrow { margin: 0 0 .3rem; color: var(--primary); font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .payment-notice { border-left: 4px solid var(--primary); background: #f5f8ff; }
+    .payment-notice h2 { margin: 0 0 .45rem; }
+    .payment-notice p { margin: 0; }
+    .payment-form { max-width: 560px; padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+    .payment-form p { margin: 0 0 1.1rem; }
+    .payment-form label { display: block; margin-bottom: .35rem; }
+    .payment-form button { width: 100%; margin: .25rem 0 0; font-weight: 700; }
+    .message-success p { margin: .35rem 0 0; }
 {% endblock %}
