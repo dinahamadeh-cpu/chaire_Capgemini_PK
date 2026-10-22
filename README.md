@@ -52,7 +52,8 @@ uv run python manage.py createsuperuser
 ### Côté usager
 - **Accueil** (`/`) : accès aux parkings, à la connexion et à l'inscription. Une fois connecté, l'usager accède à ses réservations, à ses moyens de paiement et peut se déconnecter. Liens vers l'espace agent, l'administration et l'accès professionnel.
 - **Comptes usagers** : créer un compte (`/inscription/`), se connecter (`/connexion/`) et se déconnecter.
-- **Liste des parkings** (`/parkings/`) : chaque parking avec son nombre de places libres (badge « presque complet » / « complet »), son tarif, sa durée maximale et ses horaires, et une carte Google Maps. Le bouton « Voir sur la carte » centre la carte sur le parking choisi.
+- **Liste des parkings** (`/parkings/`) : chaque parking avec son nombre de places libres (badge « presque complet » / « complet »), son tarif, sa durée maximale et ses horaires, et une carte Google Maps. Des filtres permettent de chercher par tarif, durée maximale, nombre minimum de places libres et heure d'ouverture. Le bouton « Voir sur la carte » centre la carte sur le parking choisi.
+- **Favoris** : ajouter ou retirer un parking des favoris depuis la liste, puis consulter les parkings enregistrés dans « Mes favoris ».
 - **Détail d'un parking** (`/parkings/<id>/`) : carte de localisation, places disponibles, tarif horaire, durée maximale et horaires. Chaque place a un bouton « Réserver ».
 - **Réservation et paiement simulé** (`/parkings/<id>/places/<id>/reserver/`) : l'usager saisit sa plaque (format `AA-123-AA`) et le nombre d'heures, voit le montant calculé et paie avec un moyen de paiement simulé (nouvelle carte ou carte déjà enregistrée).
 - **Moyens de paiement** (`/moyens-de-paiement/`) : enregistrer un moyen de paiement simulé. Les informations de carte ne sont jamais conservées.
@@ -69,7 +70,7 @@ uv run python manage.py createsuperuser
 - **Analyse de l'affluence** (`/agent/affluence/`) : sur 7, 30 ou 90 jours, pour un parking ou tous, le pic d'occupation et le nombre de réservations par jour, l'affluence par heure et par jour de la semaine (heure de pointe, jour le plus chargé).
 
 ### Administration
-- **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (tarif, durée maximale, horaires, coordonnées GPS), des places, des réservations et consulter les contraventions.
+- **Administration** (`/admin/`) : ajouter, modifier ou supprimer des parkings (tarif, durée maximale, horaires, coordonnées GPS), des places, des réservations, des favoris et consulter les contraventions.
 
 ### Règles en place
 - une plaque ne peut avoir qu'une seule réservation active à la fois ;

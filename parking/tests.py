@@ -11,7 +11,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import DemoPaymentMethod, Parking, Reservation, Spot, Favorite, Spot, Contravention 
+from .models import DemoPaymentMethod, Parking, Reservation, Spot, Favorite, Contravention
 
 
 class SeedDataTests(TestCase):
@@ -122,6 +122,24 @@ class ParkingModelsTests(TestCase):
         reservation.save()
         spot.refresh_from_db()
         self.assertTrue(spot.is_available)
+
+    def test_moving_reservation_updates_both_spots_availability(self):
+        user = get_user_model().objects.create_user(username="alice", password="password")
+        parking = Parking.objects.create(name="Parking Central", address="1 rue du Centre")
+        first_spot = Spot.objects.create(parking=parking, number=1)
+        second_spot = Spot.objects.create(parking=parking, number=2)
+        reservation = Reservation.objects.create(user=user, spot=first_spot, plate="CC-345-CC")
+
+        first_spot.refresh_from_db()
+        self.assertFalse(first_spot.is_available)
+
+        reservation.spot = second_spot
+        reservation.save()
+
+        first_spot.refresh_from_db()
+        second_spot.refresh_from_db()
+        self.assertTrue(first_spot.is_available)
+        self.assertFalse(second_spot.is_available)
 
     def test_plate_can_only_have_one_active_reservation(self):
         user = get_user_model().objects.create_user(username="alice", password="password")

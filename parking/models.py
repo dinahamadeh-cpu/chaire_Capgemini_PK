@@ -155,8 +155,9 @@ class Reservation(models.Model):
         if self.pk:
             previous_spot_id = Reservation.objects.filter(pk=self.pk).values_list("spot_id", flat=True).first()
         super().save(*args, **kwargs)
-        is_occupied = Reservation.objects.filter(spot=self.spot, status=Reservation.Status.ACTIVE).exists()
-        Spot.objects.filter(pk=self.spot_id).update(is_available=not is_occupied)
+        for spot_id in {previous_spot_id, self.spot_id} - {None}:
+            occupied = Reservation.objects.filter(spot_id=spot_id, status=Reservation.Status.ACTIVE).exists()
+            Spot.objects.filter(pk=spot_id).update(is_available=not occupied)
 
 class Favorite(models.Model):
     user = models.ForeignKey(
@@ -175,9 +176,6 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user} aime {self.parking}"
-        for spot_id in {previous_spot_id, self.spot_id} - {None}:
-            occupied = Reservation.objects.filter(spot_id=spot_id, status=Reservation.Status.ACTIVE).exists()
-            Spot.objects.filter(pk=spot_id).update(is_available=not occupied)
 
 
 @receiver(post_delete, sender=Reservation)
