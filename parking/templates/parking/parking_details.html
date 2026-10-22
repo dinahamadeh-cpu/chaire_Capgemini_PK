@@ -7,6 +7,7 @@
     <style>
         :root { --primary: #2457c5; --primary-dark: #173d91; --accent: #0e9f72; --ink: #172033; --muted: #60708a; --border: #dbe2ee; --background: #f4f7fb; }
         * { box-sizing: border-box; }
+        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
         body { margin: 0; min-height: 100vh; background: var(--background); color: var(--ink); font-family: "Segoe UI", Roboto, Arial, sans-serif; }
         a { color: var(--primary); }
         .site-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem, 4vw, 2rem); background: linear-gradient(135deg, var(--primary), var(--primary-dark)); box-shadow: 0 2px 12px rgba(23, 61, 145, .18); }
@@ -44,13 +45,13 @@
         .spot-card span:last-child { color: var(--primary); font-weight: 700; }
         .empty-state { padding: 1rem; border: 1px dashed #a9bce5; border-radius: 12px; background: #f8fbff; color: var(--muted); }
         .empty-state p { margin-top: 0; }
-        .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
+        .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .button:hover, .button:focus-visible { background: var(--primary-dark); }
         .reservation-form { display: grid; gap: .65rem; margin-top: .8rem; }
         .reservation-form label { color: var(--muted); font-size: .9rem; font-weight: 600; }
         .reservation-form input { width: 100%; padding: .65rem .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
         .reservation-form input:focus { outline: 3px solid rgba(36,87,197,.18); border-color: var(--primary); }
-        .reservation-form button { min-height: 42px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .reservation-form button { min-height: 44px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
         .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
@@ -66,10 +67,18 @@
         }
         @media (max-width: 560px) {
             .site-header { align-items: flex-start; flex-direction: column; }
+            .site-navigation { width: 100%; }
+            .site-navigation > a, .site-navigation button { min-height: 44px; display: inline-flex; align-items: center; }
+            .site-navigation form { display: flex; }
             .detail-summary { grid-template-columns: 1fr; }
             .section-heading { display: block; }
             .section-heading p { margin-top: .35rem; }
             .spot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .spot-card { min-width: 0; overflow-wrap: anywhere; }
+            .parking-details-section { padding: 1rem; }
+            .parking-details-section .button { width: 100%; }
+            .map-section { height: 320px; min-height: 320px; }
+            #detail-map { min-height: 320px; }
         }
     </style>
 </head>

@@ -281,6 +281,28 @@ class ParkingViewsTests(TestCase):
 
         self.assertNotContains(response, reverse("admin:index"))
 
+    def test_reservation_and_payment_forms_render_field_labels(self):
+        self.authenticate_as_user()
+        self.parking.hourly_rate = Decimal("2.50")
+        self.parking.save()
+
+        checkout = self.client.get(
+            reverse(
+                "parking:reserve_spot",
+                args=[self.parking.id, self.parking.spots.get(number=1).id],
+            )
+        )
+        payment = self.client.get(reverse("parking:payment_methods"))
+
+        self.assertContains(checkout, 'for="id_duration_hours"')
+        self.assertContains(checkout, "Nombre d&#x27;heures")
+        self.assertContains(checkout, 'for="id_plate"')
+        self.assertContains(checkout, "Plaque d&#x27;immatriculation")
+        self.assertContains(payment, 'for="id_card_number"')
+        self.assertContains(payment, "Numéro de carte")
+        self.assertContains(payment, 'for="id_expiration_date"')
+        self.assertContains(payment, 'for="id_security_code"')
+
     def test_authenticated_home_page_links_to_reservations(self):
         user = get_user_model().objects.create_user(
             username="alice",

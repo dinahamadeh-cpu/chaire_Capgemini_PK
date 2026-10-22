@@ -9,15 +9,16 @@
         .kpi .value { display: block; font-size: 1.3rem; font-weight: 700; color: var(--primary-dark); }
         .kpi .label { font-size: 0.85rem; color: #6b7280; }
         .bars { margin: 0.5rem 0 1rem; }
-        .bar-row { display: grid; grid-template-columns: 5.5rem 1fr 2.5rem; gap: 0.5rem; align-items: center; font-size: 0.85rem; margin: 2px 0; }
+        .bar-row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 2.5rem; gap: 0.5rem; align-items: center; font-size: 0.85rem; margin: 2px 0; }
         .bar-track { background: #eef2fb; border-radius: 4px; height: 14px; overflow: hidden; }
         .bar-fill { display: block; height: 100%; background: #93b4ee; }
         .bar-row.max .bar-fill { background: var(--primary); }
         .bar-row.max { font-weight: 700; }
         .bar-count { text-align: right; }
-        .table-scroll { overflow-x: auto; }
-        .table-scroll table { font-size: 0.9rem; }
+        .table-scroll { max-width: 100%; overflow-x: auto; }
+        .table-scroll table { min-width: 34rem; font-size: 0.9rem; }
         .muted { color: #6b7280; font-size: 0.9rem; }
+        @media (max-width: 480px) { .bar-row { grid-template-columns: 4.5rem minmax(0, 1fr) 2rem; gap: .35rem; font-size: .78rem; } }
     </style>
 
     <h1>Analyse de l'affluence</h1>
@@ -64,10 +65,10 @@
 
     <h2>Occupation par jour</h2>
     <p class="muted">Le pic correspond au nombre maximal de places occupées en même temps dans la journée.</p>
-    <div class="table-scroll">
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Occupation par jour">
         <table>
             <thead>
-                <tr><th>Jour</th><th>Réservations</th><th>Pic d'occupation</th><th>Heure du pic</th></tr>
+                <tr><th scope="col">Jour</th><th scope="col">Réservations</th><th scope="col">Pic d'occupation</th><th scope="col">Heure du pic</th></tr>
             </thead>
             <tbody>
                 {% for entry in daily %}

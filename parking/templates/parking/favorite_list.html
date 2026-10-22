@@ -20,6 +20,7 @@
         }
 
         * { box-sizing: border-box; }
+        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
         body {
             margin: 0;
             min-height: 100vh;
@@ -73,7 +74,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 42px;
+            min-height: 44px;
             padding: .65rem .9rem;
             border-radius: 9px;
             font: inherit;
@@ -89,8 +90,12 @@
         .message { margin-bottom: 1rem; padding: .75rem 1rem; border-radius: 9px; background: #eef5ff; color: #1d4ea0; }
         @media (max-width: 600px) {
             .site-header { align-items: flex-start; flex-direction: column; }
-            .site-navigation { flex-wrap: wrap; }
+            .site-navigation { width: 100%; flex-wrap: wrap; }
+            .header-link { min-height: 44px; display: inline-flex; align-items: center; }
             .parking-card { padding: 1rem; }
+            .parking-card-header > div { min-width: 0; }
+            .parking-card h2 { overflow-wrap: anywhere; }
+            .parking-card-actions form, .parking-card-actions .button { width: 100%; }
         }
     </style>
 </head>
