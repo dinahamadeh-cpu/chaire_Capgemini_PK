@@ -134,3 +134,58 @@ class ContraventionForm(forms.Form):
         if not reason:
             raise forms.ValidationError("Le motif est obligatoire.")
         return reason
+
+
+class ParkingFilterForm(forms.Form):
+    min_rate = forms.DecimalField(
+        label="Tarif minimum",
+        required=False,
+        min_value=0,
+        decimal_places=2,
+        max_digits=5,
+    )
+
+    max_rate = forms.DecimalField(
+        label="Tarif maximum",
+        required=False,
+        min_value=0,
+        decimal_places=2,
+        max_digits=5,
+    )
+
+
+    minimum_duration = forms.IntegerField(
+        label="Durée souhaitée en heures",
+        required=False,
+        min_value=1,
+    )
+
+    minimum_available_spots = forms.IntegerField(
+        label="Places disponibles minimum",
+        required=False,
+        min_value=0,
+    )
+
+    open_at = forms.TimeField(
+        label="Ouvert à partir de",
+        required=False,
+        input_formats=["%H:%M"],
+        widget=forms.TimeInput(
+            format="%H:%M",
+            attrs={"type": "time"},
+        ),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        min_rate = cleaned_data.get("min_rate")
+        max_rate = cleaned_data.get("max_rate")
+
+        if min_rate is not None and max_rate is not None and min_rate > max_rate:
+            self.add_error(
+                "max_rate",
+                "Le tarif maximum doit être supérieur ou égal au tarif minimum.",
+            )
+
+        return cleaned_data

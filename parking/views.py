@@ -13,12 +13,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
-from .forms import ContraventionForm, PaymentDetailsForm, ReservationForm
-from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot, plate_validator
+from .forms import ContraventionForm, PaymentDetailsForm, ReservationForm, ParkingFilterForm
+from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot, Favorite, plate_validator
 
-
-from .forms import PaymentDetailsForm, ReservationForm
-from .models import DemoPaymentMethod, Parking, Reservation, Spot, Favorite
 STATS_MOVEMENTS_LIMIT = 20
 HISTORY_PERIODS = ["7", "30", "90"]
 WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
@@ -41,39 +38,6 @@ def signup(request):
 
 def _is_agent(user):
     return user.is_authenticated and user.groups.filter(name="Agents").exists()
-
-
-@login_required(login_url="parking:login")
-def parking_list(request):
-    parkings = Parking.objects.annotate(
-        total_spots_count=Count("spots"),
-        available_spots_count=Count("spots", filter=Q(spots__is_available=True)),
-    )
-    
-    favorite_parking_ids = set(
-        Favorite.objects.filter(user=request.user)
-        .values_list("parking_id", flat=True)
-    )
-
-    parking_data = list(
-        parkings.values(
-            "id",
-            "name",
-            "address",
-            "latitude",
-            "longitude",
-        )
-    )
-
-    return render(
-        request,
-        "parking/parking_list.html",
-        {
-            "parkings": parkings,
-            "parking_data": parking_data,
-            "favorite_parking_ids": favorite_parking_ids,
-        },
-    )
 
 @login_required(login_url="parking:login")
 @require_POST
@@ -629,5 +593,86 @@ def agent_affluence(request):
             "busiest_weekday": WEEKDAYS[busiest_weekday] if has_entries else None,
             "hourly": bars(entries_by_hour, [f"{hour:02d} h" for hour in range(24)]),
             "weekly": bars(entries_by_weekday, WEEKDAYS),
+        },
+    )
+
+@login_required(login_url="parking:login")
+@login_required(login_url="parking:login")
+def parking_list(request):
+    filter_form = ParkingFilterForm(request.GET or None)
+
+    parkings = Parking.objects.annotate(
+        total_spots_count=Count("spots"),
+        available_spots_count=Count(
+            "spots",
+            filter=Q(spots__is_available=True),
+        ),
+    )
+
+    if filter_form.is_valid():
+        filters = filter_form.cleaned_data
+
+        min_rate = filters.get("min_rate")
+        max_rate = filters.get("max_rate")
+        minimum_duration = filters.get("minimum_duration")
+        minimum_available_spots = filters.get("minimum_available_spots")
+        open_at = filters.get("open_at")
+
+        if min_rate is not None:
+            parkings = parkings.filter(
+                hourly_rate__isnull=False,
+                hourly_rate__gte=min_rate,
+            )
+
+        if max_rate is not None:
+            parkings = parkings.filter(
+                hourly_rate__isnull=False,
+                hourly_rate__lte=max_rate,
+            )
+
+        if minimum_duration is not None:
+            parkings = parkings.filter(
+                Q(max_duration_minutes__isnull=True)
+                | Q(
+                    max_duration_minutes__gte=minimum_duration * 60
+                )
+            )
+
+        if minimum_available_spots is not None:
+            parkings = parkings.filter(
+                available_spots_count__gte=minimum_available_spots
+            )
+
+        if open_at is not None:
+            parkings = parkings.filter(
+                Q(opening_time__isnull=True)
+                | Q(opening_time__lte=open_at),
+                Q(closing_time__isnull=True)
+                | Q(closing_time__gte=open_at),
+            )
+
+    favorite_parking_ids = set(
+        Favorite.objects.filter(user=request.user)
+        .values_list("parking_id", flat=True)
+    )
+
+    parking_data = list(
+        parkings.values(
+            "id",
+            "name",
+            "address",
+            "latitude",
+            "longitude",
+        )
+    )
+
+    return render(
+        request,
+        "parking/parking_list.html",
+        {
+            "parkings": parkings,
+            "parking_data": parking_data,
+            "filter_form": filter_form,
+            "favorite_parking_ids": favorite_parking_ids,
         },
     )
