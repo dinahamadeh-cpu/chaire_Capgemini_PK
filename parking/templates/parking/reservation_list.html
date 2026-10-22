@@ -3,10 +3,15 @@
 {% block title %}Mes réservations - Parking{% endblock %}
 
 {% block content %}
+    <style>
+        .reservation-list { padding: 0; list-style: none; }
+        .reservation-list > li { margin: 0 0 1rem; padding: 1rem; border: 1px solid #dbe3f0; border-radius: 12px; background: #fff; }
+        .reservation-list > li > p:first-child { margin-top: 0; }
+    </style>
     <h1>Mes réservations</h1>
 
     {% if reservations %}
-        <ul>
+        <ul class="reservation-list">
             {% for reservation in reservations %}
                 <li>
                     <p>

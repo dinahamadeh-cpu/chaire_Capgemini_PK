@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Parking{% endblock %}</title>
     <style>
         :root {
@@ -13,6 +14,7 @@
             --bg: #eef2fb;
         }
         * { box-sizing: border-box; }
+        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
             margin: 0;
@@ -38,11 +40,12 @@
         .site-navigation .admin-link { background: rgba(31,41,55,.22); }
         .site-navigation .user-name { color: #fff; }
         main.card {
+            width: min(100% - 2rem, 700px);
             max-width: 700px;
             margin: 2rem auto;
             background: #fff;
             border-radius: 14px;
-            padding: 2rem 2.2rem;
+            padding: clamp(1rem, 4vw, 2rem) clamp(1rem, 5vw, 2.2rem);
             box-shadow: 0 6px 24px rgba(31, 41, 55, 0.08);
         }
         h1 { color: var(--primary-dark); margin-top: 0; }
@@ -50,7 +53,8 @@
         p { line-height: 1.5; }
         a.button, button {
             display: inline-block;
-            padding: 0.65rem 1.3rem;
+            min-height: 44px;
+            padding: 0.65rem 1rem;
             margin: 0.3rem 0.3rem 0.3rem 0;
             background: var(--primary);
             color: #fff;
@@ -69,14 +73,18 @@
         a.button.secondary:hover { background: var(--accent-dark); }
         nav a { margin-right: 0.5rem; }
         label { font-weight: 600; color: #374151; }
-        input[type="text"], input[type="password"] {
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea {
             padding: 0.55rem 0.7rem;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             width: 100%;
-            max-width: 280px;
-            font-size: 1rem;
+            max-width: 100%;
+            min-height: 44px;
+            font: inherit;
         }
+        input[type="checkbox"], input[type="radio"] { width: 1.2rem; height: 1.2rem; }
+        .card form p { margin: 0 0 1rem; }
+        .card label { display: inline-block; margin-bottom: .3rem; }
         .error {
             color: var(--danger);
             background: #fef2f2;
@@ -111,6 +119,16 @@
         th, td { border: 1px solid #e5e7eb; padding: 0.5rem 0.7rem; text-align: left; }
         th { background: #f0f4fb; color: var(--primary-dark); }
         tr:nth-child(even) { background: #fafbff; }
+        @media (max-width: 600px) {
+            .topbar { padding: 1rem; }
+            .site-navigation { width: 100%; gap: .35rem; }
+            .site-navigation a, .site-navigation button { min-height: 44px; display: inline-flex; align-items: center; }
+            .site-navigation form { display: flex; }
+            main.card { margin: 1rem auto; }
+            .card table { table-layout: fixed; }
+            .card th, .card td { overflow-wrap: anywhere; }
+            .card button, .card a.button { max-width: 100%; }
+        }
     </style>
 </head>
 <body>

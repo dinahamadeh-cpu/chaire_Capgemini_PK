@@ -9,21 +9,21 @@
 
     <table>
         <tbody>
-            <tr><th>Parking</th><td>{{ reservation.spot.parking.name }}<br>{{ reservation.spot.parking.address }}</td></tr>
-            <tr><th>Place</th><td>n°{{ reservation.spot.number }}</td></tr>
-            <tr><th>Plaque</th><td>{{ reservation.plate }}</td></tr>
-            <tr><th>Réservée le</th><td>{{ reservation.created_at|date:"d/m/Y à H:i" }}</td></tr>
+            <tr><th scope="row">Parking</th><td>{{ reservation.spot.parking.name }}<br>{{ reservation.spot.parking.address }}</td></tr>
+            <tr><th scope="row">Place</th><td>n°{{ reservation.spot.number }}</td></tr>
+            <tr><th scope="row">Plaque</th><td>{{ reservation.plate }}</td></tr>
+            <tr><th scope="row">Réservée le</th><td>{{ reservation.created_at|date:"d/m/Y à H:i" }}</td></tr>
             <tr>
-                <th>Arrivée</th>
+                <th scope="row">Arrivée</th>
                 <td>{% if reservation.arrived_at %}{{ reservation.arrived_at|date:"d/m/Y à H:i" }}{% else %}Non confirmée{% endif %}</td>
             </tr>
             <tr>
-                <th>{% if reservation.status == "cancelled" %}Annulation{% else %}Départ{% endif %}</th>
+                <th scope="row">{% if reservation.status == "cancelled" %}Annulation{% else %}Départ{% endif %}</th>
                 <td>{% if reservation.ended_at %}{{ reservation.ended_at|date:"d/m/Y à H:i" }}{% else %}En cours{% endif %}</td>
             </tr>
-            <tr><th>Durée réservée</th><td>{{ reservation.duration_hours }} h</td></tr>
+            <tr><th scope="row">Durée réservée</th><td>{{ reservation.duration_hours }} h</td></tr>
             <tr>
-                <th>Durée réelle</th>
+                <th scope="row">Durée réelle</th>
                 <td>
                     {% if reservation.actual_duration_display %}
                         {{ reservation.actual_duration_display }}
@@ -34,7 +34,7 @@
                 </td>
             </tr>
             <tr>
-                <th>Montant payé</th>
+                <th scope="row">Montant payé</th>
                 <td>{% if reservation.amount_paid is not None %}{{ reservation.amount_paid|floatformat:2 }} €{% else %}—{% endif %}</td>
             </tr>
         </tbody>

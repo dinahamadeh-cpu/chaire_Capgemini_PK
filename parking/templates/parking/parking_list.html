@@ -20,6 +20,7 @@
         }
 
         * { box-sizing: border-box; }
+        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
 
         body {
             margin: 0;
@@ -125,7 +126,7 @@
         .pricing { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: 0; margin: 1rem 0; list-style: none; color: var(--muted); }
         .pricing li { line-height: 1.4; }
         .parking-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.1rem; }
-        .button, .focus-map-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+        .button, .focus-map-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
         .button:hover, .button:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: var(--primary-dark); }
         .button.secondary, .focus-map-button { background: #fff; color: var(--primary); }
         .button.secondary:hover, .button.secondary:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: #edf3ff; }
@@ -137,6 +138,7 @@
             .map-section { order: 2; position: static; height: 360px; min-height: 360px; }
             #map { min-height: 360px; }
             .site-header { align-items: flex-start; flex-direction: column; }
+            .site-navigation { width: 100%; flex-wrap: wrap; }
             .parking-card { padding: 1rem; }
         }
         .parking-card:hover { border-color: #a9bce5; box-shadow: 0 9px 24px rgba(31, 52, 89, .11); transform: translateY(-2px); }
@@ -155,7 +157,7 @@
         .pricing { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: 0; margin: 1rem 0; list-style: none; color: var(--muted); }
         .pricing li { line-height: 1.4; }
         .parking-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.1rem; }
-        .button, .focus-map-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+        .button, .focus-map-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
         .button:hover, .button:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: var(--primary-dark); }
         .button.secondary, .focus-map-button { background: #fff; color: var(--primary); }
         .button.secondary:hover, .button.secondary:focus-visible, .focus-map-button:hover, .focus-map-button:focus-visible { background: #edf3ff; }
@@ -169,7 +171,7 @@
         }
         
         .favorite-button {
-            min-height: 42px;
+            min-height: 44px;
             padding: .65rem .9rem;
             border: 1px solid #e3a008;
             border-radius: 9px;
@@ -245,16 +247,34 @@
 
         .parking-filters input {
             width: 100%;
+            min-height: 44px;
             min-width: 0;
             padding: .45rem;
             border: 1px solid var(--border);
             border-radius: 6px;
+            font: inherit;
         }
 
         .parking-filters .button {
-            min-height: 36px;
+            min-height: 44px;
             padding: .45rem .7rem;
             font-size: .85rem;
+        }
+        @media (max-width: 600px) {
+            .site-header { align-items: flex-start; flex-direction: column; }
+            .site-navigation { width: 100%; flex-wrap: wrap; }
+            .site-navigation > a, .site-navigation button { min-height: 44px; display: inline-flex; align-items: center; }
+            .site-navigation form { display: flex; }
+            .parking-list-section { padding: 1rem; }
+            .parking-card-header { min-width: 0; }
+            .parking-card-header > div { min-width: 0; }
+            .parking-card h2 { overflow-wrap: anywhere; }
+            .parking-card-actions form { width: 100%; }
+            .parking-card-actions .favorite-button { width: 100%; }
+            .parking-filters { grid-template-columns: 1fr; }
+            .parking-filters .button { width: 100%; }
+            .map-section { height: 320px; min-height: 320px; }
+            #map { min-height: 320px; }
         }
     </style>
 </head>
@@ -389,6 +409,7 @@
                                     class="focus-map-button"
                                     type="button"
                                     data-parking-id="{{ parking.id }}"
+                                    aria-label="Voir {{ parking.name }} sur la carte"
                                 >
                                     Voir sur la carte
                                 </button>
