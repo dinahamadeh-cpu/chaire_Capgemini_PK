@@ -33,9 +33,9 @@
             {{ form.plate }}
         </p>
 
-        <section class="section-card" aria-labelledby="reservation-preview-title">
+        <section class="section-card checkout-summary" aria-labelledby="reservation-preview-title">
             <h2 id="reservation-preview-title">Récapitulatif avant validation</h2>
-            <dl>
+            <dl class="checkout-summary-list">
                 <dt>Parking et place</dt>
                 <dd>{{ parking.name }} — place n°{{ spot.number }}</dd>
                 <dt>Plaque</dt>
@@ -152,6 +152,13 @@
 {% endblock %}
 
 {% block extra_styles %}
+    .checkout-summary-list { display: grid; grid-template-columns: minmax(10rem, .8fr) minmax(0, 1.2fr); margin: 1rem 0 0; }
+    .checkout-summary-list dt, .checkout-summary-list dd { margin: 0; padding: .75rem .5rem; border-bottom: 1px solid var(--border); }
+    .checkout-summary-list dt { color: var(--muted); font-weight: 600; }
+    .checkout-summary-list dd { text-align: right; overflow-wrap: anywhere; }
+    .checkout-summary-list dt:last-of-type, .checkout-summary-list dd:last-of-type { margin-top: .5rem; border-top: 1px solid #bfdbfe; border-bottom: 0; background: #eff6ff; }
+    .checkout-summary-list dt:last-of-type { border-radius: 8px 0 0 8px; color: var(--primary-dark); }
+    .checkout-summary-list dd:last-of-type { border-radius: 0 8px 8px 0; color: var(--primary-dark); }
     .payment-method-choices { display: flex; flex-wrap: wrap; gap: .65rem; margin: .75rem 0 1rem; }
     .payment-method-choice { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: .65rem .85rem; border: 1px solid var(--border); border-radius: 9px; background: #fff; color: var(--ink); cursor: pointer; font-weight: 600; }
     .payment-method-choice:has(input:checked) { border-color: var(--primary); background: #edf3ff; }
@@ -161,4 +168,10 @@
     fieldset legend { padding: 0 .35rem; color: var(--primary-dark); font-size: 1.1rem; font-weight: 700; }
     #checkout-form > p { margin-bottom: 1rem; }
     #checkout-form > button { width: 100%; margin: .25rem 0 0; }
+    @media (max-width: 600px) {
+        .checkout-summary-list { grid-template-columns: minmax(0, 1fr); }
+        .checkout-summary-list dd { padding-top: 0; text-align: left; }
+        .checkout-summary-list dt:last-of-type { margin-top: .5rem; border-radius: 8px 8px 0 0; }
+        .checkout-summary-list dd:last-of-type { margin-top: 0; border-radius: 0 0 8px 8px; text-align: left; }
+    }
 {% endblock %}

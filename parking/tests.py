@@ -631,6 +631,7 @@ class ParkingViewsTests(TestCase):
         )
 
         self.assertContains(response, "Récapitulatif avant validation")
+        self.assertContains(response, 'class="section-card checkout-summary"')
         self.assertContains(response, "Parking Central — place n°1")
         self.assertContains(response, 'id="reservation-plate"')
         self.assertContains(response, 'id="reservation-duration"')
