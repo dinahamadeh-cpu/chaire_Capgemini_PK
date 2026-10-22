@@ -1174,6 +1174,49 @@ class ParkingViewsTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "Connexion agent")
 
+    def test_parking_list_filters_by_maximum_rate(self):
+        self.authenticate_as_user()
+
+        self.parking.hourly_rate = Decimal("1.50")
+        self.parking.save()
+
+        expensive_parking = Parking.objects.create(
+            name="Parking Cher",
+            address="2 rue du Centre",
+            hourly_rate=Decimal("4.00"),
+        )
+
+        response = self.client.get(
+            reverse("parking:parking_list"),
+            {"max_rate": "2.00"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Parking Central")
+        self.assertNotContains(response, "Parking Cher")
+
+
+    def test_parking_list_filters_by_duration(self):
+        self.authenticate_as_user()
+
+        self.parking.max_duration_minutes = 60
+        self.parking.save()
+
+        long_duration_parking = Parking.objects.create(
+            name="Parking Longue Durée",
+            address="3 rue du Centre",
+            max_duration_minutes=180,
+        )
+
+        response = self.client.get(
+            reverse("parking:parking_list"),
+            {"minimum_duration": "2"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Parking Longue Durée")
+        self.assertNotContains(response, "Parking Central")
+
 class FavoriteTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(

@@ -139,12 +139,6 @@
                                 <span class="spot-icon" aria-hidden="true">🅿️</span>
                                 <strong>Place n°{{ spot.number }}</strong>
                                 {% if user.is_authenticated %}
-                                    <form class="reservation-form" method="post" action="{% url 'parking:reserve_spot' parking.id spot.id %}">
-                                        {% csrf_token %}
-                                        <label for="plate-{{ spot.id }}">Plaque d'immatriculation</label>
-                                        <input id="plate-{{ spot.id }}" name="plate" placeholder="AA-123-AA" required>
-                                        <button type="submit">Réserver</button>
-                                    </form>
                                     <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver la place n°{{ spot.number }}</a>
                                 {% else %}
                                     <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
@@ -162,12 +156,12 @@
         </section>
     </main>
 
-    {{ parking_data|json_script:"parking-map-data" }}
+    {{ parking_data|json_script:"parking-data" }}
     <script>
         function initMap() {
-            const parking = JSON.parse(document.getElementById("parking-map-data").textContent);
+            const parking = JSON.parse(document.getElementById("parking-data").textContent);
             const map = new google.maps.Map(document.getElementById("detail-map"), {
-                zoom: 12,
+                zoom: 15,
                 center: { lat: parking.latitude ?? 48.8566, lng: parking.longitude ?? 2.3522 }
             });
             if (parking.latitude !== null && parking.longitude !== null) {

@@ -206,6 +206,51 @@
         @media (max-width: 480px) {
             .parking-card-actions .button, .parking-card-actions .focus-map-button { width: 100%; }
         }
+
+        .filters-section {
+            margin: 0 0 1rem;
+            padding: .75rem 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .filters-section h2 {
+            margin: 0 0 .65rem;
+            font-size: 1rem;
+        }
+
+        .parking-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+            gap: .65rem;
+            align-items: end;
+        }
+
+        .parking-filters div {
+            display: flex;
+            flex-direction: column;
+            gap: .2rem;
+        }
+
+        .parking-filters label {
+            color: var(--muted);
+            font-size: .78rem;
+        }
+
+        .parking-filters input {
+            width: 100%;
+            min-width: 0;
+            padding: .45rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .parking-filters .button {
+            min-height: 36px;
+            padding: .45rem .7rem;
+            font-size: .85rem;
+        }
     </style>
 </head>
 <body>
@@ -223,6 +268,51 @@
         </section>
 
         <section class="parking-list-section">
+            <section class="filters-section" aria-labelledby="filters-title">
+                <h2 id="filters-title">Filtrer les parkings</h2>
+
+                <form method="get" class="parking-filters">
+                    <div>
+                        {{ filter_form.min_rate.label_tag }}
+                        {{ filter_form.min_rate }}
+                    </div>
+
+                    <div>
+                        {{ filter_form.max_rate.label_tag }}
+                        {{ filter_form.max_rate }}
+                    </div>
+
+                    <div>
+                        {{ filter_form.minimum_duration.label_tag }}
+                        {{ filter_form.minimum_duration }}
+                    </div>
+
+                    <div>
+                        {{ filter_form.minimum_available_spots.label_tag }}
+                        {{ filter_form.minimum_available_spots }}
+                    </div>
+
+                    <div>
+                        {{ filter_form.open_at.label_tag }}
+                        {{ filter_form.open_at }}
+                    </div>
+
+                    <button type="submit" class="button">
+                        Appliquer les filtres
+                    </button>
+
+                    <a href="{% url 'parking:parking_list' %}" class="button secondary">
+                        Réinitialiser
+                    </a>
+                </form>
+
+                {% if filter_form.errors %}
+                    <div class="error" role="alert">
+                        {{ filter_form.errors }}
+                    </div>
+                {% endif %}
+            </section>
+
             {% include "parking/_messages.html" %}
             <div class="content-heading">
                 <h1>Liste des parkings</h1>
