@@ -597,7 +597,6 @@ def agent_affluence(request):
     )
 
 @login_required(login_url="parking:login")
-@login_required(login_url="parking:login")
 def parking_list(request):
     filter_form = ParkingFilterForm(request.GET or None)
 
