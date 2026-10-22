@@ -294,6 +294,9 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:agent_dashboard"))
         self.assertContains(response, reverse("parking:agent_plate_check"))
         self.assertContains(response, "Espace agent")
+        self.assertNotContains(response, reverse("parking:parking_list"))
+        self.assertNotContains(response, reverse("parking:reservation_list"))
+        self.assertNotContains(response, reverse("parking:payment_methods"))
         self.assertNotContains(response, reverse("admin:index"))
 
     def test_professional_login_hides_admin_from_non_staff(self):

@@ -23,25 +23,27 @@
             color: #1f2937;
         }
         .topbar {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            padding: .8rem clamp(1rem, 4vw, 2rem);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+            padding: .65rem clamp(1rem, 4vw, 2rem);
+            background: #fff;
+            border-bottom: 1px solid var(--border);
         }
-        .topbar-inner { width: min(100%, 1440px); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; }
+        .topbar-inner { width: min(100%, 1440px); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1.5rem; }
         .topbar .brand {
-            color: #fff;
-            font-size: 1.3rem;
+            flex: 0 0 auto;
+            color: var(--primary-dark);
+            font-size: 1.2rem;
             font-weight: 700;
             text-decoration: none;
         }
-        .site-navigation { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .4rem; }
-        .site-navigation a, .site-navigation button { display: inline-flex; align-items: center; min-height: 44px; padding: .45rem .7rem; margin: 0; border: 1px solid rgba(255,255,255,.55); border-radius: 7px; background: transparent; color: #fff; font: inherit; text-decoration: none; }
-        .site-navigation a:hover, .site-navigation button:hover { background: rgba(255,255,255,.14); }
-        .site-navigation button { cursor: pointer; }
-        .site-navigation .agent-link { background: rgba(16,185,129,.22); }
-        .site-navigation .admin-link { background: rgba(31,41,55,.22); }
-        .site-navigation .user-name { color: #e5edff; font-size: .9rem; padding: 0 .35rem; }
-        .site-navigation form { display: flex; margin: 0; }
+        .site-navigation { display: flex; flex: 1 1 650px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .2rem .35rem; }
+        .site-navigation a { display: inline-flex; align-items: center; min-height: 40px; padding: .45rem .6rem; border-radius: 7px; color: #34415a; font: inherit; text-decoration: none; white-space: nowrap; }
+        .site-navigation a:hover { background: #f0f4fb; color: var(--primary-dark); }
+        .site-navigation .agent-link { color: #075b43; font-weight: 600; }
+        .site-navigation .admin-link { color: #374151; }
+        .site-navigation .user-name { color: var(--muted); font-size: .9rem; padding: 0 .25rem; white-space: nowrap; }
+        .site-navigation form { display: flex; margin: 0 0 0 .25rem; }
+        .site-navigation button { min-height: 40px; padding: .45rem .8rem; border: 1px solid var(--primary); border-radius: 7px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+        .site-navigation button:hover { background: var(--primary-dark); }
         main.card {
             width: min(100% - 2rem, 820px);
             margin: 1.5rem auto;
@@ -131,7 +133,7 @@
         @media (max-width: 600px) {
             .topbar { padding: .8rem 1rem; }
             .topbar-inner { align-items: flex-start; }
-            .site-navigation { width: 100%; justify-content: flex-start; gap: .35rem; }
+            .site-navigation { flex-basis: 100%; justify-content: flex-start; gap: .25rem; }
             .site-navigation a, .site-navigation button { min-height: 44px; }
             main.card:not(.card--wide) { margin: 1rem auto; }
             .card table { table-layout: fixed; }
@@ -149,15 +151,16 @@
             <nav class="site-navigation" aria-label="Navigation principale">
                 <a href="{% url 'parking:home' %}">Accueil</a>
                 {% if request.user.is_authenticated %}
-                    <a href="{% url 'parking:parking_list' %}">Parkings</a>
-                    <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
-                    <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
-                    <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
-                    <span class="user-name">{{ request.user.username }}</span>
-                    {% for group in request.user.groups.all %}{% if group.name == "Agents" %}
+                    {% if is_agent %}
                         <a class="agent-link" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
                         <a class="agent-link" href="{% url 'parking:agent_plate_check' %}">Vérification de plaque</a>
-                    {% endif %}{% endfor %}
+                    {% else %}
+                        <a href="{% url 'parking:parking_list' %}">Parkings</a>
+                        <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
+                        <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
+                        <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
+                    {% endif %}
+                    <span class="user-name">{{ request.user.username }}</span>
                     {% if request.user.is_staff %}<a class="admin-link" href="{% url 'admin:index' %}">Administration</a>{% endif %}
                     <form method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button type="submit">Déconnexion</button></form>
                 {% else %}
