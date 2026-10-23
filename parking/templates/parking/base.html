@@ -127,7 +127,7 @@
             .topbar-inner { width: calc(100% - 28px); }
             .site-navigation { gap: 0; overflow: visible; }
             .site-navigation > a, .nav-menu > summary { min-height: 40px; padding: 0 9px; font-size: 13px; }
-            .user-chip { display: none; }
+            .user-chip .user-name { display: none; }
             main.card:not(.card--wide) { width: calc(100% - 24px); margin: 12px auto; padding: 23px 18px; }
             main.card.auth-page { margin: 16px auto; padding: 24px 19px; }
             .card table { table-layout: fixed; }
@@ -171,7 +171,7 @@
             {% if request.user.is_authenticated %}
                 <div class="nav-account">
                     <details class="account-menu">
-                        <summary class="user-chip"><span class="user-avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span>{{ request.user.username }} <span class="nav-chevron" aria-hidden="true">▼</span></summary>
+                        <summary class="user-chip"><span class="user-avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span><span class="user-name">{{ request.user.username }}</span><span class="nav-chevron" aria-hidden="true">▼</span></summary>
                         <div class="nav-dropdown">
                             {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a><hr>{% endif %}
                             <form class="logout-form" method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button class="logout-menu-button" type="submit">Se déconnecter</button></form>

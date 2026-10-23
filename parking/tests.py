@@ -1809,6 +1809,8 @@ class UserDepartureAndSummaryTests(TestCase):
 
         self.assertContains(response, "Annulée")
         self.assertContains(response, "Terminée")
+        self.assertContains(response, 'class="reservation-status reservation-status--cancelled"')
+        self.assertContains(response, 'class="reservation-status reservation-status--completed"')
         self.assertContains(response, "Annulée le :")
         self.assertContains(response, "Terminée le :")
         for reservation in (cancelled, completed):

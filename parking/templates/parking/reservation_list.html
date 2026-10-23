@@ -20,7 +20,7 @@
                                 <h2>{{ reservation.spot.parking.name }}</h2>
                                 <p>Place n°{{ reservation.spot.number }} · Plaque <strong>{{ reservation.plate }}</strong></p>
                             </div>
-                            <span class="reservation-status">{{ reservation.get_status_display }}</span>
+                            <span class="reservation-status{% if reservation.status == 'cancelled' %} reservation-status--cancelled{% elif reservation.status == 'completed' %} reservation-status--completed{% endif %}">{{ reservation.get_status_display }}</span>
                         </header>
 
                         <dl class="reservation-details">
@@ -116,6 +116,8 @@
     .reservation-card-heading h2 { margin: 0 0 .35rem; font-size: 1.25rem; }
     .reservation-card-heading p { margin: 0; color: var(--muted); }
     .reservation-status { padding: .35rem .65rem; background: var(--success-bg); color: var(--success); font-size: .78rem; font-weight: 750; white-space: nowrap; }
+    .reservation-status--cancelled { background: var(--danger-bg); color: var(--danger); }
+    .reservation-status--completed { background: #f2f0eb; color: var(--muted); }
     .reservation-details { display: flex; flex-wrap: wrap; gap: .5rem 2.5rem; margin: 1rem 0; }
     .reservation-details div { min-width: 10rem; }
     .reservation-details dt { color: var(--muted); font-size: .82rem; }
