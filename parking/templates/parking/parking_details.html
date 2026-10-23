@@ -4,7 +4,7 @@
 
 {% block extra_styles %}
         .detail-layout { display: grid; grid-template-columns: minmax(400px, 48%) 1fr; gap: 0; min-height: calc(100vh - 76px); }
-        .map-section { grid-column: 2; grid-row: 1; position: sticky; top: 0; height: calc(100vh - 76px); background: #e4e9df; }
+        .map-section { grid-column: 2; grid-row: 1; position: sticky; top: 0; height: calc(100vh - 76px); background: #eeece6; }
         #detail-map { width: 100%; height: 100%; min-height: 420px; }
         .parking-details-section { grid-column: 1; grid-row: 1; max-width: 900px; width: 100%; padding: 28px clamp(20px, 2.3vw, 38px); }
         .parking-details-section .back-link { display: inline-block; margin-bottom: 1.25rem; font-weight: 700; text-decoration: none; }
@@ -23,10 +23,10 @@
         .section-heading p { margin: 0; color: var(--muted); }
         .spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: .75rem; }
         .spot-card { display: flex; flex-direction: column; gap: .4rem; padding: 1rem; border: 1px solid var(--border); border-radius: 5px; background: #fbfcf9; color: var(--ink); text-decoration: none; }
-        .spot-card:hover, .spot-card:focus-visible { border-color: var(--green); background: #f4f7ef; }
+        .spot-card:hover, .spot-card:focus-visible { border-color: var(--brand); background: #f7f4ef; }
         .spot-icon { font-size: 1.35rem; }
         .spot-card span:last-child { color: var(--primary); font-weight: 700; }
-        .empty-state { padding: 1rem; border: 1px dashed #9aafa1; border-radius: 5px; background: #f8faf6; color: var(--muted); }
+        .empty-state { padding: 1rem; border: 1px dashed #aeb8c1; border-radius: 5px; background: #f7f5f1; color: var(--muted); }
         .empty-state p { margin-top: 0; }
         .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 5px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .button:hover, .button:focus-visible { background: var(--primary-dark); }

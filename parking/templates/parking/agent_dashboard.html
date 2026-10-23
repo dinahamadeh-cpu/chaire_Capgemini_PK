@@ -34,14 +34,14 @@
     .agent-page { width: min(100% - 64px, 1180px); margin: auto; padding: 48px 0; }
     .agent-heading { margin-bottom: 27px; padding-bottom: 21px; border-bottom: 1px solid var(--line); }
     .agent-heading > p:last-child { margin: 8px 0 0; color: var(--muted); }
-    .agent-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 28px 0 34px; overflow: hidden; border: 1px solid var(--green); border-radius: 5px; background: var(--green); }
-    .agent-summary > div { min-height: 115px; padding: 20px 23px; background: var(--green); color: #c7d8cf; font-size: 13px; }
+    .agent-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 28px 0 34px; overflow: hidden; border: 1px solid var(--brand); border-radius: 5px; background: var(--brand); }
+    .agent-summary > div { min-height: 115px; padding: 20px 23px; background: var(--brand); color: #d5dce5; font-size: 13px; }
     .agent-summary strong { display: block; margin-bottom: 4px; color: #fff; font-size: 32px; line-height: 1.1; letter-spacing: -.05em; }
     .agent-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 17px 0 0; }
     .agent-action { position: relative; min-height: 170px; padding: 22px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); text-decoration: none; }
-    .agent-action::after { position: absolute; right: 18px; bottom: 15px; color: var(--green); font-size: 20px; content: "↗"; }
-    .agent-action:hover { border-color: #9aafa1; background: #fbfcf9; }
-    .agent-action strong { display: block; margin-bottom: 9px; color: var(--green); font-size: 17px; }
+    .agent-action::after { position: absolute; right: 18px; bottom: 15px; color: var(--brand); font-size: 20px; content: "↗"; }
+    .agent-action:hover { border-color: var(--brand); background: #f6f3ed; }
+    .agent-action strong { display: block; margin-bottom: 9px; color: var(--brand); font-size: 17px; }
     .agent-action span, .agent-note { color: var(--muted); font-size: 13px; line-height: 1.55; }
     @media (max-width: 760px) { .agent-page { width: calc(100% - 32px); padding: 24px 0; }.agent-summary, .agent-actions { grid-template-columns: 1fr; } .agent-summary > div, .agent-action { min-height: 0; } }
 {% endblock %}

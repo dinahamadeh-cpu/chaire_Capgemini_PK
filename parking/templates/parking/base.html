@@ -6,14 +6,15 @@
     <title>{% block title %}Parking{% endblock %}</title>
     <style>
         :root {
-            --ink: #172b28;
-            --muted: #647571;
-            --green: #174c43;
-            --green-dark: #103a33;
-            --lime: #d8ee78;
-            --paper: #f4f4ee;
+            --ink: #1d2b39;
+            --muted: #68747f;
+            --brand: #213b5b;
+            --brand-dark: #172d49;
+            --accent: #bf5a43;
+            --accent-soft: #fae9e3;
+            --paper: #f6f3ed;
             --surface: #fff;
-            --line: #dce3dd;
+            --line: #dfe3e4;
             --success: #176349;
             --success-bg: #e8f3ed;
             --warning: #795a13;
@@ -22,31 +23,30 @@
             --danger-bg: #fff0ee;
             --info: #285a77;
             --info-bg: #edf5f8;
-            --primary: var(--green);
-            --primary-dark: var(--green-dark);
-            --accent: #a6c844;
+            --primary: var(--brand);
+            --primary-dark: var(--brand-dark);
             --border: var(--line);
             --background: var(--paper);
         }
         * { box-sizing: border-box; }
         body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.55; }
-        :focus-visible { outline: 3px solid #b5d84f; outline-offset: 3px; }
-        a { color: var(--green); }
+        :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+        a { color: var(--brand); }
         .topbar { position: relative; z-index: 5; border-bottom: 1px solid var(--line); background: #fff; }
         .topbar-inner { width: min(100% - 64px, 1440px); min-height: 76px; margin: auto; display: flex; align-items: center; gap: 48px; }
         .brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
-        .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--green); color: var(--lime); font-size: 17px; font-weight: 800; }
+        .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--brand); color: #fff; font-size: 17px; font-weight: 800; }
         .brand-name { font-size: 15px; font-weight: 800; letter-spacing: .1em; }
         .brand-name small { display: block; margin-top: -3px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .16em; }
         .site-navigation { display: flex; flex: 1; align-items: center; gap: 7px; }
-        .site-navigation > a, .nav-menu > summary { display: inline-flex; min-height: 42px; align-items: center; gap: 8px; padding: 0 13px; border-radius: 5px; color: #354843; font-size: 14px; font-weight: 650; text-decoration: none; list-style: none; cursor: pointer; }
+        .site-navigation > a, .nav-menu > summary { display: inline-flex; min-height: 42px; align-items: center; gap: 8px; padding: 0 13px; border-radius: 5px; color: #354254; font-size: 14px; font-weight: 650; text-decoration: none; list-style: none; cursor: pointer; }
         .nav-menu > summary::-webkit-details-marker { display: none; }
-        .site-navigation > a:hover, .nav-menu > summary:hover, .nav-menu[open] > summary { background: var(--paper); color: var(--green); }
+        .site-navigation > a:hover, .nav-menu > summary:hover, .nav-menu[open] > summary { background: var(--paper); color: var(--brand); }
         .nav-menu { position: relative; }
-        .nav-chevron { color: #81918b; font-size: 11px; }
-        .nav-dropdown { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; width: 235px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 14px 34px #19382d1c; }
+        .nav-chevron { color: #81909d; font-size: 11px; }
+        .nav-dropdown { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; width: 235px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 14px 34px #2039561c; }
         .nav-dropdown a { display: block; padding: 10px 12px; border-radius: 4px; color: var(--ink); font-size: 14px; text-decoration: none; }
-        .nav-dropdown a:hover { background: var(--paper); color: var(--green); }
+        .nav-dropdown a:hover { background: var(--paper); color: var(--brand); }
         .nav-dropdown .menu-label { margin: 7px 12px 3px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
         .nav-dropdown hr { height: 1px; margin: 7px 4px; border: 0; background: var(--line); }
         .nav-account { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; margin-left: auto; }
@@ -54,18 +54,18 @@
         .account-menu > summary { display: inline-flex; align-items: center; gap: 9px; list-style: none; cursor: pointer; }
         .account-menu > summary::-webkit-details-marker { display: none; }
         .account-menu .nav-dropdown { right: 0; left: auto; }
-        .user-chip { display: inline-flex; align-items: center; gap: 9px; color: #43564f; font-size: 13px; font-weight: 650; }
-        .user-avatar { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #e9eee8; color: var(--green); font-size: 12px; font-weight: 800; }
+        .user-chip { display: inline-flex; align-items: center; gap: 9px; color: #435269; font-size: 13px; font-weight: 650; }
+        .user-avatar { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-size: 12px; font-weight: 800; }
         .logout-form { margin: 0; }
-        .logout-button { padding: 8px 11px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .logout-button { padding: 8px 11px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; cursor: pointer; }
         .logout-button:hover { background: var(--paper); }
         .logout-menu-button { width: 100%; justify-content: flex-start; padding: 10px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; text-align: left; }
-        .logout-menu-button:hover { background: var(--paper); color: var(--green); }
+        .logout-menu-button:hover { background: var(--paper); color: var(--brand); }
         .guest-actions { display: flex; align-items: center; gap: 9px; margin-left: auto; }
-        .guest-actions a { padding: 9px 13px; color: var(--green); font-size: 14px; font-weight: 700; text-decoration: none; }
-        .guest-actions a:last-child { border-radius: 5px; background: var(--green); color: #fff; }
-        .guest-actions a:last-child:hover { background: var(--green-dark); }
-        main.card:not(.card--wide) { width: min(100% - 64px, 1080px); margin: 42px auto; padding: 38px 42px; border: 1px solid #e6e9e2; border-radius: 8px; background: #fff; box-shadow: 0 12px 36px #1b35240c; }
+        .guest-actions a { padding: 9px 13px; color: var(--brand); font-size: 14px; font-weight: 700; text-decoration: none; }
+        .guest-actions a:last-child { border-radius: 5px; background: var(--brand); color: #fff; }
+        .guest-actions a:last-child:hover { background: var(--brand-dark); }
+        main.card:not(.card--wide) { width: min(100% - 64px, 1080px); margin: 42px auto; padding: 38px 42px; border: 1px solid #e4e3df; border-radius: 8px; background: #fff; box-shadow: 0 12px 36px #213b5b0c; }
         .card--wide { width: 100%; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
         .card--wide > * { max-width: 1440px; margin-left: auto; margin-right: auto; }
         .content-section { padding: 42px 32px; }
@@ -73,18 +73,18 @@
         h1 { margin: 0 0 12px; font-size: clamp(30px, 3.2vw, 46px); }
         h2 { margin-top: 0; font-size: 24px; }
         p { line-height: 1.6; }
-        .eyebrow { margin: 0 0 11px; color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+        .eyebrow { margin: 0 0 11px; color: var(--brand); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
         .content-heading, .page-heading { margin-bottom: 30px; }
         .content-heading > p:last-child, .page-heading > p:last-child { max-width: 62ch; margin: 8px 0 0; color: var(--muted); }
-        a.button, button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--green); border-radius: 5px; background: var(--green); color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.35; text-decoration: none; cursor: pointer; }
-        a.button:hover, button:hover { border-color: var(--green-dark); background: var(--green-dark); }
-        a.button.secondary, button.secondary { border-color: var(--line); background: #fff; color: var(--green); }
-        a.button.secondary:hover, button.secondary:hover { border-color: #bdcbc1; background: var(--paper); }
+        a.button, button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--brand); border-radius: 5px; background: var(--brand); color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.35; text-decoration: none; cursor: pointer; }
+        a.button:hover, button:hover { border-color: var(--brand-dark); background: var(--brand-dark); }
+        a.button.secondary, button.secondary { border-color: var(--line); background: #fff; color: var(--brand); }
+        a.button.secondary:hover, button.secondary:hover { border-color: var(--accent); background: var(--accent-soft); }
         button:disabled { opacity: .6; cursor: not-allowed; }
         label { color: var(--ink); font-weight: 700; }
-        input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%; max-width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #cbd5ce; border-radius: 5px; background: #fff; color: var(--ink); font: inherit; }
-        input:focus, select:focus, textarea:focus { border-color: var(--green); }
-        input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; accent-color: var(--green); }
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%; max-width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #cbd2da; border-radius: 5px; background: #fff; color: var(--ink); font: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: var(--brand); }
+        input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; accent-color: var(--brand); }
         .card form p { margin: 0 0 17px; }
         .card label { display: inline-block; margin-bottom: 6px; }
         .error { padding: 12px 15px; border: 1px solid #e9bdb8; border-radius: 5px; background: var(--danger-bg); color: var(--danger); }
@@ -98,7 +98,7 @@
         .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
         .button-row > * { margin: 0; }
         .back-link { display: inline-block; margin: 0 0 18px; color: var(--muted); font-size: 14px; font-weight: 700; text-decoration: none; }
-        .back-link:hover { color: var(--green); text-decoration: underline; }
+        .back-link:hover { color: var(--brand); text-decoration: underline; }
         main.card.auth-page { max-width: 540px; margin: 56px auto; padding: 42px; }
         main.card.auth-page--signup { max-width: 640px; }
         .auth-heading { margin-bottom: 27px; }
@@ -115,8 +115,8 @@
         .non-conforme { border: 1px solid #e9bdb8; background: var(--danger-bg); color: var(--danger); }
         table { width: 100%; margin-top: 16px; border-collapse: collapse; }
         th, td { padding: 11px 13px; border-bottom: 1px solid var(--line); text-align: left; }
-        th { background: #f3f5f1; color: var(--green-dark); font-size: 13px; }
-        tr:nth-child(even) { background: #fafbf8; }
+        th { background: #f2f0eb; color: var(--brand-dark); font-size: 13px; }
+        tr:nth-child(even) { background: #faf9f6; }
         @media (max-width: 900px) {
             .topbar-inner { width: min(100% - 32px, 1440px); flex-wrap: wrap; gap: 0 22px; padding: 12px 0; }
             .site-navigation { order: 3; flex-basis: 100%; }

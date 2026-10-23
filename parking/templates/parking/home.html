@@ -15,26 +15,21 @@
             </div>
             <div class="hero-footnote"><span aria-hidden="true">✓</span> Disponibilités et tarifs consultables avant de réserver</div>
         </div>
-        <div class="hero-visual" aria-label="Illustration d’un parking et d’une place disponible" role="img">
-            <div class="visual-topline"><span>VOTRE PROCHAINE ÉTAPE</span><span class="live-dot">PLACE LIBRE</span></div>
+        <div class="hero-visual" aria-label="Illustration d’un parking" role="img">
             <div class="street-scene">
-                <div class="street-label street-label--top">RUE DES ATELIERS</div>
                 <div class="street-lane"><span></span><span></span><span></span><span></span></div>
                 <div class="parking-bay parking-bay--one"><i></i></div>
                 <div class="parking-bay parking-bay--two"><i></i></div>
-                <div class="parking-bay parking-bay--three"><b>P</b><span>LIBRE</span></div>
+                <div class="parking-bay parking-bay--three"><b>P</b></div>
                 <div class="parking-bay parking-bay--four"><i></i></div>
                 <div class="map-pin"><span aria-hidden="true">P</span></div>
-                <div class="street-label street-label--bottom">CENTRE-VILLE <span>→</span></div>
             </div>
-            <div class="visual-ticket"><div class="ticket-icon" aria-hidden="true">P</div><div><strong>Une place vous attend</strong><span>Consultez les parkings autour de vous</span></div><span class="ticket-arrow" aria-hidden="true">↗</span></div>
-            <span class="visual-index">01 / 03</span>
         </div>
     </section>
     <section class="landing-services" aria-label="Les services">
-        <div><span class="service-number">01</span><div><strong>Trouvez</strong><p>Comparez les parkings et leurs disponibilités.</p></div></div>
-        <div><span class="service-number">02</span><div><strong>Réservez</strong><p>Choisissez une place et la durée souhaitée.</p></div></div>
-        <div><span class="service-number">03</span><div><strong>Gérez</strong><p>Suivez vos réservations depuis votre espace.</p></div></div>
+        <div><div><strong>Trouvez</strong><p>Comparez les parkings et leurs disponibilités.</p></div></div>
+        <div><div><strong>Réservez</strong><p>Choisissez une place et la durée souhaitée.</p></div></div>
+        <div><div><strong>Gérez</strong><p>Suivez vos réservations depuis votre espace.</p></div></div>
     </section>
     <footer class="landing-footer">
         <span>Parkings · Un service de stationnement clair et pratique</span>
@@ -48,52 +43,42 @@
 </main>
 {% endblock %}
 {% block extra_styles %}
-    .landing-body { background: #f8f8f3; }
+    .landing-body { background: var(--paper); }
     .landing-page { width: min(100% - 64px, 1320px); margin: 0 auto; }
     .landing-page > .message { margin-top: 20px; }
     .landing-hero { display: grid; min-height: 610px; grid-template-columns: 1fr .94fr; align-items: center; gap: clamp(35px, 7vw, 105px); padding: 60px 0 58px; }
     .hero-copy { padding: 10px 0; }
-    .hero-copy .eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; color: var(--green); font-size: 10px; }
-    .hero-copy .eyebrow span { color: #b3ce55; font-size: 12px; }
+    .hero-copy .eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; color: var(--brand); font-size: 10px; }
+    .hero-copy .eyebrow span { color: var(--accent); font-size: 12px; }
     .hero-copy h1 { margin: 0; font-size: clamp(54px, 6.2vw, 84px); font-weight: 690; line-height: .99; letter-spacing: -.075em; }
-    .hero-copy h1 em { color: var(--green); font-style: normal; }
-    .hero-description { max-width: 470px; margin: 24px 0 0; color: #687873; font-size: 17px; line-height: 1.7; }
+    .hero-copy h1 em { color: var(--brand); font-style: normal; }
+    .hero-description { max-width: 470px; margin: 24px 0 0; color: var(--muted); font-size: 17px; line-height: 1.7; }
     .hero-actions { display: flex; align-items: center; gap: 24px; margin-top: 31px; }
-    .hero-primary { display: inline-flex; min-height: 52px; align-items: center; gap: 24px; padding: 0 19px; border-radius: 5px; background: var(--green); color: white; font-size: 14px; font-weight: 750; text-decoration: none; }
-    .hero-primary:hover { background: var(--green-dark); }
-    .hero-primary span { color: var(--lime); font-size: 18px; }
-    .hero-secondary { color: var(--green); font-size: 14px; font-weight: 700; text-decoration-color: #a9b7ae; text-underline-offset: 5px; }
-    .hero-secondary:hover { text-decoration-color: var(--green); }
-    .hero-footnote { display: flex; align-items: center; gap: 9px; margin-top: 31px; color: #75817c; font-size: 12px; }
-    .hero-footnote span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: #e6efd0; color: var(--green); font-size: 12px; font-weight: 800; }
-    .hero-visual { position: relative; min-height: 455px; padding: 22px; overflow: hidden; border-radius: 7px; background: #174c43; color: #fff; }
+    .hero-primary { display: inline-flex; min-height: 52px; align-items: center; gap: 24px; padding: 0 19px; border-radius: 5px; background: var(--brand); color: white; font-size: 14px; font-weight: 750; text-decoration: none; }
+    .hero-primary:hover { background: var(--brand-dark); }
+    .hero-primary span { color: #f2a18d; font-size: 18px; }
+    .hero-secondary { color: var(--brand); font-size: 14px; font-weight: 700; text-decoration-color: #a9b1ba; text-underline-offset: 5px; }
+    .hero-secondary:hover { text-decoration-color: var(--brand); }
+    .hero-footnote { display: flex; align-items: center; gap: 9px; margin-top: 31px; color: var(--muted); font-size: 12px; }
+    .hero-footnote span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-size: 12px; font-weight: 800; }
+    .hero-visual { position: relative; min-height: 455px; overflow: hidden; border-radius: 7px; background: var(--brand); color: #fff; }
     .hero-visual::before { position: absolute; top: -112px; right: -95px; width: 250px; height: 250px; border: 1px solid #ffffff20; border-radius: 50%; content: ""; }
-    .visual-topline { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #d7e2dc; font-size: 9px; font-weight: 750; letter-spacing: .13em; }
-    .live-dot { display: flex; align-items: center; gap: 7px; color: #eff8c4; letter-spacing: .08em; }
-    .live-dot::before { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); content: ""; }
-    .street-scene { position: absolute; top: 72px; right: 0; bottom: 78px; left: 0; overflow: hidden; background: #1d5a50; }
-    .street-scene::before, .street-scene::after { position: absolute; top: 0; bottom: 0; width: 17%; background: #245f54; content: ""; }
+    .street-scene { position: absolute; inset: 0; overflow: hidden; background: #294968; }
+    .street-scene::before, .street-scene::after { position: absolute; top: 0; bottom: 0; width: 17%; background: #315374; content: ""; }
     .street-scene::before { left: 0; }.street-scene::after { right: 0; }
-    .street-label { position: absolute; z-index: 1; color: #a8c4b5; font-size: 8px; font-weight: 800; letter-spacing: .17em; }
-    .street-label--top { top: 15px; left: 21px; }.street-label--bottom { right: 24px; bottom: 13px; }.street-label--bottom span { color: var(--lime); }
-    .street-lane { position: absolute; top: 43%; right: 0; left: 0; height: 70px; display: flex; align-items: center; justify-content: space-around; background: #e1e7d9; transform: rotate(-10deg) scale(1.08); }
-    .street-lane span { width: 9%; height: 2px; background: #b1b9aa; }
-    .parking-bay { position: absolute; z-index: 2; top: 23%; display: grid; width: 16%; height: 23%; place-items: center; border: 1px solid #acc6b9; border-bottom: 0; transform: rotate(-10deg); }
-    .parking-bay--one { left: 25%; }.parking-bay--two { left: 43%; }.parking-bay--three { top: 56%; left: 61%; border-color: var(--lime); background: #d8ee7830; color: var(--lime); }.parking-bay--four { top: 56%; left: 25%; }
-    .parking-bay i { display: block; width: 31px; height: 15px; border-radius: 9px 9px 4px 4px; background: #9ab7a7; }
-    .parking-bay--three b { font-size: 19px; }.parking-bay--three span { margin-top: -23px; font-size: 7px; font-weight: 800; letter-spacing: .12em; }
-    .map-pin { position: absolute; z-index: 3; top: 34%; left: 68%; display: grid; width: 48px; height: 48px; place-items: center; border: 5px solid #ffffff44; border-radius: 50% 50% 50% 8px; background: var(--lime); color: var(--green); font-size: 15px; font-weight: 850; transform: rotate(-45deg); }
+    .street-lane { position: absolute; top: 43%; right: 0; left: 0; height: 70px; display: flex; align-items: center; justify-content: space-around; background: #dfe3e4; transform: rotate(-10deg) scale(1.08); }
+    .street-lane span { width: 9%; height: 2px; background: #aeb8c1; }
+    .parking-bay { position: absolute; z-index: 2; top: 23%; display: grid; width: 16%; height: 23%; place-items: center; border: 1px solid #aebdca; border-bottom: 0; transform: rotate(-10deg); }
+    .parking-bay--one { left: 25%; }.parking-bay--two { left: 43%; }.parking-bay--three { top: 56%; left: 61%; border-color: #f2a18d; background: #bf5a4360; color: #fff; }.parking-bay--four { top: 56%; left: 25%; }
+    .parking-bay i { display: block; width: 31px; height: 15px; border-radius: 9px 9px 4px 4px; background: #9aabba; }
+    .parking-bay--three b { font-size: 19px; }
+    .map-pin { position: absolute; z-index: 3; top: 34%; left: 68%; display: grid; width: 48px; height: 48px; place-items: center; border: 5px solid #ffffff44; border-radius: 50% 50% 50% 8px; background: #bf5a43; color: #fff; font-size: 15px; font-weight: 850; transform: rotate(-45deg); }
     .map-pin span { transform: rotate(45deg); }
-    .visual-ticket { position: absolute; z-index: 4; right: 22px; bottom: 24px; left: 22px; display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #ffffff25; border-radius: 5px; background: #103a33; }
-    .ticket-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 4px; background: var(--lime); color: var(--green); font-size: 14px; font-weight: 850; }
-    .visual-ticket strong, .visual-ticket span { display: block; }.visual-ticket strong { font-size: 12px; }.visual-ticket div:nth-child(2) span { margin-top: 2px; color: #b6c9bf; font-size: 10px; }.visual-ticket .ticket-arrow { margin-left: auto; color: var(--lime); font-size: 19px; }
-    .visual-index { position: absolute; top: 50%; right: -1px; color: #9cb8aa; font-size: 9px; letter-spacing: .13em; writing-mode: vertical-rl; }
-    .landing-services { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28px 0; border-top: 1px solid #dfe5dc; border-bottom: 1px solid #dfe5dc; }
-    .landing-services > div { display: flex; gap: 17px; padding: 0 27px; border-right: 1px solid #dfe5dc; }.landing-services > div:first-child { padding-left: 0; }.landing-services > div:last-child { border: 0; }
-    .service-number { color: #9aab9f; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
-    .landing-services strong { color: var(--green); font-size: 14px; }.landing-services p { margin: 3px 0 0; color: #76827d; font-size: 12px; }
-    .landing-footer { display: flex; min-height: 77px; align-items: center; justify-content: space-between; gap: 18px; color: #85918a; font-size: 11px; }
-    .landing-footer div { display: flex; gap: 24px; }.landing-footer a { color: #52675c; font-weight: 700; text-decoration: none; }.landing-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .landing-services { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .landing-services > div { display: flex; gap: 17px; padding: 0 27px; border-right: 1px solid var(--line); }.landing-services > div:first-child { padding-left: 0; }.landing-services > div:last-child { border: 0; }
+    .landing-services strong { color: var(--brand); font-size: 14px; }.landing-services p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .landing-footer { display: flex; min-height: 77px; align-items: center; justify-content: space-between; gap: 18px; color: var(--muted); font-size: 11px; }
+    .landing-footer div { display: flex; gap: 24px; }.landing-footer a { color: #526075; font-weight: 700; text-decoration: none; }.landing-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
     @media (max-width: 900px) { .landing-page { width: min(100% - 36px, 700px); }.landing-hero { grid-template-columns: 1fr; gap: 34px; padding: 48px 0; }.hero-visual { min-height: 390px; }.landing-services > div { padding: 0 13px; } }
     @media (max-width: 600px) { .landing-page { width: calc(100% - 32px); }.hero-copy h1 { font-size: 52px; }.hero-actions { align-items: flex-start; flex-direction: column; gap: 15px; }.hero-visual { min-height: 330px; }.landing-services { grid-template-columns: 1fr; gap: 17px; }.landing-services > div, .landing-services > div:first-child { padding: 0; border: 0; }.landing-footer { align-items: flex-start; flex-direction: column; padding: 20px 0; }.landing-footer div { flex-wrap: wrap; gap: 14px; } }
 {% endblock %}
