@@ -8,13 +8,7 @@
     <p><strong>{{ parking.name }}</strong> — place n°{{ spot.number }}</p>
     <p>Tarif horaire : {{ parking.hourly_rate|floatformat:2 }} €</p>
 
-    {% if form_errors %}
-        <div class="error" role="alert">
-            {% for error in form_errors %}
-                <p>{{ error }}</p>
-            {% endfor %}
-        </div>
-    {% endif %}
+    {% include "parking/_form_errors.html" %}
 
     <form
         method="post"

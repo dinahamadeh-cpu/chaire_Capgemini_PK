@@ -24,14 +24,7 @@
         <h2>Informations du moyen simulé</h2>
     {% endif %}
 
-    {% if form_errors %}
-        <div class="message message-error" role="alert">
-            <strong>Vérifiez les informations saisies :</strong>
-            <ul class="field-errors">
-                {% for error in form_errors %}<li>{{ error }}</li>{% endfor %}
-            </ul>
-        </div>
-    {% endif %}
+    {% include "parking/_form_errors.html" %}
 
     <form method="post" action="{% url 'parking:payment_methods' %}" class="payment-form">
         {% csrf_token %}

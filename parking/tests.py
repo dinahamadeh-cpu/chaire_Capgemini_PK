@@ -675,6 +675,8 @@ class ParkingViewsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="message message-error" role="alert"')
+        self.assertContains(response, "Vérifiez les informations saisies")
         self.assertContains(response, "Numéro de carte")
         self.assertFalse(Reservation.objects.filter(plate="GG-789-GG").exists())
 
@@ -734,6 +736,8 @@ class ParkingViewsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="message message-error" role="alert"')
+        self.assertContains(response, "Vérifiez les informations saisies")
         self.assertNotContains(response, "1234567890123456")
         self.assertNotContains(response, "987")
         self.assertFalse(DemoPaymentMethod.objects.exists())
