@@ -58,8 +58,8 @@
     .content-heading { margin-bottom: 1.5rem; }
     .content-heading h1 { margin-bottom: .4rem; }
     .intro, .parking-address { color: var(--muted); }
-    .favorites-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); gap: 1rem; max-width: 1000px; }
-    .parking-card { padding: 1.25rem; border: 1px solid var(--border); border-top: 3px solid var(--accent); background: #fff; }
+    .favorites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 360px)); gap: 1rem; max-width: 1120px; }
+    .parking-card { padding: 1.25rem; border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: 5px; background: #fff; }
     .parking-card-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
     .parking-card h2 { margin: 0; font-size: 1.3rem; }
     .parking-card h2 a { text-decoration: none; }
@@ -70,6 +70,9 @@
     .availability-low { color: var(--warning); background: var(--warning-bg); }
     .availability-full { color: var(--danger); background: var(--danger-bg); }
     .availability-count { margin: 0; }
+    .parking-card .pricing { display: grid; gap: 0; margin: 14px 0; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+    .parking-card .pricing li { padding: 7px 0; border-bottom: 1px solid #edf0ea; }
+    .parking-card .pricing li:last-child { border-bottom: 0; }
     .parking-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin-top: 1rem; }
     .parking-card-actions > * { margin: 0; }
     .favorite-button { min-height: 44px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }

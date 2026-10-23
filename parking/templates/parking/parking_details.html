@@ -3,38 +3,38 @@
 {% block main_class %}card--wide{% endblock %}
 
 {% block extra_styles %}
-        .detail-layout { display: grid; grid-template-columns: minmax(280px, 42%) 1fr; gap: 0; min-height: calc(100vh - 68px); }
-        .map-section { position: sticky; top: 0; height: calc(100vh - 68px); background: #dfe7f4; }
+        .detail-layout { display: grid; grid-template-columns: minmax(400px, 48%) 1fr; gap: 0; min-height: calc(100vh - 76px); }
+        .map-section { grid-column: 2; grid-row: 1; position: sticky; top: 0; height: calc(100vh - 76px); background: #e4e9df; }
         #detail-map { width: 100%; height: 100%; min-height: 420px; }
-        .parking-details-section { max-width: 840px; width: 100%; padding: clamp(1.25rem, 4vw, 3rem); }
+        .parking-details-section { grid-column: 1; grid-row: 1; max-width: 900px; width: 100%; padding: 28px clamp(20px, 2.3vw, 38px); }
         .parking-details-section .back-link { display: inline-block; margin-bottom: 1.25rem; font-weight: 700; text-decoration: none; }
         h1 { margin: 0 0 .45rem; font-size: clamp(1.8rem, 4vw, 2.7rem); }
         h2 { margin: 0; font-size: 1.35rem; }
         .parking-address { margin: 0; color: var(--muted); line-height: 1.5; }
         .detail-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin: 1.5rem 0 2rem; }
-        .detail-summary-item { display: flex; flex-direction: column; gap: .35rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+        .detail-summary-item { display: flex; flex-direction: column; gap: .35rem; padding: 1rem; border: 1px solid var(--border); border-radius: 5px; background: #fff; }
         .detail-summary-item span { color: var(--muted); font-size: .88rem; }
         .detail-summary-item strong { font-size: 1.08rem; }
-        .parking-details-section .section-card { margin-top: 1.25rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: 0 4px 16px rgba(31, 52, 89, .05); }
+        .parking-details-section .section-card { margin-top: 1.25rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 5px; background: #fff; }
         .pricing { display: grid; gap: .75rem; padding: 0; margin: 1rem 0 0; list-style: none; color: var(--muted); }
         .pricing li { padding-bottom: .65rem; border-bottom: 1px solid #edf0f5; }
         .pricing li:last-child { padding-bottom: 0; border-bottom: 0; }
         .section-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 1rem; }
         .section-heading p { margin: 0; color: var(--muted); }
         .spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: .75rem; }
-        .spot-card { display: flex; flex-direction: column; gap: .4rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: #fbfdff; color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s, border-color .15s; }
-        .spot-card:hover, .spot-card:focus-visible { border-color: var(--primary); box-shadow: 0 6px 18px rgba(36, 87, 197, .15); transform: translateY(-2px); }
+        .spot-card { display: flex; flex-direction: column; gap: .4rem; padding: 1rem; border: 1px solid var(--border); border-radius: 5px; background: #fbfcf9; color: var(--ink); text-decoration: none; }
+        .spot-card:hover, .spot-card:focus-visible { border-color: var(--green); background: #f4f7ef; }
         .spot-icon { font-size: 1.35rem; }
         .spot-card span:last-child { color: var(--primary); font-weight: 700; }
-        .empty-state { padding: 1rem; border: 1px dashed #a9bce5; border-radius: 12px; background: #f8fbff; color: var(--muted); }
+        .empty-state { padding: 1rem; border: 1px dashed #9aafa1; border-radius: 5px; background: #f8faf6; color: var(--muted); }
         .empty-state p { margin-top: 0; }
-        .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
+        .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: .65rem .9rem; border: 1px solid var(--primary); border-radius: 5px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .button:hover, .button:focus-visible { background: var(--primary-dark); }
         .reservation-form { display: grid; gap: .65rem; margin-top: .8rem; }
         .reservation-form label { color: var(--muted); font-size: .9rem; font-weight: 600; }
-        .reservation-form input { width: 100%; padding: .65rem .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+        .reservation-form input { width: 100%; padding: .65rem .75rem; border: 1px solid #cbd5e1; border-radius: 5px; font: inherit; }
         .reservation-form input:focus { outline: 3px solid rgba(36,87,197,.18); border-color: var(--primary); }
-        .reservation-form button { min-height: 44px; padding: .65rem .9rem; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .reservation-form button { min-height: 44px; padding: .65rem .9rem; border: 0; border-radius: 5px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
         .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
         @media (max-width: 800px) {
             .detail-layout { display: flex; flex-direction: column; }
@@ -68,6 +68,7 @@
             {% include "parking/_messages.html" %}
 
             <header>
+                <p class="eyebrow">Fiche parking</p>
                 <h1>{{ parking.name }}</h1>
                 <p class="parking-address">{{ parking.address }}</p>
             </header>

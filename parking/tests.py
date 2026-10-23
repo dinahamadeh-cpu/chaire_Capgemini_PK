@@ -239,12 +239,13 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:parking_list"))
         self.assertContains(response, reverse("parking:agent_login"))
 
-    def test_home_page_separates_usager_and_agent_actions(self):
+    def test_home_page_presents_user_and_professional_entry_points(self):
         response = self.client.get(reverse("parking:home"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Espace usager")
-        self.assertContains(response, "Espace professionnel")
+        self.assertContains(response, "La bonne place.")
+        self.assertContains(response, "LE STATIONNEMENT, PLUS SIMPLE")
+        self.assertContains(response, "Accès professionnel")
         self.assertContains(response, reverse("parking:signup"))
         self.assertContains(response, reverse("parking:login"))
         self.assertContains(response, reverse("parking:agent_login"))
@@ -362,7 +363,7 @@ class ParkingViewsTests(TestCase):
 
         response = self.client.get(reverse("parking:payment_methods"))
 
-        self.assertContains(response, "Paiement simulé")
+        self.assertContains(response, "PAIEMENT SIMULÉ")
         self.assertContains(response, "Aucun débit réel ne sera effectué.")
         self.assertContains(response, "Aucune donnée bancaire conservée")
         self.assertContains(response, "Ajouter un moyen simulé")
@@ -1230,7 +1231,7 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Place n°1")
         self.assertNotContains(response, "Place n°2")
         self.assertContains(response, 'class="topbar"')
-        self.assertContains(response, 'href="/parkings/">Parkings</a>')
+        self.assertContains(response, 'href="/parkings/">Trouver un parking</a>')
         self.assertContains(response, 'href="/parkings/">Retour à la liste des parkings</a>')
         self.assertContains(response, "Réserver")
         self.assertContains(response, "Places disponibles")
@@ -1287,7 +1288,7 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="map"')
         self.assertContains(response, 'class="topbar"')
-        self.assertContains(response, 'href="/">Accueil</a>')
+        self.assertContains(response, 'class="brand" href="/"')
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
         self.assertContains(response, "Voir sur la carte")

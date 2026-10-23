@@ -1,371 +1,99 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Parkings Kings - Gestion des parkings</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            min-height: 100dvh;
-            overflow-x: hidden;
-            background: #f4f7fb;
-            color: #172033;
-            font-family: Arial, sans-serif;
-        }
-
-        main {
-            display: flex;
-            width: 100%;
-            min-height: 100vh;
-            min-height: 100dvh;
-            flex-direction: column;
-            justify-content: center;
-            padding: clamp(24px, 5vh, 64px) clamp(20px, 5vw, 80px);
-        }
-
-        .intro {
-            position: relative;
-            margin: 0 auto clamp(24px, 4vh, 40px);
-            text-align: center;
-        }
-        .professional-access {
-            position: fixed;
-            right: 16px;
-            bottom: 14px;
-
-            width: 44px;
-            height: 44px;
-            padding: 0;
-            margin: 0;
-
-            display: grid;
-            place-items: center;
-
-            background: transparent;
-            color: #475569;
-            border-radius: 50%;
-            font-size: 14px;
-            text-decoration: none;
-            opacity: 0.8;
-            transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
-        }
-
-        .professional-access:hover,
-        .professional-access:focus-visible {
-            background: rgba(148, 163, 184, 0.16);
-            color: #475569;
-            opacity: 1;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            margin: 0 0 10px;
-            color: #3d5d91;
-            font-size: clamp(1.15rem, 2vw, 1.6rem);
-            font-weight: 700;
-            letter-spacing: 0.04em;
-        }
-
-        .eyebrow::before {
-            width: 10px;
-            height: 10px;
-            flex: 0 0 auto;
-            border-radius: 50%;
-            background: #2c66d6;
-            box-shadow: 0 0 0 4px rgba(44, 102, 214, 0.12);
-            content: "";
-        }
-
-        h1 {
-            margin: 0;
-            color: #14233b;
-            font-size: clamp(2.4rem, 5vw, 4rem);
-            letter-spacing: -0.045em;
-        }
-
-        .intro p:last-child {
-            margin: 12px auto 0;
-            color: #52647e;
-            font-size: 1.1rem;
-        }
-
-        .role-options {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: clamp(16px, 2vw, 32px);
-        }
-
-        .role-card {
-            display: flex;
-            min-height: 320px;
-            flex-direction: column;
-            align-items: flex-start;
-            padding: clamp(24px, 3vw, 48px);
-            border: 1px solid #d9e1eb;
-            border-top: 4px solid #2457c5;
-            border-radius: 10px;
-            background: #fff;
-        }
-
-        .role-card:hover {
-            border-color: #2457c5;
-        }
-
-        .role-card.agent {
-            border-color: #d9e1eb;
-            border-top-color: #0e765c;
-        }
-
-        .role-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            min-height: 30px;
-            padding: 6px 12px;
-            border-radius: 4px;
-            background: #edf3ff;
-            color: #173d91;
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
-
-        .role-label::before {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: currentColor;
-            content: "";
-        }
-
-        .agent .role-label {
-            background: rgba(226, 246, 239, 0.95);
-            color: #086552;
-        }
-
-        .role-card h2 {
-            margin: 24px 0 10px;
-            color: #172033;
-            font-size: clamp(1.55rem, 2.5vw, 2.2rem);
-            letter-spacing: -0.03em;
-        }
-
-        .role-card p {
-            max-width: 48ch;
-            margin: 0 0 24px;
-            color: #52647e;
-            font-size: clamp(1rem, 1.25vw, 1.15rem);
-            line-height: 1.6;
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: auto;
-            padding-top: 22px;
-        }
-
-        .actions form {
-            display: flex;
-            margin: 0;
-        }
-
-        .button {
-            display: inline-flex;
-            min-height: 44px;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 16px;
-            margin: 0;
-            border: 1px solid #2457c5;
-            border-radius: 6px;
-            background: #2457c5;
-            color: #fff;
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 700;
-            line-height: 1.4;
-            text-align: center;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .button:hover,
-        .button:focus-visible {
-            border-color: #173f96;
-            background: #173f96;
-        }
-
-        .button.secondary {
-            border-color: #d9e1eb;
-            background: #fff;
-            color: #214da6;
-            box-shadow: none;
-        }
-
-        .button.secondary:hover,
-        .button.secondary:focus-visible {
-            border-color: #2457c5;
-            background: #edf3ff;
-        }
-
-        .agent .button {
-            border-color: #0e765c;
-            background: #0e765c;
-        }
-
-        .agent .button:hover,
-        .agent .button:focus-visible {
-            border-color: #075b4b;
-            background: #075b4b;
-        }
-
-        .agent .button.secondary {
-            border-color: #d9e1eb;
-            background: #fff;
-            color: #086552;
-            box-shadow: none;
-        }
-
-        .agent .button.secondary:hover,
-        .agent .button.secondary:focus-visible {
-            border-color: #0e765c;
-            background: #f1f7f4;
-        }
-
-        .admin-link {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .admin-link a {
-            color: #52647e;
-            font-size: 0.9rem;
-            text-decoration-color: #bdc9d9;
-            text-underline-offset: 4px;
-            transition: color 0.15s;
-        }
-
-        .admin-link a:hover,
-        .admin-link a:focus-visible {
-            color: #173f96;
-        }
-
-        @media (max-width: 680px) {
-            main {
-                min-height: 100vh;
-                min-height: 100dvh;
-                padding: 28px 16px;
-            }
-
-            .role-options {
-                grid-template-columns: 1fr;
-                flex: initial;
-            }
-
-            .role-card {
-                min-height: 260px;
-                padding: 24px;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                scroll-behavior: auto !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-    </style>
-</head>
-<body>
-    <main>
-        <header class="intro">
-            <p class="eyebrow">Parkings Kings</p>
-            <h1>Bienvenue</h1>
-            <p>Votre place, votre parking : le stationnement en toute simplicité.</p>
-        </header>
-
-        <div class="role-options">
-            <section class="role-card user" aria-labelledby="user-title">
-                <span class="role-label">Espace usager</span>
-                <h2 id="user-title">Trouvez une place</h2>
-                {% if user.is_authenticated %}<p>Connecté en tant que {{ user.username }}.</p>{% endif %}
-                <p>
-                    Consultez la carte, comparez les parkings et gérez vos réservations
-                    en quelques clics.
-                </p>
-                <div class="actions">
-                    <a class="button" href="{% url 'parking:parking_list' %}">
-                        Voir les parkings
-                    </a>
-                    {% if user.is_authenticated %}
-                        <a class="button secondary" href="{% url 'parking:reservation_list' %}">
-                            Mes réservations
-                        </a>
-                            <a class="button secondary" href="{% url 'parking:favorite_list' %}">
-                            Mes favoris
-                        </a>
-                        <a class="button secondary" href="{% url 'parking:payment_methods' %}">
-                            Moyen de paiement
-                        </a>
-                        <form method="post" action="{% url 'parking:logout' %}">
-                            {% csrf_token %}
-                            <button class="button secondary" type="submit">
-                                Se déconnecter
-                            </button>
-                        </form>
-                    {% else %}
-                        <a class="button secondary" href="{% url 'parking:signup' %}">
-                            Créer un compte
-                        </a>
-                        <a class="button secondary" href="{% url 'parking:login' %}">
-                            Se connecter
-                        </a>
-                    {% endif %}
-                </div>
-            </section>
-
-            <section class="role-card agent" aria-labelledby="agent-title">
-                <span class="role-label">Espace professionnel</span>
-                <h2 id="agent-title">Outils agent</h2>
-                <p>
-                    Accédez aux outils de suivi : contrôle des plaques, occupation
-                    des places et gestion des départs.
-                </p>
-                <div class="actions">
-                    {% if user.is_authenticated %}
-                        {% for group in user.groups.all %}{% if group.name == "Agents" %}
-                            <a class="button" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
-                        {% endif %}{% endfor %}
-                    {% else %}
-                        <a class="button" href="{% url 'parking:agent_login' %}">Connexion agent</a>
-                    {% endif %}
-                </div>
-            </section>
+{% extends "parking/base.html" %}
+{% block title %}Parkings — Trouvez votre place{% endblock %}
+{% block body_class %}landing-body{% endblock %}
+{% block page_main %}
+<main class="landing-page">
+    {% include "parking/_messages.html" %}
+    <section class="landing-hero" aria-labelledby="landing-title">
+        <div class="hero-copy">
+            <p class="eyebrow"><span aria-hidden="true">●</span> LE STATIONNEMENT, PLUS SIMPLE</p>
+            <h1 id="landing-title">La bonne place.<br><em>Au bon endroit.</em></h1>
+            <p class="hero-description">Repérez les parkings disponibles, choisissez votre place et gérez votre stationnement au même endroit.</p>
+            <div class="hero-actions">
+                <a class="hero-primary" href="{% url 'parking:parking_list' %}">Explorer les parkings <span aria-hidden="true">↗</span></a>
+                {% if not user.is_authenticated %}<a class="hero-secondary" href="{% url 'parking:login' %}">J’ai déjà un compte</a>{% else %}<a class="hero-secondary" href="{% url 'parking:reservation_list' %}">Voir mes réservations</a>{% endif %}
+            </div>
+            <div class="hero-footnote"><span aria-hidden="true">✓</span> Disponibilités et tarifs consultables avant de réserver</div>
         </div>
-
-        {% if user.is_staff %}<footer class="admin-link"><a href="{% url 'admin:index' %}">Administration du site</a></footer>{% endif %}
-    </main>
-    <footer>
-        <a
-            href="{% url 'parking:professional_login' %}"
-            class="professional-access"
-            aria-label="Accès professionnel"
-            title="Accès professionnel"
-        >
-            🔒
-        </a>
+        <div class="hero-visual" aria-label="Illustration d’un parking et d’une place disponible" role="img">
+            <div class="visual-topline"><span>VOTRE PROCHAINE ÉTAPE</span><span class="live-dot">PLACE LIBRE</span></div>
+            <div class="street-scene">
+                <div class="street-label street-label--top">RUE DES ATELIERS</div>
+                <div class="street-lane"><span></span><span></span><span></span><span></span></div>
+                <div class="parking-bay parking-bay--one"><i></i></div>
+                <div class="parking-bay parking-bay--two"><i></i></div>
+                <div class="parking-bay parking-bay--three"><b>P</b><span>LIBRE</span></div>
+                <div class="parking-bay parking-bay--four"><i></i></div>
+                <div class="map-pin"><span aria-hidden="true">P</span></div>
+                <div class="street-label street-label--bottom">CENTRE-VILLE <span>→</span></div>
+            </div>
+            <div class="visual-ticket"><div class="ticket-icon" aria-hidden="true">P</div><div><strong>Une place vous attend</strong><span>Consultez les parkings autour de vous</span></div><span class="ticket-arrow" aria-hidden="true">↗</span></div>
+            <span class="visual-index">01 / 03</span>
+        </div>
+    </section>
+    <section class="landing-services" aria-label="Les services">
+        <div><span class="service-number">01</span><div><strong>Trouvez</strong><p>Comparez les parkings et leurs disponibilités.</p></div></div>
+        <div><span class="service-number">02</span><div><strong>Réservez</strong><p>Choisissez une place et la durée souhaitée.</p></div></div>
+        <div><span class="service-number">03</span><div><strong>Gérez</strong><p>Suivez vos réservations depuis votre espace.</p></div></div>
+    </section>
+    <footer class="landing-footer">
+        <span>Parkings · Un service de stationnement clair et pratique</span>
+        <div>
+            {% if user.is_authenticated %}
+                {% for group in user.groups.all %}{% if group.name == "Agents" %}<a href="{% url 'parking:agent_dashboard' %}">Accéder à l’espace agent <span aria-hidden="true">↗</span></a>{% endif %}{% endfor %}
+            {% else %}<a href="{% url 'parking:agent_login' %}">Accès professionnel <span aria-hidden="true">↗</span></a>{% endif %}
+            {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration <span aria-hidden="true">↗</span></a>{% endif %}
+        </div>
     </footer>
-</body>
-</html>
+</main>
+{% endblock %}
+{% block extra_styles %}
+    .landing-body { background: #f8f8f3; }
+    .landing-page { width: min(100% - 64px, 1320px); margin: 0 auto; }
+    .landing-page > .message { margin-top: 20px; }
+    .landing-hero { display: grid; min-height: 610px; grid-template-columns: 1fr .94fr; align-items: center; gap: clamp(35px, 7vw, 105px); padding: 60px 0 58px; }
+    .hero-copy { padding: 10px 0; }
+    .hero-copy .eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; color: var(--green); font-size: 10px; }
+    .hero-copy .eyebrow span { color: #b3ce55; font-size: 12px; }
+    .hero-copy h1 { margin: 0; font-size: clamp(54px, 6.2vw, 84px); font-weight: 690; line-height: .99; letter-spacing: -.075em; }
+    .hero-copy h1 em { color: var(--green); font-style: normal; }
+    .hero-description { max-width: 470px; margin: 24px 0 0; color: #687873; font-size: 17px; line-height: 1.7; }
+    .hero-actions { display: flex; align-items: center; gap: 24px; margin-top: 31px; }
+    .hero-primary { display: inline-flex; min-height: 52px; align-items: center; gap: 24px; padding: 0 19px; border-radius: 5px; background: var(--green); color: white; font-size: 14px; font-weight: 750; text-decoration: none; }
+    .hero-primary:hover { background: var(--green-dark); }
+    .hero-primary span { color: var(--lime); font-size: 18px; }
+    .hero-secondary { color: var(--green); font-size: 14px; font-weight: 700; text-decoration-color: #a9b7ae; text-underline-offset: 5px; }
+    .hero-secondary:hover { text-decoration-color: var(--green); }
+    .hero-footnote { display: flex; align-items: center; gap: 9px; margin-top: 31px; color: #75817c; font-size: 12px; }
+    .hero-footnote span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: #e6efd0; color: var(--green); font-size: 12px; font-weight: 800; }
+    .hero-visual { position: relative; min-height: 455px; padding: 22px; overflow: hidden; border-radius: 7px; background: #174c43; color: #fff; }
+    .hero-visual::before { position: absolute; top: -112px; right: -95px; width: 250px; height: 250px; border: 1px solid #ffffff20; border-radius: 50%; content: ""; }
+    .visual-topline { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #d7e2dc; font-size: 9px; font-weight: 750; letter-spacing: .13em; }
+    .live-dot { display: flex; align-items: center; gap: 7px; color: #eff8c4; letter-spacing: .08em; }
+    .live-dot::before { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); content: ""; }
+    .street-scene { position: absolute; top: 72px; right: 0; bottom: 78px; left: 0; overflow: hidden; background: #1d5a50; }
+    .street-scene::before, .street-scene::after { position: absolute; top: 0; bottom: 0; width: 17%; background: #245f54; content: ""; }
+    .street-scene::before { left: 0; }.street-scene::after { right: 0; }
+    .street-label { position: absolute; z-index: 1; color: #a8c4b5; font-size: 8px; font-weight: 800; letter-spacing: .17em; }
+    .street-label--top { top: 15px; left: 21px; }.street-label--bottom { right: 24px; bottom: 13px; }.street-label--bottom span { color: var(--lime); }
+    .street-lane { position: absolute; top: 43%; right: 0; left: 0; height: 70px; display: flex; align-items: center; justify-content: space-around; background: #e1e7d9; transform: rotate(-10deg) scale(1.08); }
+    .street-lane span { width: 9%; height: 2px; background: #b1b9aa; }
+    .parking-bay { position: absolute; z-index: 2; top: 23%; display: grid; width: 16%; height: 23%; place-items: center; border: 1px solid #acc6b9; border-bottom: 0; transform: rotate(-10deg); }
+    .parking-bay--one { left: 25%; }.parking-bay--two { left: 43%; }.parking-bay--three { top: 56%; left: 61%; border-color: var(--lime); background: #d8ee7830; color: var(--lime); }.parking-bay--four { top: 56%; left: 25%; }
+    .parking-bay i { display: block; width: 31px; height: 15px; border-radius: 9px 9px 4px 4px; background: #9ab7a7; }
+    .parking-bay--three b { font-size: 19px; }.parking-bay--three span { margin-top: -23px; font-size: 7px; font-weight: 800; letter-spacing: .12em; }
+    .map-pin { position: absolute; z-index: 3; top: 34%; left: 68%; display: grid; width: 48px; height: 48px; place-items: center; border: 5px solid #ffffff44; border-radius: 50% 50% 50% 8px; background: var(--lime); color: var(--green); font-size: 15px; font-weight: 850; transform: rotate(-45deg); }
+    .map-pin span { transform: rotate(45deg); }
+    .visual-ticket { position: absolute; z-index: 4; right: 22px; bottom: 24px; left: 22px; display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #ffffff25; border-radius: 5px; background: #103a33; }
+    .ticket-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 4px; background: var(--lime); color: var(--green); font-size: 14px; font-weight: 850; }
+    .visual-ticket strong, .visual-ticket span { display: block; }.visual-ticket strong { font-size: 12px; }.visual-ticket div:nth-child(2) span { margin-top: 2px; color: #b6c9bf; font-size: 10px; }.visual-ticket .ticket-arrow { margin-left: auto; color: var(--lime); font-size: 19px; }
+    .visual-index { position: absolute; top: 50%; right: -1px; color: #9cb8aa; font-size: 9px; letter-spacing: .13em; writing-mode: vertical-rl; }
+    .landing-services { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28px 0; border-top: 1px solid #dfe5dc; border-bottom: 1px solid #dfe5dc; }
+    .landing-services > div { display: flex; gap: 17px; padding: 0 27px; border-right: 1px solid #dfe5dc; }.landing-services > div:first-child { padding-left: 0; }.landing-services > div:last-child { border: 0; }
+    .service-number { color: #9aab9f; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+    .landing-services strong { color: var(--green); font-size: 14px; }.landing-services p { margin: 3px 0 0; color: #76827d; font-size: 12px; }
+    .landing-footer { display: flex; min-height: 77px; align-items: center; justify-content: space-between; gap: 18px; color: #85918a; font-size: 11px; }
+    .landing-footer div { display: flex; gap: 24px; }.landing-footer a { color: #52675c; font-weight: 700; text-decoration: none; }.landing-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    @media (max-width: 900px) { .landing-page { width: min(100% - 36px, 700px); }.landing-hero { grid-template-columns: 1fr; gap: 34px; padding: 48px 0; }.hero-visual { min-height: 390px; }.landing-services > div { padding: 0 13px; } }
+    @media (max-width: 600px) { .landing-page { width: calc(100% - 32px); }.hero-copy h1 { font-size: 52px; }.hero-actions { align-items: flex-start; flex-direction: column; gap: 15px; }.hero-visual { min-height: 330px; }.landing-services { grid-template-columns: 1fr; gap: 17px; }.landing-services > div, .landing-services > div:first-child { padding: 0; border: 0; }.landing-footer { align-items: flex-start; flex-direction: column; padding: 20px 0; }.landing-footer div { flex-wrap: wrap; gap: 14px; } }
+{% endblock %}
