@@ -124,6 +124,20 @@
         .button-row { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
         .button-row > * { margin: 0; }
         .back-link { display: inline-block; margin: 0 0 1rem; font-weight: 700; }
+        main.card.auth-page { max-width: 820px; margin: 3rem auto; padding: 2.5rem; }
+        main.card.auth-page--login { max-width: 520px; }
+        main.card.auth-page--signup { max-width: 600px; }
+        .auth-heading { margin-bottom: 1.75rem; }
+        .auth-heading h1 { margin-bottom: .65rem; }
+        .auth-heading > p:last-child, .auth-footnote { color: var(--muted); }
+        .eyebrow { margin: 0 0 .5rem; color: var(--accent); font-size: .78rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+        .auth-form p { margin: 0 0 1.1rem !important; }
+        .auth-form label { display: block; margin-bottom: .45rem; }
+        .auth-form .helptext { display: block; margin-top: .4rem; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+        .auth-form .errorlist { margin: .4rem 0; padding-left: 1.2rem; color: var(--danger); }
+        .auth-form button { width: 100%; margin-top: .4rem; }
+        .auth-footnote { margin: 1.5rem 0 0; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center; }
+        .auth-footnote a { color: var(--primary-dark); font-weight: 700; }
         .conforme {
             display: inline-block;
             color: #047857;
@@ -152,6 +166,7 @@
             .site-navigation { flex-basis: 100%; justify-content: flex-start; gap: .25rem; padding-top: .5rem; border-top: 1px solid var(--border); }
             .site-navigation a, .site-navigation button { min-height: 44px; }
             main.card:not(.card--wide) { margin: 1rem auto; }
+            main.card.auth-page { margin: 1rem auto; padding: 1.5rem; }
             .card table { table-layout: fixed; }
             .card th, .card td { overflow-wrap: anywhere; }
             .card button, .card a.button { max-width: 100%; }

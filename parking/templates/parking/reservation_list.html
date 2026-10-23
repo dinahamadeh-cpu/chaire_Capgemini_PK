@@ -3,66 +3,78 @@
 {% block title %}Mes réservations - Parking{% endblock %}
 
 {% block content %}
-    <style>
-        .reservation-list { padding: 0; list-style: none; }
-        .reservation-list > li { margin: 0 0 1rem; padding: 1rem; border: 1px solid #dbe3f0; border-radius: 12px; background: #fff; }
-        .reservation-list > li > p:first-child { margin-top: 0; }
-    </style>
-    <h1>Mes réservations</h1>
+    <header class="page-heading">
+        <p class="eyebrow">Votre activité</p>
+        <h1>Mes réservations</h1>
+        <p>Consultez vos stationnements et leurs récapitulatifs.</p>
+    </header>
 
     {% if reservations %}
         <ul class="reservation-list">
             {% for reservation in reservations %}
                 <li>
-                    <p>
-                        {{ reservation.spot.parking.name }} — place {{ reservation.spot.number }}<br>
-                        Plaque : {{ reservation.plate }}<br>
-                        Durée : {{ reservation.duration_hours }} h<br>
-                        {% if reservation.amount_paid is not None %}
-                            Paiement simulé : {{ reservation.amount_paid|floatformat:2 }} €<br>
-                        {% endif %}
-                        Statut : <strong>{{ reservation.get_status_display }}</strong><br>
-                        Créée le : {{ reservation.created_at|date:"d/m/Y à H:i" }}
-                    </p>
+                    <article class="reservation-card">
+                        <header class="reservation-card-heading">
+                            <div>
+                                <h2>{{ reservation.spot.parking.name }}</h2>
+                                <p>Place n°{{ reservation.spot.number }} · Plaque <strong>{{ reservation.plate }}</strong></p>
+                            </div>
+                            <span class="reservation-status">{{ reservation.get_status_display }}</span>
+                        </header>
 
-                    {% if reservation.status == "active" %}
-                        {% if reservation.arrived_at %}
-                            <p>
-                                Arrivée confirmée le : {{ reservation.arrived_at|date:"d/m/Y à H:i" }}
-                            </p>
-                            <p
-                                class="parking-countdown"
-                                data-arrival="{{ reservation.arrived_at|date:'c' }}"
-                                data-duration-hours="{{ reservation.duration_hours }}"
-                            >
-                                Calcul du temps restant…
-                            </p>
-                            <form method="post" action="{% url 'parking:declare_departure' reservation.id %}">
-                                {% csrf_token %}
-                                <button type="submit">Déclarer mon départ</button>
-                            </form>
-                        {% else %}
-                            <form method="post" action="{% url 'parking:confirm_arrival' reservation.id %}">
-                                {% csrf_token %}
-                                <button type="submit">Confirmer mon arrivée</button>
-                            </form>
-                            <p>Le décompte commencera après confirmation de votre arrivée.</p>
+                        <dl class="reservation-details">
+                            <div><dt>Durée réservée</dt><dd>{{ reservation.duration_hours }} h</dd></div>
+                            {% if reservation.amount_paid is not None %}
+                                <div><dt>Paiement simulé</dt><dd>{{ reservation.amount_paid|floatformat:2 }} €</dd></div>
+                            {% endif %}
+                            <div><dt>Créée le</dt><dd>{{ reservation.created_at|date:"d/m/Y à H:i" }}</dd></div>
+                        </dl>
+
+                        {% if reservation.status == "active" %}
+                            <div class="reservation-progress">
+                                {% if reservation.arrived_at %}
+                                    <p>Arrivée confirmée le {{ reservation.arrived_at|date:"d/m/Y à H:i" }}</p>
+                                    <p class="parking-countdown" role="status" data-arrival="{{ reservation.arrived_at|date:'c' }}" data-duration-hours="{{ reservation.duration_hours }}">Calcul du temps restant…</p>
+                                {% else %}
+                                    <p>Le décompte commencera après confirmation de votre arrivée.</p>
+                                {% endif %}
+                            </div>
+                        {% elif reservation.status == "cancelled" %}
+                            <p class="reservation-note">Annulée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
+                        {% elif reservation.ended_at %}
+                            <p class="reservation-note">Terminée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
                         {% endif %}
-                        <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}">
-                            {% csrf_token %}
-                            <button type="submit">Annuler la réservation</button>
-                        </form>
-                    {% elif reservation.status == "cancelled" %}
-                        <p>Annulée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
-                    {% elif reservation.ended_at %}
-                        <p>Terminée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
-                    {% endif %}
-                    <p><a class="button secondary" href="{% url 'parking:reservation_summary' reservation.id %}">Voir le récapitulatif</a></p>
+
+                        <div class="reservation-actions">
+                            {% if reservation.status == "active" %}
+                                {% if reservation.arrived_at %}
+                                    <form method="post" action="{% url 'parking:declare_departure' reservation.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit">Déclarer mon départ</button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'parking:confirm_arrival' reservation.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit">Confirmer mon arrivée</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}">
+                                    {% csrf_token %}
+                                    <button class="secondary" type="submit">Annuler la réservation</button>
+                                </form>
+                            {% endif %}
+                            <a class="button secondary" href="{% url 'parking:reservation_summary' reservation.id %}">Voir le récapitulatif</a>
+                        </div>
+                    </article>
                 </li>
             {% endfor %}
         </ul>
     {% else %}
-        <p>Vous n'avez aucune réservation.</p>
+        <section class="empty-state">
+            <h2>Aucune réservation pour le moment</h2>
+            <p>Choisissez un parking pour réserver une place.</p>
+            <a class="button" href="{% url 'parking:parking_list' %}">Voir les parkings</a>
+        </section>
     {% endif %}
 
     <script>
@@ -88,4 +100,29 @@
         updateCountdowns();
         window.setInterval(updateCountdowns, 1000);
     </script>
+{% endblock %}
+
+{% block extra_styles %}
+    .page-heading { margin-bottom: 1.75rem; }
+    .page-heading > p:last-child { margin: .4rem 0 0; color: var(--muted); }
+    .reservation-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+    .reservation-card { padding: 1.35rem 1.5rem; border: 1px solid var(--border); border-left: 4px solid var(--primary); background: var(--surface); }
+    .reservation-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .reservation-card-heading h2 { margin: 0 0 .35rem; font-size: 1.25rem; }
+    .reservation-card-heading p { margin: 0; color: var(--muted); }
+    .reservation-status { padding: .35rem .65rem; background: var(--info-bg); color: var(--info); font-size: .86rem; font-weight: 700; white-space: nowrap; }
+    .reservation-details { display: flex; flex-wrap: wrap; gap: .5rem 2.5rem; margin: 1rem 0; }
+    .reservation-details div { min-width: 10rem; }
+    .reservation-details dt { color: var(--muted); font-size: .82rem; }
+    .reservation-details dd { margin: .2rem 0 0; font-weight: 650; }
+    .reservation-progress, .reservation-note { margin: 1rem 0; padding: .75rem 1rem; border-left: 3px solid var(--accent); background: #f1f7f4; }
+    .reservation-progress p, .reservation-note { margin-top: .3rem; margin-bottom: .3rem; }
+    .parking-countdown { font-weight: 700; color: var(--primary-dark); }
+    .reservation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin-top: 1rem; }
+    .reservation-actions > * { margin: 0; }
+    .reservation-actions form button, .reservation-actions .button { margin: 0; }
+    .empty-state { padding: 2rem; border: 1px solid var(--border); background: #f9fbfd; }
+    .empty-state h2 { margin-top: 0; }
+    .empty-state p { color: var(--muted); }
+    @media (max-width: 600px) { .reservation-card { padding: 1rem; } .reservation-card-heading { flex-direction: column; } }
 {% endblock %}

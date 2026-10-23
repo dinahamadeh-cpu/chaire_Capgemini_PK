@@ -964,7 +964,8 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "50 %")
         for name in ("agent_plate_check", "agent_stats", "agent_affluence"):
             self.assertContains(response, reverse(f"parking:{name}"))
-        self.assertContains(response, "Contraventions")
+        self.assertContains(response, "créer une contravention")
+        self.assertEqual(response.content.count(b"/agent/plaque/"), 2)  # navigation and dashboard action
 
     def test_agent_dashboard_handles_no_parking_data(self):
         agent = get_user_model().objects.create_user(username="dashboard-agent", password="password")
