@@ -381,7 +381,18 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Mes réservations")
         self.assertContains(response, reverse("parking:reservation_list"))
+        self.assertNotContains(response, "Outils agent")
         self.assertNotContains(response, "Créer un compte")
+
+    def test_authenticated_agent_sees_agent_tools_on_home_page(self):
+        agent = get_user_model().objects.create_user(username="home-agent", password="password")
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        response = self.client.get(reverse("parking:home"))
+
+        self.assertContains(response, "Outils agent")
+        self.assertContains(response, reverse("parking:agent_dashboard"))
 
     def test_anonymous_user_is_redirected_to_login_from_parking_list(self):
         response = self.client.get(reverse("parking:parking_list"))

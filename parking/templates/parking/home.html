@@ -386,6 +386,7 @@
                 </div>
             </section>
 
+            {% if not user.is_authenticated or is_agent %}
             <section class="role-card agent" aria-labelledby="agent-title">
                 <span class="role-label">Espace professionnel</span>
                 <h2 id="agent-title">Outils agent</h2>
@@ -403,6 +404,7 @@
                     {% endif %}
                 </div>
             </section>
+            {% endif %}
         </div>
 
         {% if user.is_staff %}<footer class="admin-link"><a href="{% url 'admin:index' %}">Administration du site</a></footer>{% endif %}
