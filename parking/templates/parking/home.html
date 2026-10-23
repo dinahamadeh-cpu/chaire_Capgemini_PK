@@ -15,10 +15,7 @@
             min-height: 100vh;
             min-height: 100dvh;
             overflow-x: hidden;
-            background:
-                radial-gradient(ellipse at 14% 14%, rgba(190, 216, 255, 0.58), transparent 32%),
-                radial-gradient(ellipse at 88% 82%, rgba(183, 239, 222, 0.42), transparent 32%),
-                #f3f6fb;
+            background: #f4f7fb;
             color: #172033;
             font-family: Arial, sans-serif;
         }
@@ -35,7 +32,7 @@
 
         .intro {
             position: relative;
-            margin: 0 auto clamp(24px, 5vh, 56px);
+            margin: 0 auto clamp(24px, 4vh, 40px);
             text-align: center;
         }
         .professional-access {
@@ -103,69 +100,29 @@
 
         .role-options {
             display: grid;
-            flex: 1;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: clamp(16px, 2vw, 32px);
         }
 
         .role-card {
-            position: relative;
-            isolation: isolate;
             display: flex;
-            min-height: 45vh;
+            min-height: 320px;
             flex-direction: column;
             align-items: flex-start;
-            overflow: hidden;
             padding: clamp(24px, 3vw, 48px);
-            border: 1px solid rgba(207, 220, 240, 0.9);
-            border-radius: 26px;
-            background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.93));
-            box-shadow: 0 22px 55px rgba(31, 56, 94, 0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .role-card::before {
-            position: absolute;
-            z-index: -1;
-            top: -130px;
-            right: -100px;
-            width: clamp(220px, 30vw, 420px);
-            aspect-ratio: 1;
-            border: 1px solid rgba(44, 102, 214, 0.1);
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(214, 229, 255, 0.58), rgba(214, 229, 255, 0.08) 68%, transparent 69%);
-            content: "";
-        }
-
-        .role-card::after {
-            position: absolute;
-            z-index: -1;
-            top: -72px;
-            right: -42px;
-            width: clamp(110px, 15vw, 210px);
-            aspect-ratio: 1;
-            border: 1px solid rgba(44, 102, 214, 0.09);
-            border-radius: 50%;
-            content: "";
+            border: 1px solid #d9e1eb;
+            border-top: 4px solid #2457c5;
+            border-radius: 10px;
+            background: #fff;
         }
 
         .role-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 28px 65px rgba(31, 56, 94, 0.15);
+            border-color: #2457c5;
         }
 
         .role-card.agent {
-            border-color: rgba(196, 227, 218, 0.95);
-            background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(244, 252, 249, 0.94));
-        }
-
-        .role-card.agent::before {
-            border-color: rgba(12, 128, 107, 0.1);
-            background: radial-gradient(circle, rgba(197, 239, 224, 0.58), rgba(197, 239, 224, 0.08) 68%, transparent 69%);
-        }
-
-        .role-card.agent::after {
-            border-color: rgba(12, 128, 107, 0.09);
+            border-color: #d9e1eb;
+            border-top-color: #0e765c;
         }
 
         .role-label {
@@ -174,9 +131,9 @@
             gap: 8px;
             min-height: 30px;
             padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(232, 240, 255, 0.94);
-            color: #214da6;
+            border-radius: 4px;
+            background: #edf3ff;
+            color: #173d91;
             font-size: 0.85rem;
             font-weight: 700;
         }
@@ -230,8 +187,8 @@
             padding: 10px 16px;
             margin: 0;
             border: 1px solid #2457c5;
-            border-radius: 11px;
-            background: linear-gradient(135deg, #326fe0, #2457c5);
+            border-radius: 6px;
+            background: #2457c5;
             color: #fff;
             font-family: inherit;
             font-size: 1rem;
@@ -239,57 +196,50 @@
             line-height: 1.4;
             text-align: center;
             text-decoration: none;
-            box-shadow: 0 6px 14px rgba(36, 87, 197, 0.16);
-            transition: transform 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
             cursor: pointer;
         }
 
         .button:hover,
         .button:focus-visible {
-            transform: translateY(-2px);
             border-color: #173f96;
-            background: linear-gradient(135deg, #2457c5, #173f96);
-            box-shadow: 0 9px 19px rgba(36, 87, 197, 0.24), 0 0 0 3px rgba(36, 87, 197, 0.12);
+            background: #173f96;
         }
 
         .button.secondary {
-            border-color: #cfdbef;
-            background: rgba(255, 255, 255, 0.84);
+            border-color: #d9e1eb;
+            background: #fff;
             color: #214da6;
             box-shadow: none;
         }
 
         .button.secondary:hover,
         .button.secondary:focus-visible {
-            border-color: #9cb7e8;
+            border-color: #2457c5;
             background: #edf3ff;
         }
 
         .agent .button {
-            border-color: #0c806b;
-            background: linear-gradient(135deg, #11957c, #0c806b);
-            box-shadow: 0 6px 14px rgba(12, 128, 107, 0.17);
+            border-color: #0e765c;
+            background: #0e765c;
         }
 
         .agent .button:hover,
         .agent .button:focus-visible {
-            transform: translateY(-2px);
             border-color: #075b4b;
-            background: linear-gradient(135deg, #0c806b, #075b4b);
-            box-shadow: 0 9px 19px rgba(12, 128, 107, 0.24), 0 0 0 3px rgba(12, 128, 107, 0.12);
+            background: #075b4b;
         }
 
         .agent .button.secondary {
-            border-color: #c9e4dc;
-            background: rgba(255, 255, 255, 0.84);
+            border-color: #d9e1eb;
+            background: #fff;
             color: #086552;
             box-shadow: none;
         }
 
         .agent .button.secondary:hover,
         .agent .button.secondary:focus-visible {
-            border-color: #95cbb9;
-            background: #e8f7f3;
+            border-color: #0e765c;
+            background: #f1f7f4;
         }
 
         .admin-link {
