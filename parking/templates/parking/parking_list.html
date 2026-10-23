@@ -379,31 +379,10 @@
 
             document.querySelectorAll(".focus-map-button").forEach((button) => {
                 button.addEventListener("click", () => {
-                    const parking = parkingMarkers.get(button.dataset.parkingId);
-                    if (!parking) return;
-                    map.panTo(parking.marker.getPosition());
-                    map.setZoom(15);
-                    google.maps.event.trigger(parking.marker, "click");
-                });
-            });
-
-
-        document.querySelectorAll("[data-parking-id]").forEach((button) => {
-            button.addEventListener("click", () => {
-                const parking = parkingMarkers.get(button.dataset.parkingId);
-                if (!parking) {
-                    return;
-                }
-            });
-        });
-
-            document.querySelectorAll(".focus-map-button").forEach((button) => {
-                button.addEventListener("click", () => {
                     const marker = parkingMarkers.get(button.dataset.parkingId);
                     if (!marker) return;
-                    parking.marker = marker;
-                    map.setCenter(parking.marker.getPosition());
-                    map.setZoom(18);
+                    map.panTo(marker.getPosition());
+                    map.setZoom(15);
                     google.maps.event.trigger(marker, "click");
                 });
             });

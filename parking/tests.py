@@ -1275,8 +1275,11 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
         self.assertContains(response, "Voir sur la carte")
-        self.assertContains(response, "map.setCenter(parking.marker.getPosition())")
-        self.assertContains(response, "map.setZoom(18)")
+        self.assertContains(response, "const marker = parkingMarkers.get(button.dataset.parkingId)")
+        self.assertContains(response, "map.panTo(marker.getPosition())")
+        self.assertContains(response, "map.setZoom(15)")
+        self.assertContains(response, 'google.maps.event.trigger(marker, "click")')
+        self.assertEqual(response.content.count(b'document.querySelectorAll(".focus-map-button")'), 1)
 
     def test_parking_detail_shows_pricing(self):
         self.authenticate_as_user()
