@@ -151,14 +151,13 @@
             <nav class="site-navigation" aria-label="Navigation principale">
                 <a href="{% url 'parking:home' %}">Accueil</a>
                 {% if request.user.is_authenticated %}
+                    <a href="{% url 'parking:parking_list' %}">Parkings</a>
+                    <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
+                    <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
+                    <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
                     {% if is_agent %}
                         <a class="agent-link" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
                         <a class="agent-link" href="{% url 'parking:agent_plate_check' %}">Vérification de plaque</a>
-                    {% else %}
-                        <a href="{% url 'parking:parking_list' %}">Parkings</a>
-                        <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
-                        <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
-                        <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
                     {% endif %}
                     <span class="user-name">{{ request.user.username }}</span>
                     {% if request.user.is_staff %}<a class="admin-link" href="{% url 'admin:index' %}">Administration</a>{% endif %}
