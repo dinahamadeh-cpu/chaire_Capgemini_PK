@@ -357,6 +357,17 @@ class ParkingViewsTests(TestCase):
             f"{reverse('parking:login')}?next={reverse('parking:payment_methods')}",
         )
 
+    def test_empty_demo_payment_state_explains_simulation_and_data_handling(self):
+        self.authenticate_as_user()
+
+        response = self.client.get(reverse("parking:payment_methods"))
+
+        self.assertContains(response, "Paiement simulé")
+        self.assertContains(response, "Aucun débit réel ne sera effectué.")
+        self.assertContains(response, "Aucune donnée bancaire conservée")
+        self.assertContains(response, "Ajouter un moyen simulé")
+        self.assertContains(response, 'aria-labelledby="payment-form-title"')
+
     def test_saved_demo_payment_method_shows_status_without_card_data(self):
         self.authenticate_as_user()
         DemoPaymentMethod.objects.create(user=get_user_model().objects.get(username="parking-viewer"))
