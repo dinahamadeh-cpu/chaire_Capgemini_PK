@@ -294,10 +294,33 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:agent_dashboard"))
         self.assertContains(response, reverse("parking:agent_plate_check"))
         self.assertContains(response, "Espace agent")
-        self.assertNotContains(response, reverse("parking:parking_list"))
-        self.assertNotContains(response, reverse("parking:reservation_list"))
-        self.assertNotContains(response, reverse("parking:payment_methods"))
+        self.assertContains(response, reverse("parking:parking_list"))
+        self.assertContains(response, reverse("parking:reservation_list"))
+        self.assertContains(response, reverse("parking:payment_methods"))
         self.assertNotContains(response, reverse("admin:index"))
+
+    def test_agent_keeps_access_to_agent_space_after_saving_payment_method(self):
+        agent = get_user_model().objects.create_user(
+            username="agent-with-payment",
+            password="test-password-123",
+        )
+        agent.groups.add(Group.objects.create(name="Agents"))
+        self.client.force_login(agent)
+
+        self.client.post(
+            reverse("parking:payment_methods"),
+            {
+                "card_number": "1234567890123456",
+                "expiration_date": "12/30",
+                "security_code": "123",
+            },
+        )
+
+        payment_page = self.client.get(reverse("parking:payment_methods"))
+        agent_page = self.client.get(reverse("parking:agent_dashboard"))
+
+        self.assertContains(payment_page, reverse("parking:agent_dashboard"))
+        self.assertEqual(agent_page.status_code, 200)
 
     def test_professional_login_hides_admin_from_non_staff(self):
         response = self.client.get(reverse("parking:professional_login"))
