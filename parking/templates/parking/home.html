@@ -1,421 +1,84 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Parkings Kings - Gestion des parkings</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            min-height: 100dvh;
-            overflow-x: hidden;
-            background:
-                radial-gradient(ellipse at 14% 14%, rgba(190, 216, 255, 0.58), transparent 32%),
-                radial-gradient(ellipse at 88% 82%, rgba(183, 239, 222, 0.42), transparent 32%),
-                #f3f6fb;
-            color: #172033;
-            font-family: Arial, sans-serif;
-        }
-
-        main {
-            display: flex;
-            width: 100%;
-            min-height: 100vh;
-            min-height: 100dvh;
-            flex-direction: column;
-            justify-content: center;
-            padding: clamp(24px, 5vh, 64px) clamp(20px, 5vw, 80px);
-        }
-
-        .intro {
-            position: relative;
-            margin: 0 auto clamp(24px, 5vh, 56px);
-            text-align: center;
-        }
-        .professional-access {
-            position: fixed;
-            right: 16px;
-            bottom: 14px;
-
-            width: 44px;
-            height: 44px;
-            padding: 0;
-            margin: 0;
-
-            display: grid;
-            place-items: center;
-
-            background: transparent;
-            color: #475569;
-            border-radius: 50%;
-            font-size: 14px;
-            text-decoration: none;
-            opacity: 0.8;
-            transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
-        }
-
-        .professional-access:hover,
-        .professional-access:focus-visible {
-            background: rgba(148, 163, 184, 0.16);
-            color: #475569;
-            opacity: 1;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            margin: 0 0 10px;
-            color: #3d5d91;
-            font-size: clamp(1.15rem, 2vw, 1.6rem);
-            font-weight: 700;
-            letter-spacing: 0.04em;
-        }
-
-        .eyebrow::before {
-            width: 10px;
-            height: 10px;
-            flex: 0 0 auto;
-            border-radius: 50%;
-            background: #2c66d6;
-            box-shadow: 0 0 0 4px rgba(44, 102, 214, 0.12);
-            content: "";
-        }
-
-        h1 {
-            margin: 0;
-            color: #14233b;
-            font-size: clamp(2.4rem, 5vw, 4rem);
-            letter-spacing: -0.045em;
-        }
-
-        .intro p:last-child {
-            margin: 12px auto 0;
-            color: #52647e;
-            font-size: 1.1rem;
-        }
-
-        .role-options {
-            display: grid;
-            flex: 1;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: clamp(16px, 2vw, 32px);
-        }
-
-        .role-card {
-            position: relative;
-            isolation: isolate;
-            display: flex;
-            min-height: 45vh;
-            flex-direction: column;
-            align-items: flex-start;
-            overflow: hidden;
-            padding: clamp(24px, 3vw, 48px);
-            border: 1px solid rgba(207, 220, 240, 0.9);
-            border-radius: 26px;
-            background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.93));
-            box-shadow: 0 22px 55px rgba(31, 56, 94, 0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .role-card::before {
-            position: absolute;
-            z-index: -1;
-            top: -130px;
-            right: -100px;
-            width: clamp(220px, 30vw, 420px);
-            aspect-ratio: 1;
-            border: 1px solid rgba(44, 102, 214, 0.1);
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(214, 229, 255, 0.58), rgba(214, 229, 255, 0.08) 68%, transparent 69%);
-            content: "";
-        }
-
-        .role-card::after {
-            position: absolute;
-            z-index: -1;
-            top: -72px;
-            right: -42px;
-            width: clamp(110px, 15vw, 210px);
-            aspect-ratio: 1;
-            border: 1px solid rgba(44, 102, 214, 0.09);
-            border-radius: 50%;
-            content: "";
-        }
-
-        .role-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 28px 65px rgba(31, 56, 94, 0.15);
-        }
-
-        .role-card.agent {
-            border-color: rgba(196, 227, 218, 0.95);
-            background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(244, 252, 249, 0.94));
-        }
-
-        .role-card.agent::before {
-            border-color: rgba(12, 128, 107, 0.1);
-            background: radial-gradient(circle, rgba(197, 239, 224, 0.58), rgba(197, 239, 224, 0.08) 68%, transparent 69%);
-        }
-
-        .role-card.agent::after {
-            border-color: rgba(12, 128, 107, 0.09);
-        }
-
-        .role-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            min-height: 30px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(232, 240, 255, 0.94);
-            color: #214da6;
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
-
-        .role-label::before {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: currentColor;
-            content: "";
-        }
-
-        .agent .role-label {
-            background: rgba(226, 246, 239, 0.95);
-            color: #086552;
-        }
-
-        .role-card h2 {
-            margin: 24px 0 10px;
-            color: #172033;
-            font-size: clamp(1.55rem, 2.5vw, 2.2rem);
-            letter-spacing: -0.03em;
-        }
-
-        .role-card p {
-            max-width: 48ch;
-            margin: 0 0 24px;
-            color: #52647e;
-            font-size: clamp(1rem, 1.25vw, 1.15rem);
-            line-height: 1.6;
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: auto;
-            padding-top: 22px;
-        }
-
-        .actions form {
-            display: flex;
-            margin: 0;
-        }
-
-        .button {
-            display: inline-flex;
-            min-height: 44px;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 16px;
-            margin: 0;
-            border: 1px solid #2457c5;
-            border-radius: 11px;
-            background: linear-gradient(135deg, #326fe0, #2457c5);
-            color: #fff;
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 700;
-            line-height: 1.4;
-            text-align: center;
-            text-decoration: none;
-            box-shadow: 0 6px 14px rgba(36, 87, 197, 0.16);
-            transition: transform 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
-            cursor: pointer;
-        }
-
-        .button:hover,
-        .button:focus-visible {
-            transform: translateY(-2px);
-            border-color: #173f96;
-            background: linear-gradient(135deg, #2457c5, #173f96);
-            box-shadow: 0 9px 19px rgba(36, 87, 197, 0.24), 0 0 0 3px rgba(36, 87, 197, 0.12);
-        }
-
-        .button.secondary {
-            border-color: #cfdbef;
-            background: rgba(255, 255, 255, 0.84);
-            color: #214da6;
-            box-shadow: none;
-        }
-
-        .button.secondary:hover,
-        .button.secondary:focus-visible {
-            border-color: #9cb7e8;
-            background: #edf3ff;
-        }
-
-        .agent .button {
-            border-color: #0c806b;
-            background: linear-gradient(135deg, #11957c, #0c806b);
-            box-shadow: 0 6px 14px rgba(12, 128, 107, 0.17);
-        }
-
-        .agent .button:hover,
-        .agent .button:focus-visible {
-            transform: translateY(-2px);
-            border-color: #075b4b;
-            background: linear-gradient(135deg, #0c806b, #075b4b);
-            box-shadow: 0 9px 19px rgba(12, 128, 107, 0.24), 0 0 0 3px rgba(12, 128, 107, 0.12);
-        }
-
-        .agent .button.secondary {
-            border-color: #c9e4dc;
-            background: rgba(255, 255, 255, 0.84);
-            color: #086552;
-            box-shadow: none;
-        }
-
-        .agent .button.secondary:hover,
-        .agent .button.secondary:focus-visible {
-            border-color: #95cbb9;
-            background: #e8f7f3;
-        }
-
-        .admin-link {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .admin-link a {
-            color: #52647e;
-            font-size: 0.9rem;
-            text-decoration-color: #bdc9d9;
-            text-underline-offset: 4px;
-            transition: color 0.15s;
-        }
-
-        .admin-link a:hover,
-        .admin-link a:focus-visible {
-            color: #173f96;
-        }
-
-        @media (max-width: 680px) {
-            main {
-                min-height: 100vh;
-                min-height: 100dvh;
-                padding: 28px 16px;
-            }
-
-            .role-options {
-                grid-template-columns: 1fr;
-                flex: initial;
-            }
-
-            .role-card {
-                min-height: 260px;
-                padding: 24px;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                scroll-behavior: auto !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-    </style>
-</head>
-<body>
-    <main>
-        <header class="intro">
-            <p class="eyebrow">Parkings Kings</p>
-            <h1>Bienvenue</h1>
-            <p>Votre place, votre parking : le stationnement en toute simplicité.</p>
-        </header>
-
-        <div class="role-options">
-            <section class="role-card user" aria-labelledby="user-title">
-                <span class="role-label">Espace usager</span>
-                <h2 id="user-title">Trouvez une place</h2>
-                {% if user.is_authenticated %}<p>Connecté en tant que {{ user.username }}.</p>{% endif %}
-                <p>
-                    Consultez la carte, comparez les parkings et gérez vos réservations
-                    en quelques clics.
-                </p>
-                <div class="actions">
-                    <a class="button" href="{% url 'parking:parking_list' %}">
-                        Voir les parkings
-                    </a>
-                    {% if user.is_authenticated %}
-                        <a class="button secondary" href="{% url 'parking:reservation_list' %}">
-                            Mes réservations
-                        </a>
-                            <a class="button secondary" href="{% url 'parking:favorite_list' %}">
-                            Mes favoris
-                        </a>
-                        <a class="button secondary" href="{% url 'parking:payment_methods' %}">
-                            Moyen de paiement
-                        </a>
-                        <form method="post" action="{% url 'parking:logout' %}">
-                            {% csrf_token %}
-                            <button class="button secondary" type="submit">
-                                Se déconnecter
-                            </button>
-                        </form>
-                    {% else %}
-                        <a class="button secondary" href="{% url 'parking:signup' %}">
-                            Créer un compte
-                        </a>
-                        <a class="button secondary" href="{% url 'parking:login' %}">
-                            Se connecter
-                        </a>
-                    {% endif %}
-                </div>
-            </section>
-
-            <section class="role-card agent" aria-labelledby="agent-title">
-                <span class="role-label">Espace professionnel</span>
-                <h2 id="agent-title">Outils agent</h2>
-                <p>
-                    Accédez aux outils de suivi : contrôle des plaques, occupation
-                    des places et gestion des départs.
-                </p>
-                <div class="actions">
-                    {% if user.is_authenticated %}
-                        {% for group in user.groups.all %}{% if group.name == "Agents" %}
-                            <a class="button" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
-                        {% endif %}{% endfor %}
-                    {% else %}
-                        <a class="button" href="{% url 'parking:agent_login' %}">Connexion agent</a>
-                    {% endif %}
-                </div>
-            </section>
+{% extends "parking/base.html" %}
+{% block title %}Parkings — Trouvez votre place{% endblock %}
+{% block body_class %}landing-body{% endblock %}
+{% block page_main %}
+<main class="landing-page">
+    {% include "parking/_messages.html" %}
+    <section class="landing-hero" aria-labelledby="landing-title">
+        <div class="hero-copy">
+            <p class="eyebrow"><span aria-hidden="true">●</span> LE STATIONNEMENT, PLUS SIMPLE</p>
+            <h1 id="landing-title">La bonne place.<br><em>Au bon endroit.</em></h1>
+            <p class="hero-description">Repérez les parkings disponibles, choisissez votre place et gérez votre stationnement au même endroit.</p>
+            <div class="hero-actions">
+                <a class="hero-primary" href="{% url 'parking:parking_list' %}">Explorer les parkings <span aria-hidden="true">↗</span></a>
+                {% if not user.is_authenticated %}<a class="hero-secondary" href="{% url 'parking:login' %}">J’ai déjà un compte</a>{% else %}<a class="hero-secondary" href="{% url 'parking:reservation_list' %}">Voir mes réservations</a>{% endif %}
+            </div>
+            <div class="hero-footnote"><span aria-hidden="true">✓</span> Disponibilités et tarifs consultables avant de réserver</div>
         </div>
-
-        {% if user.is_staff %}<footer class="admin-link"><a href="{% url 'admin:index' %}">Administration du site</a></footer>{% endif %}
-    </main>
-    <footer>
-        <a
-            href="{% url 'parking:professional_login' %}"
-            class="professional-access"
-            aria-label="Accès professionnel"
-            title="Accès professionnel"
-        >
-            🔒
-        </a>
+        <div class="hero-visual" aria-label="Illustration d’un parking" role="img">
+            <div class="street-scene">
+                <div class="street-lane"><span></span><span></span><span></span><span></span></div>
+                <div class="parking-bay parking-bay--one"><i></i></div>
+                <div class="parking-bay parking-bay--two"><i></i></div>
+                <div class="parking-bay parking-bay--three"><b>P</b></div>
+                <div class="parking-bay parking-bay--four"><i></i></div>
+                <div class="map-pin"><span aria-hidden="true">P</span></div>
+            </div>
+        </div>
+    </section>
+    <section class="landing-services" aria-label="Les services">
+        <div><div><strong>Trouvez</strong><p>Comparez les parkings et leurs disponibilités.</p></div></div>
+        <div><div><strong>Réservez</strong><p>Choisissez une place et la durée souhaitée.</p></div></div>
+        <div><div><strong>Gérez</strong><p>Suivez vos réservations depuis votre espace.</p></div></div>
+    </section>
+    <footer class="landing-footer">
+        <span>Parkings · Un service de stationnement clair et pratique</span>
+        <div>
+            {% if user.is_authenticated %}
+                {% for group in user.groups.all %}{% if group.name == "Agents" %}<a href="{% url 'parking:agent_dashboard' %}">Accéder à l’espace agent <span aria-hidden="true">↗</span></a>{% endif %}{% endfor %}
+            {% else %}<a href="{% url 'parking:agent_login' %}">Accès professionnel <span aria-hidden="true">↗</span></a>{% endif %}
+            {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration <span aria-hidden="true">↗</span></a>{% endif %}
+        </div>
     </footer>
-</body>
-</html>
+</main>
+{% endblock %}
+{% block extra_styles %}
+    .landing-body { background: var(--paper); }
+    .landing-page { width: min(100% - 64px, 1320px); margin: 0 auto; }
+    .landing-page > .message { margin-top: 20px; }
+    .landing-hero { display: grid; min-height: 610px; grid-template-columns: 1fr .94fr; align-items: center; gap: clamp(35px, 7vw, 105px); padding: 60px 0 58px; }
+    .hero-copy { padding: 10px 0; }
+    .hero-copy .eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; color: var(--brand); font-size: 10px; }
+    .hero-copy .eyebrow span { color: var(--accent); font-size: 12px; }
+    .hero-copy h1 { margin: 0; font-size: clamp(54px, 6.2vw, 84px); font-weight: 690; line-height: .99; letter-spacing: -.075em; }
+    .hero-copy h1 em { color: var(--brand); font-style: normal; }
+    .hero-description { max-width: 470px; margin: 24px 0 0; color: var(--muted); font-size: 17px; line-height: 1.7; }
+    .hero-actions { display: flex; align-items: center; gap: 24px; margin-top: 31px; }
+    .hero-primary { display: inline-flex; min-height: 52px; align-items: center; gap: 24px; padding: 0 19px; border-radius: 5px; background: var(--brand); color: white; font-size: 14px; font-weight: 750; text-decoration: none; }
+    .hero-primary:hover { background: var(--brand-dark); }
+    .hero-primary span { color: #f2a18d; font-size: 18px; }
+    .hero-secondary { color: var(--brand); font-size: 14px; font-weight: 700; text-decoration-color: #a9b1ba; text-underline-offset: 5px; }
+    .hero-secondary:hover { text-decoration-color: var(--brand); }
+    .hero-footnote { display: flex; align-items: center; gap: 9px; margin-top: 31px; color: var(--muted); font-size: 12px; }
+    .hero-footnote span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-size: 12px; font-weight: 800; }
+    .hero-visual { position: relative; min-height: 455px; overflow: hidden; border-radius: 7px; background: var(--brand); color: #fff; }
+    .hero-visual::before { position: absolute; top: -112px; right: -95px; width: 250px; height: 250px; border: 1px solid #ffffff20; border-radius: 50%; content: ""; }
+    .street-scene { position: absolute; inset: 0; overflow: hidden; background: #294968; }
+    .street-scene::before, .street-scene::after { position: absolute; top: 0; bottom: 0; width: 17%; background: #315374; content: ""; }
+    .street-scene::before { left: 0; }.street-scene::after { right: 0; }
+    .street-lane { position: absolute; top: 43%; right: 0; left: 0; height: 70px; display: flex; align-items: center; justify-content: space-around; background: #dfe3e4; transform: rotate(-10deg) scale(1.08); }
+    .street-lane span { width: 9%; height: 2px; background: #aeb8c1; }
+    .parking-bay { position: absolute; z-index: 2; top: 23%; display: grid; width: 16%; height: 23%; place-items: center; border: 1px solid #aebdca; border-bottom: 0; transform: rotate(-10deg); }
+    .parking-bay--one { left: 25%; }.parking-bay--two { left: 43%; }.parking-bay--three { top: 56%; left: 61%; border-color: #f2a18d; background: #bf5a4360; color: #fff; }.parking-bay--four { top: 56%; left: 25%; }
+    .parking-bay i { display: block; width: 31px; height: 15px; border-radius: 9px 9px 4px 4px; background: #9aabba; }
+    .parking-bay--three b { font-size: 19px; }
+    .map-pin { position: absolute; z-index: 3; top: 34%; left: 68%; display: grid; width: 48px; height: 48px; place-items: center; border: 5px solid #ffffff44; border-radius: 50% 50% 50% 8px; background: #bf5a43; color: #fff; font-size: 15px; font-weight: 850; transform: rotate(-45deg); }
+    .map-pin span { transform: rotate(45deg); }
+    .landing-services { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .landing-services > div { display: flex; gap: 17px; padding: 0 27px; border-right: 1px solid var(--line); }.landing-services > div:first-child { padding-left: 0; }.landing-services > div:last-child { border: 0; }
+    .landing-services strong { color: var(--brand); font-size: 14px; }.landing-services p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .landing-footer { display: flex; min-height: 77px; align-items: center; justify-content: space-between; gap: 18px; color: var(--muted); font-size: 11px; }
+    .landing-footer div { display: flex; gap: 24px; }.landing-footer a { color: #526075; font-weight: 700; text-decoration: none; }.landing-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    @media (max-width: 900px) { .landing-page { width: min(100% - 36px, 700px); }.landing-hero { grid-template-columns: 1fr; gap: 34px; padding: 48px 0; }.hero-visual { min-height: 390px; }.landing-services > div { padding: 0 13px; } }
+    @media (max-width: 600px) { .landing-page { width: calc(100% - 32px); }.hero-copy h1 { font-size: 52px; }.hero-actions { align-items: flex-start; flex-direction: column; gap: 15px; }.hero-visual { min-height: 330px; }.landing-services { grid-template-columns: 1fr; gap: 17px; }.landing-services > div, .landing-services > div:first-child { padding: 0; border: 0; }.landing-footer { align-items: flex-start; flex-direction: column; padding: 20px 0; }.landing-footer div { flex-wrap: wrap; gap: 14px; } }
+{% endblock %}

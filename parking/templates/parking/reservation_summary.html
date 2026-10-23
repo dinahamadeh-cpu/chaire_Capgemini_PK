@@ -3,11 +3,13 @@
 {% block title %}Récapitulatif du stationnement - Parking{% endblock %}
 
 {% block content %}
-    <h1>Récapitulatif du stationnement</h1>
+    <header class="summary-heading">
+        <p class="eyebrow">Réservation</p>
+        <h1>Récapitulatif du stationnement</h1>
+        <p>Statut : <strong class="summary-status">{{ reservation.get_status_display }}</strong></p>
+    </header>
 
-    <p>Statut : <strong>{{ reservation.get_status_display }}</strong></p>
-
-    <table>
+    <table class="reservation-summary-table">
         <tbody>
             <tr><th scope="row">Parking</th><td>{{ reservation.spot.parking.name }}<br>{{ reservation.spot.parking.address }}</td></tr>
             <tr><th scope="row">Place</th><td>n°{{ reservation.spot.number }}</td></tr>
@@ -40,5 +42,16 @@
         </tbody>
     </table>
 
-    <p><a class="back-link" href="{% url 'parking:reservation_list' %}">&larr; Retour à mes réservations</a></p>
+    <p class="summary-actions"><a class="button secondary" href="{% url 'parking:reservation_list' %}">&larr; Retour à mes réservations</a></p>
+{% endblock %}
+
+{% block extra_styles %}
+    .summary-heading { margin-bottom: 1.5rem; }
+    .summary-heading h1 { margin-bottom: .7rem; }
+    .summary-heading > p:last-child { margin: 0; color: var(--muted); }
+    .summary-status { color: var(--primary-dark); }
+    .reservation-summary-table { margin: 0; }
+    .reservation-summary-table th { width: 34%; }
+    .reservation-summary-table th, .reservation-summary-table td { padding: .8rem 1rem; }
+    .summary-actions { margin: 1.5rem 0 0; }
 {% endblock %}

@@ -1,21 +1,26 @@
 {% extends "parking/base.html" %}
 {% block title %}Connexion agent - Parking{% endblock %}
+{% block main_class %}auth-page auth-page--login{% endblock %}
 {% block content %}
-    <h1>Connexion agent</h1>
+    <header class="auth-heading">
+        <p class="eyebrow">Espace professionnel</p>
+        <h1>Connexion agent</h1>
+        <p>Connectez-vous pour accéder aux outils de suivi et de contrôle.</p>
+    </header>
     {% if error %}
         <p class="message message-error" role="alert">{{ error }}</p>
     {% endif %}
-    <form method="post">
+    <form method="post" class="auth-form">
         {% csrf_token %}
         <p>
-            <label for="username">Identifiant</label><br>
+            <label for="username">Identifiant</label>
             <input type="text" id="username" name="username" required>
         </p>
         <p>
-            <label for="password">Mot de passe</label><br>
+            <label for="password">Mot de passe</label>
             <input type="password" id="password" name="password" required>
         </p>
         <button type="submit">Se connecter</button>
     </form>
-    <p><a href="{% url 'parking:home' %}">&larr; Retour</a></p>
+    <p class="auth-footnote"><a href="{% url 'parking:home' %}">&larr; Retour à l’accueil</a></p>
 {% endblock %}

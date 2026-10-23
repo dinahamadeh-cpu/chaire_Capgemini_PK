@@ -239,12 +239,13 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, reverse("parking:parking_list"))
         self.assertContains(response, reverse("parking:agent_login"))
 
-    def test_home_page_separates_usager_and_agent_actions(self):
+    def test_home_page_presents_user_and_professional_entry_points(self):
         response = self.client.get(reverse("parking:home"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Espace usager")
-        self.assertContains(response, "Espace professionnel")
+        self.assertContains(response, "La bonne place.")
+        self.assertContains(response, "LE STATIONNEMENT, PLUS SIMPLE")
+        self.assertContains(response, "Accès professionnel")
         self.assertContains(response, reverse("parking:signup"))
         self.assertContains(response, reverse("parking:login"))
         self.assertContains(response, reverse("parking:agent_login"))
@@ -356,6 +357,17 @@ class ParkingViewsTests(TestCase):
             response,
             f"{reverse('parking:login')}?next={reverse('parking:payment_methods')}",
         )
+
+    def test_empty_demo_payment_state_explains_simulation_and_data_handling(self):
+        self.authenticate_as_user()
+
+        response = self.client.get(reverse("parking:payment_methods"))
+
+        self.assertContains(response, "PAIEMENT SIMULÉ")
+        self.assertContains(response, "Aucun débit réel ne sera effectué.")
+        self.assertContains(response, "Aucune donnée bancaire conservée")
+        self.assertContains(response, "Ajouter un moyen simulé")
+        self.assertContains(response, 'aria-labelledby="payment-form-title"')
 
     def test_saved_demo_payment_method_shows_status_without_card_data(self):
         self.authenticate_as_user()
@@ -675,6 +687,8 @@ class ParkingViewsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="message message-error" role="alert"')
+        self.assertContains(response, "Vérifiez les informations saisies")
         self.assertContains(response, "Numéro de carte")
         self.assertFalse(Reservation.objects.filter(plate="GG-789-GG").exists())
 
@@ -734,6 +748,8 @@ class ParkingViewsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="message message-error" role="alert"')
+        self.assertContains(response, "Vérifiez les informations saisies")
         self.assertNotContains(response, "1234567890123456")
         self.assertNotContains(response, "987")
         self.assertFalse(DemoPaymentMethod.objects.exists())
@@ -949,7 +965,8 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "50 %")
         for name in ("agent_plate_check", "agent_stats", "agent_affluence"):
             self.assertContains(response, reverse(f"parking:{name}"))
-        self.assertContains(response, "Contraventions")
+        self.assertContains(response, "créer une contravention")
+        self.assertEqual(response.content.count(b"/agent/plaque/"), 2)  # navigation and dashboard action
 
     def test_agent_dashboard_handles_no_parking_data(self):
         agent = get_user_model().objects.create_user(username="dashboard-agent", password="password")
@@ -1214,7 +1231,7 @@ class ParkingViewsTests(TestCase):
         self.assertContains(response, "Place n°1")
         self.assertNotContains(response, "Place n°2")
         self.assertContains(response, 'class="topbar"')
-        self.assertContains(response, 'href="/parkings/">Parkings</a>')
+        self.assertContains(response, 'href="/parkings/">Trouver un parking</a>')
         self.assertContains(response, 'href="/parkings/">Retour à la liste des parkings</a>')
         self.assertContains(response, "Réserver")
         self.assertContains(response, "Places disponibles")
@@ -1271,12 +1288,15 @@ class ParkingViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="map"')
         self.assertContains(response, 'class="topbar"')
-        self.assertContains(response, 'href="/">Accueil</a>')
+        self.assertContains(response, 'class="brand" href="/"')
         self.assertContains(response, "Parking Central")
         self.assertContains(response, 'id="parkings-data"')
         self.assertContains(response, "Voir sur la carte")
-        self.assertContains(response, "map.setCenter(parking.marker.getPosition())")
-        self.assertContains(response, "map.setZoom(18)")
+        self.assertContains(response, "const marker = parkingMarkers.get(button.dataset.parkingId)")
+        self.assertContains(response, "map.panTo(marker.getPosition())")
+        self.assertContains(response, "map.setZoom(15)")
+        self.assertContains(response, 'google.maps.event.trigger(marker, "click")')
+        self.assertEqual(response.content.count(b'document.querySelectorAll(".focus-map-button")'), 1)
 
     def test_parking_detail_shows_pricing(self):
         self.authenticate_as_user()
@@ -1789,6 +1809,8 @@ class UserDepartureAndSummaryTests(TestCase):
 
         self.assertContains(response, "Annulée")
         self.assertContains(response, "Terminée")
+        self.assertContains(response, 'class="reservation-status reservation-status--cancelled"')
+        self.assertContains(response, 'class="reservation-status reservation-status--completed"')
         self.assertContains(response, "Annulée le :")
         self.assertContains(response, "Terminée le :")
         for reservation in (cancelled, completed):

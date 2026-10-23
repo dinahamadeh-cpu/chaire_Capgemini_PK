@@ -1,0 +1,8 @@
+{% if form_errors %}
+    <div class="message message-error" role="alert">
+        <strong>Vérifiez les informations saisies :</strong>
+        <ul class="field-errors">
+            {% for error in form_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    </div>
+{% endif %}

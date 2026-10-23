@@ -1,87 +1,20 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Créer un compte</title>
-    <style>
-        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            background: #f4f7fb;
-            color: #172033;
-            font-family: Arial, sans-serif;
-        }
+{% extends "parking/base.html" %}
 
-        main {
-            width: min(90%, 480px);
-            padding: 2rem;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(23, 32, 51, 0.12);
-        }
+{% block title %}Créer un compte - Parking{% endblock %}
+{% block main_class %}auth-page auth-page--signup{% endblock %}
 
-        label {
-            display: block;
-            margin-top: 1rem;
-            font-weight: bold;
-        }
-
-        input {
-            width: 100%;
-            margin-top: 0.4rem;
-            padding: 0.7rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            box-sizing: border-box;
-        }
-
-        button,
-        a {
-            display: inline-block;
-            min-height: 44px;
-            margin-top: 1.2rem;
-            padding: 0.75rem 1.1rem;
-            border: 0;
-            border-radius: 8px;
-            background: #2457c5;
-            color: white;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .errorlist {
-            color: #b91c1c;
-        }
-        .message { margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid; border-radius: 8px; }
-        .message-success { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
-        .message-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
-        .message-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
-        .message-info { color: #1d4ea0; background: #eff6ff; border-color: #bfdbfe; }
-
-        .helptext {
-            display: block;
-            margin-top: 0.4rem;
-            color: #475569;
-            font-size: 0.9rem;
-        }
-    </style>
-</head>
-<body>
-    <main>
-        {% include "parking/_messages.html" %}
+{% block content %}
+    <div class="auth-heading">
+        <p class="eyebrow">Nouveau compte</p>
         <h1>Créer un compte</h1>
+        <p>Inscrivez-vous pour réserver une place et retrouver vos parkings favoris.</p>
+    </div>
 
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Créer mon compte</button>
-        </form>
+    <form method="post" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Créer mon compte</button>
+    </form>
 
-        <a href="{% url 'parking:login' %}">J’ai déjà un compte</a>
-    </main>
-</body>
-</html>
+    <p class="auth-footnote">Vous avez déjà un compte ? <a href="{% url 'parking:login' %}">Se connecter</a></p>
+{% endblock %}

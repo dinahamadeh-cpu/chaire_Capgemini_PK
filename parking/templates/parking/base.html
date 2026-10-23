@@ -6,139 +6,132 @@
     <title>{% block title %}Parking{% endblock %}</title>
     <style>
         :root {
-            --primary: #2457c5;
-            --primary-dark: #173d91;
-            --accent: #0e9f72;
-            --ink: #172033;
-            --muted: #60708a;
-            --border: #dbe2ee;
-            --bg: #f4f7fb;
+            --ink: #1d2b39;
+            --muted: #68747f;
+            --brand: #213b5b;
+            --brand-dark: #172d49;
+            --accent: #bf5a43;
+            --accent-soft: #fae9e3;
+            --paper: #f6f3ed;
+            --surface: #fff;
+            --line: #dfe3e4;
+            --success: #176349;
+            --success-bg: #e8f3ed;
+            --warning: #795a13;
+            --warning-bg: #fff5d8;
+            --danger: #9a3434;
+            --danger-bg: #fff0ee;
+            --info: #285a77;
+            --info-bg: #edf5f8;
+            --primary: var(--brand);
+            --primary-dark: var(--brand-dark);
+            --border: var(--line);
+            --background: var(--paper);
         }
         * { box-sizing: border-box; }
-        :focus-visible { outline: 3px solid #1f2937; outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
-        body {
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            background: var(--bg);
-            color: #1f2937;
-        }
-        .topbar {
-            padding: .65rem clamp(1rem, 4vw, 2rem);
-            background: #fff;
-            border-bottom: 1px solid var(--border);
-        }
-        .topbar-inner { width: min(100%, 1440px); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1.5rem; }
-        .topbar .brand {
-            flex: 0 0 auto;
-            color: var(--primary-dark);
-            font-size: 1.2rem;
-            font-weight: 700;
-            text-decoration: none;
-        }
-        .site-navigation { display: flex; flex: 1 1 650px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .2rem .35rem; }
-        .site-navigation a { display: inline-flex; align-items: center; min-height: 40px; padding: .45rem .6rem; border-radius: 7px; color: #34415a; font: inherit; text-decoration: none; white-space: nowrap; }
-        .site-navigation a:hover { background: #f0f4fb; color: var(--primary-dark); }
-        .site-navigation .agent-link { color: #075b43; font-weight: 600; }
-        .site-navigation .admin-link { color: #374151; }
-        .site-navigation .user-name { color: var(--muted); font-size: .9rem; padding: 0 .25rem; white-space: nowrap; }
-        .site-navigation form { display: flex; margin: 0 0 0 .25rem; }
-        .site-navigation button { min-height: 40px; padding: .45rem .8rem; border: 1px solid var(--primary); border-radius: 7px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-        .site-navigation button:hover { background: var(--primary-dark); }
-        main.card {
-            width: min(100% - 2rem, 820px);
-            margin: 1.5rem auto;
-            background: #fff;
-            border-radius: 14px;
-            padding: clamp(1rem, 4vw, 2rem) clamp(1rem, 5vw, 2.2rem);
-            box-shadow: 0 6px 24px rgba(31, 41, 55, 0.08);
-        }
-        h1 { color: var(--primary-dark); margin: 0 0 .55rem; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.2; }
-        h2 { color: var(--primary); }
-        p { line-height: 1.5; }
-        .card--wide { width: 100%; max-width: none; margin: 0; padding: 0; border-radius: 0; box-shadow: none; }
+        body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.55; }
+        :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+        a { color: var(--brand); }
+        .topbar { position: relative; z-index: 5; border-bottom: 1px solid var(--line); background: #fff; }
+        .topbar-inner { width: min(100% - 64px, 1440px); min-height: 76px; margin: auto; display: flex; align-items: center; gap: 48px; }
+        .brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
+        .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--brand); color: #fff; font-size: 17px; font-weight: 800; }
+        .brand-name { font-size: 15px; font-weight: 800; letter-spacing: .1em; }
+        .brand-name small { display: block; margin-top: -3px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .16em; }
+        .site-navigation { display: flex; flex: 1; align-items: center; gap: 7px; }
+        .site-navigation > a, .nav-menu > summary { display: inline-flex; min-height: 42px; align-items: center; gap: 8px; padding: 0 13px; border-radius: 5px; color: #354254; font-size: 14px; font-weight: 650; text-decoration: none; list-style: none; cursor: pointer; }
+        .nav-menu > summary::-webkit-details-marker { display: none; }
+        .site-navigation > a:hover, .nav-menu > summary:hover, .nav-menu[open] > summary { background: var(--paper); color: var(--brand); }
+        .nav-menu { position: relative; }
+        .nav-chevron { color: #81909d; font-size: 11px; }
+        .nav-dropdown { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; width: 235px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 14px 34px #2039561c; }
+        .nav-dropdown a { display: block; padding: 10px 12px; border-radius: 4px; color: var(--ink); font-size: 14px; text-decoration: none; }
+        .nav-dropdown a:hover { background: var(--paper); color: var(--brand); }
+        .nav-dropdown .menu-label { margin: 7px 12px 3px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .nav-dropdown hr { height: 1px; margin: 7px 4px; border: 0; background: var(--line); }
+        .nav-account { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; margin-left: auto; }
+        .account-menu { position: relative; }
+        .account-menu > summary { display: inline-flex; align-items: center; gap: 9px; list-style: none; cursor: pointer; }
+        .account-menu > summary::-webkit-details-marker { display: none; }
+        .account-menu .nav-dropdown { right: 0; left: auto; }
+        .user-chip { display: inline-flex; align-items: center; gap: 9px; color: #435269; font-size: 13px; font-weight: 650; }
+        .user-avatar { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-size: 12px; font-weight: 800; }
+        .logout-form { margin: 0; }
+        .logout-button { padding: 8px 11px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--brand); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .logout-button:hover { background: var(--paper); }
+        .logout-menu-button { width: 100%; justify-content: flex-start; padding: 10px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; text-align: left; }
+        .logout-menu-button:hover { background: var(--paper); color: var(--brand); }
+        .guest-actions { display: flex; align-items: center; gap: 9px; margin-left: auto; }
+        .guest-actions a { padding: 9px 13px; color: var(--brand); font-size: 14px; font-weight: 700; text-decoration: none; }
+        .guest-actions a:last-child { border-radius: 5px; background: var(--brand); color: #fff; }
+        .guest-actions a:last-child:hover { background: var(--brand-dark); }
+        main.card:not(.card--wide) { width: min(100% - 64px, 1080px); margin: 42px auto; padding: 38px 42px; border: 1px solid #e4e3df; border-radius: 8px; background: #fff; box-shadow: 0 12px 36px #213b5b0c; }
+        .card--wide { width: 100%; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
         .card--wide > * { max-width: 1440px; margin-left: auto; margin-right: auto; }
-        .content-section { padding: clamp(1.25rem, 3vw, 2.5rem); }
-        a.button, button {
-            display: inline-block;
-            min-height: 44px;
-            padding: 0.65rem 1rem;
-            margin: 0.3rem 0.3rem 0.3rem 0;
-            background: var(--primary);
-            color: #fff;
-            text-decoration: none;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.15s, box-shadow 0.15s;
-        }
-        a.button:hover, button:hover {
-            background: var(--primary-dark);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.18);
-        }
-        a.button.secondary, button.secondary { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
-        a.button.secondary:hover, button.secondary:hover { background: #edf3ff; }
-        label { font-weight: 600; color: #374151; }
-        input:not([type="checkbox"]):not([type="radio"]), select, textarea {
-            padding: 0.55rem 0.7rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            width: 100%;
-            max-width: 100%;
-            min-height: 44px;
-            font: inherit;
-        }
-        input[type="checkbox"], input[type="radio"] { width: 1.2rem; height: 1.2rem; }
-        .card form p { margin: 0 0 1rem; }
-        .card label { display: inline-block; margin-bottom: .3rem; }
-        .error {
-            color: #9f1d1d;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-        }
-        .message { margin: 0 0 1rem; padding: 0.75rem 1rem; border: 1px solid; border-radius: 8px; }
-        .message-success { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
-        .message-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
-        .message-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
-        .message-info { color: #1d4ea0; background: #eff6ff; border-color: #bfdbfe; }
-        .field-errors { margin: .35rem 0 0; padding-left: 1.25rem; color: #9f1d1d; font-weight: 600; }
-        .section-card { margin: 1.25rem 0; padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: 0 4px 16px rgba(31,52,89,.05); }
-        .button-row { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+        .content-section { padding: 42px 32px; }
+        h1, h2, h3 { color: var(--ink); line-height: 1.18; letter-spacing: -.035em; }
+        h1 { margin: 0 0 12px; font-size: clamp(30px, 3.2vw, 46px); }
+        h2 { margin-top: 0; font-size: 24px; }
+        p { line-height: 1.6; }
+        .eyebrow { margin: 0 0 11px; color: var(--brand); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+        .content-heading, .page-heading { margin-bottom: 30px; }
+        .content-heading > p:last-child, .page-heading > p:last-child { max-width: 62ch; margin: 8px 0 0; color: var(--muted); }
+        a.button, button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--brand); border-radius: 5px; background: var(--brand); color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.35; text-decoration: none; cursor: pointer; }
+        a.button:hover, button:hover { border-color: var(--brand-dark); background: var(--brand-dark); }
+        a.button.secondary, button.secondary { border-color: var(--line); background: #fff; color: var(--brand); }
+        a.button.secondary:hover, button.secondary:hover { border-color: var(--accent); background: var(--accent-soft); }
+        button:disabled { opacity: .6; cursor: not-allowed; }
+        label { color: var(--ink); font-weight: 700; }
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%; max-width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #cbd2da; border-radius: 5px; background: #fff; color: var(--ink); font: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: var(--brand); }
+        input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; accent-color: var(--brand); }
+        .card form p { margin: 0 0 17px; }
+        .card label { display: inline-block; margin-bottom: 6px; }
+        .error { padding: 12px 15px; border: 1px solid #e9bdb8; border-radius: 5px; background: var(--danger-bg); color: var(--danger); }
+        .message { margin: 0 0 18px; padding: 12px 15px; border: 1px solid; border-radius: 5px; }
+        .message-success { border-color: #c3ddcb; background: var(--success-bg); color: var(--success); }
+        .message-error { border-color: #e9bdb8; background: var(--danger-bg); color: var(--danger); }
+        .message-warning { border-color: #ead79e; background: var(--warning-bg); color: var(--warning); }
+        .message-info { border-color: #c6dce4; background: var(--info-bg); color: var(--info); }
+        .field-errors { margin: 5px 0 0; padding-left: 20px; color: var(--danger); font-weight: 650; }
+        .section-card { margin: 22px 0; padding: 24px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+        .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
         .button-row > * { margin: 0; }
-        .back-link { display: inline-block; margin: 0 0 1rem; font-weight: 700; }
-        .conforme {
-            display: inline-block;
-            color: #047857;
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            font-weight: 700;
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
+        .back-link { display: inline-block; margin: 0 0 18px; color: var(--muted); font-size: 14px; font-weight: 700; text-decoration: none; }
+        .back-link:hover { color: var(--brand); text-decoration: underline; }
+        main.card.auth-page { max-width: 540px; margin: 56px auto; padding: 42px; }
+        main.card.auth-page--signup { max-width: 640px; }
+        .auth-heading { margin-bottom: 27px; }
+        .auth-heading h1 { margin-bottom: 8px; }
+        .auth-heading > p:last-child, .auth-footnote { color: var(--muted); }
+        .auth-form p { margin: 0 0 17px !important; }
+        .auth-form label { display: block; margin-bottom: 6px; }
+        .auth-form .helptext { display: block; margin-top: 5px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+        .auth-form .errorlist { margin: 5px 0; padding-left: 20px; color: var(--danger); }
+        .auth-form button { width: 100%; margin-top: 6px; }
+        .auth-footnote { margin: 25px 0 0; padding-top: 20px; border-top: 1px solid var(--line); }
+        .conforme, .non-conforme { display: inline-block; padding: 9px 14px; border-radius: 4px; font-weight: 750; }
+        .conforme { border: 1px solid #c3ddcb; background: var(--success-bg); color: var(--success); }
+        .non-conforme { border: 1px solid #e9bdb8; background: var(--danger-bg); color: var(--danger); }
+        table { width: 100%; margin-top: 16px; border-collapse: collapse; }
+        th, td { padding: 11px 13px; border-bottom: 1px solid var(--line); text-align: left; }
+        th { background: #f2f0eb; color: var(--brand-dark); font-size: 13px; }
+        tr:nth-child(even) { background: #faf9f6; }
+        @media (max-width: 900px) {
+            .topbar-inner { width: min(100% - 32px, 1440px); flex-wrap: wrap; gap: 0 22px; padding: 12px 0; }
+            .site-navigation { order: 3; flex-basis: 100%; }
+            .nav-account { margin-left: auto; }
+            main.card:not(.card--wide) { width: min(100% - 32px, 1080px); margin: 24px auto; padding: 28px; }
         }
-        .non-conforme {
-            display: inline-block;
-            color: #b91c1c;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            font-weight: 700;
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-        }
-        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-        th, td { border: 1px solid #e5e7eb; padding: 0.5rem 0.7rem; text-align: left; }
-        th { background: #f0f4fb; color: var(--primary-dark); }
-        tr:nth-child(even) { background: #fafbff; }
         @media (max-width: 600px) {
-            .topbar { padding: .8rem 1rem; }
-            .topbar-inner { align-items: flex-start; }
-            .site-navigation { flex-basis: 100%; justify-content: flex-start; gap: .25rem; }
-            .site-navigation a, .site-navigation button { min-height: 44px; }
-            main.card:not(.card--wide) { margin: 1rem auto; }
+            .topbar-inner { width: calc(100% - 28px); }
+            .site-navigation { gap: 0; overflow: visible; }
+            .site-navigation > a, .nav-menu > summary { min-height: 40px; padding: 0 9px; font-size: 13px; }
+            .user-chip .user-name { display: none; }
+            main.card:not(.card--wide) { width: calc(100% - 24px); margin: 12px auto; padding: 23px 18px; }
+            main.card.auth-page { margin: 16px auto; padding: 24px 19px; }
             .card table { table-layout: fixed; }
             .card th, .card td { overflow-wrap: anywhere; }
-            .card button, .card a.button { max-width: 100%; }
             .button-row > .button, .button-row > button { flex: 1 1 100%; }
         }
         {% block extra_styles %}{% endblock %}
@@ -147,27 +140,47 @@
 <body class="{% block body_class %}{% endblock %}">
     <header class="topbar">
         <div class="topbar-inner">
-            <a class="brand" href="{% url 'parking:home' %}">🅿️ Parking</a>
+            <a class="brand" href="{% url 'parking:home' %}" aria-label="Parkings, accueil">
+                <span class="brand-mark" aria-hidden="true">P</span>
+                <span class="brand-name">PARKINGS<small>STATIONNEMENT SIMPLIFIÉ</small></span>
+            </a>
             <nav class="site-navigation" aria-label="Navigation principale">
-                <a href="{% url 'parking:home' %}">Accueil</a>
+                <a href="{% url 'parking:parking_list' %}">Trouver un parking</a>
                 {% if request.user.is_authenticated %}
-                    <a href="{% url 'parking:parking_list' %}">Parkings</a>
-                    <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
-                    <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
-                    <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
+                    <details class="nav-menu">
+                        <summary>Mon espace <span class="nav-chevron" aria-hidden="true">▼</span></summary>
+                        <div class="nav-dropdown">
+                            <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
+                            <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
+                            <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
+                        </div>
+                    </details>
                     {% if is_agent %}
-                        <a class="agent-link" href="{% url 'parking:agent_dashboard' %}">Espace agent</a>
-                        <a class="agent-link" href="{% url 'parking:agent_plate_check' %}">Vérification de plaque</a>
+                        <details class="nav-menu">
+                            <summary>Espace agent <span class="nav-chevron" aria-hidden="true">▼</span></summary>
+                            <div class="nav-dropdown">
+                                <a href="{% url 'parking:agent_dashboard' %}">Tableau de bord</a>
+                                <a href="{% url 'parking:agent_plate_check' %}">Vérifier une plaque</a>
+                                <a href="{% url 'parking:agent_stats' %}">Statistiques</a>
+                                <a href="{% url 'parking:agent_affluence' %}">Affluence</a>
+                            </div>
+                        </details>
                     {% endif %}
-                    <span class="user-name">{{ request.user.username }}</span>
-                    {% if request.user.is_staff %}<a class="admin-link" href="{% url 'admin:index' %}">Administration</a>{% endif %}
-                    <form method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button type="submit">Déconnexion</button></form>
-                {% else %}
-                    <a href="{% url 'parking:login' %}">Connexion</a>
-                    <a href="{% url 'parking:signup' %}">Inscription</a>
-                    <a class="agent-link" href="{% url 'parking:agent_login' %}">Connexion agent</a>
                 {% endif %}
             </nav>
+            {% if request.user.is_authenticated %}
+                <div class="nav-account">
+                    <details class="account-menu">
+                        <summary class="user-chip"><span class="user-avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span><span class="user-name">{{ request.user.username }}</span><span class="nav-chevron" aria-hidden="true">▼</span></summary>
+                        <div class="nav-dropdown">
+                            {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a><hr>{% endif %}
+                            <form class="logout-form" method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button class="logout-menu-button" type="submit">Se déconnecter</button></form>
+                        </div>
+                    </details>
+                </div>
+            {% else %}
+                <div class="guest-actions"><a href="{% url 'parking:login' %}">Connexion</a><a href="{% url 'parking:signup' %}">Créer un compte</a></div>
+            {% endif %}
         </div>
     </header>
     {% block page_main %}

@@ -4,51 +4,48 @@
 
 {% block content %}
     <header class="content-heading">
-        <p class="eyebrow">Votre compte</p>
+        <p class="eyebrow">Votre compte · Réservations</p>
         <h1>Moyens de paiement</h1>
-        <p>Utilisez un moyen de paiement simulé pour éviter de ressaisir les informations lors de vos réservations.</p>
+        <p>Un moyen de démonstration pourra être proposé à la prochaine réservation.</p>
     </header>
-
-    {% if payment_method %}
-        <section class="message message-success" role="status" aria-live="polite">
-            <strong>Un moyen de paiement simulé est enregistré.</strong>
-            <p>Il vous sera proposé lors de vos prochaines réservations. Aucune donnée de carte n’est conservée et rien ne sera réellement débité.</p>
+    <div class="payment-layout">
+        <aside class="payment-explainer" aria-label="Informations sur le paiement">
+            {% if payment_method %}
+                <span class="payment-label"><span aria-hidden="true">✓</span> PAIEMENT SIMULÉ ACTIF</span>
+                <h2>Prêt pour votre prochaine réservation</h2>
+                <p>Un moyen de paiement simulé est enregistré. Il sera proposé lors de vos prochaines réservations ; rien ne sera réellement débité.</p>
+            {% else %}
+                <span class="payment-label"><span aria-hidden="true">i</span> PAIEMENT SIMULÉ</span>
+                <h2>Aucun moyen enregistré</h2>
+                <p>Ajoutez un moyen simulé pour poursuivre le parcours de réservation. Aucun débit réel ne sera effectué.</p>
+            {% endif %}
+            <div class="payment-assurance"><span aria-hidden="true">↗</span><p><strong>Aucune donnée bancaire conservée</strong><br>Les informations saisies servent uniquement à valider ce parcours et ne sont pas conservées.</p></div>
+        </aside>
+        <section class="payment-form-panel" aria-labelledby="payment-form-title">
+            <p class="eyebrow">Moyen de paiement</p>
+            <h2 id="payment-form-title">{% if payment_method %}Remplacer le moyen simulé{% else %}Ajouter un moyen simulé{% endif %}</h2>
+            <p class="payment-form-intro">{% if payment_method %}Saisissez les informations d’un nouveau moyen simulé.{% else %}Renseignez les champs ci-dessous pour enregistrer un moyen simulé.{% endif %}</p>
+            {% include "parking/_form_errors.html" %}
+            <form method="post" action="{% url 'parking:payment_methods' %}" class="payment-form" aria-labelledby="payment-form-title">
+                {% csrf_token %}
+                <div class="payment-fields">
+                    <p class="payment-field payment-field--wide">
+                        {{ form.card_number.label_tag }}
+                        {{ form.card_number }}
+                    </p>
+                    <p class="payment-field">
+                        {{ form.expiration_date.label_tag }}
+                        {{ form.expiration_date }}
+                    </p>
+                    <p class="payment-field">
+                        {{ form.security_code.label_tag }}
+                        {{ form.security_code }}
+                    </p>
+                </div>
+                <button type="submit" class="payment-submit">{% if payment_method %}Remplacer le moyen simulé{% else %}Enregistrer le moyen simulé{% endif %}</button>
+            </form>
         </section>
-        <h2>Remplacer le moyen simulé</h2>
-        <p>Vous pouvez saisir un nouveau moyen simulé ci-dessous. Les données saisies servent uniquement à valider ce parcours.</p>
-    {% else %}
-        <section class="section-card payment-notice" aria-label="À propos du paiement simulé">
-            <h2>Moyen de paiement simulé</h2>
-            <p>Cette application ne réalise aucun paiement. Les informations saisies ne sont pas conservées et aucun débit réel n’est effectué.</p>
-        </section>
-        <h2>Informations du moyen simulé</h2>
-    {% endif %}
-
-    {% if form_errors %}
-        <div class="message message-error" role="alert">
-            <strong>Vérifiez les informations saisies :</strong>
-            <ul class="field-errors">
-                {% for error in form_errors %}<li>{{ error }}</li>{% endfor %}
-            </ul>
-        </div>
-    {% endif %}
-
-    <form method="post" action="{% url 'parking:payment_methods' %}" class="payment-form">
-        {% csrf_token %}
-        <p>
-            {{ form.card_number.label_tag }}
-            {{ form.card_number }}
-        </p>
-        <p>
-            {{ form.expiration_date.label_tag }}
-            {{ form.expiration_date }}
-        </p>
-        <p>
-            {{ form.security_code.label_tag }}
-            {{ form.security_code }}
-        </p>
-        <button type="submit">{% if payment_method %}Remplacer le moyen simulé{% else %}Enregistrer le moyen simulé{% endif %}</button>
-    </form>
+    </div>
 
     <script>
         document.querySelectorAll(".numeric-only").forEach((input) => {
@@ -68,15 +65,29 @@
 {% endblock %}
 
 {% block extra_styles %}
-    .content-heading { margin-bottom: 1.25rem; }
-    .content-heading p:last-child { color: var(--muted); margin-bottom: 0; }
-    .eyebrow { margin: 0 0 .3rem; color: var(--primary); font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-    .payment-notice { border-left: 4px solid var(--primary); background: #f5f8ff; }
-    .payment-notice h2 { margin: 0 0 .45rem; }
-    .payment-notice p { margin: 0; }
-    .payment-form { max-width: 560px; padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--border); border-radius: 14px; background: #fff; }
-    .payment-form p { margin: 0 0 1.1rem; }
-    .payment-form label { display: block; margin-bottom: .35rem; }
-    .payment-form button { width: 100%; margin: .25rem 0 0; font-weight: 700; }
-    .message-success p { margin: .35rem 0 0; }
+    .content-heading { margin-bottom: 32px; }
+    .content-heading .eyebrow { margin-bottom: 10px; }
+    .content-heading p:last-child { max-width: 60ch; margin: 0; color: var(--muted); }
+    .payment-layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); gap: 26px; align-items: stretch; }
+    .payment-explainer { display: flex; min-height: 370px; flex-direction: column; padding: 27px; border-radius: 6px; background: var(--brand); color: #fff; }
+    .payment-label { display: inline-flex; align-items: center; gap: 8px; color: #f4b8a8; font-size: 10px; font-weight: 800; letter-spacing: .11em; }
+    .payment-label span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: #ffffff1c; font-size: 12px; }
+    .payment-explainer h2 { max-width: 320px; margin: 65px 0 10px; color: #fff; font-size: 29px; letter-spacing: -.045em; }
+    .payment-explainer > p { margin: 0; color: #d5dce5; font-size: 14px; }
+    .payment-assurance { display: flex; gap: 11px; align-items: flex-start; margin-top: auto; padding-top: 25px; }
+    .payment-assurance > span { display: grid; width: 26px; height: 26px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-weight: 800; }
+    .payment-assurance p { margin: 0; color: #d5dce5; font-size: 12px; line-height: 1.55; }
+    .payment-assurance strong { color: #fff; font-size: 13px; }
+    .payment-form-panel { padding: 27px 29px; border: 1px solid var(--line); border-radius: 6px; background: #faf9f6; }
+    .payment-form-panel .eyebrow { margin: 0 0 8px; }
+    .payment-form-panel h2 { margin: 0; font-size: 24px; }
+    .payment-form-intro { margin: 8px 0 22px; color: var(--muted); font-size: 14px; }
+    .payment-form { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .payment-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 15px; }
+    .payment-field { min-width: 0; margin: 0 0 15px; }
+    .payment-field--wide { grid-column: 1 / -1; }
+    .payment-field label { display: block; margin-bottom: 6px; font-size: 13px; }
+    .payment-submit { min-width: 230px; margin: 5px 0 0; }
+    @media (max-width: 760px) { .payment-layout { grid-template-columns: 1fr; }.payment-explainer { min-height: 260px; }.payment-explainer h2 { margin-top: 35px; } }
+    @media (max-width: 600px) { .payment-fields { grid-template-columns: 1fr; }.payment-field--wide { grid-column: auto; }.payment-submit { width: 100%; } }
 {% endblock %}
