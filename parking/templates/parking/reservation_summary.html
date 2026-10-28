@@ -23,7 +23,7 @@
                 <th scope="row">{% if reservation.status == "cancelled" %}Annulation{% else %}Départ{% endif %}</th>
                 <td>{% if reservation.ended_at %}{{ reservation.ended_at|date:"d/m/Y à H:i" }}{% else %}En cours{% endif %}</td>
             </tr>
-            <tr><th scope="row">Durée réservée</th><td>{{ reservation.duration_hours }} h</td></tr>
+            <tr><th scope="row">Durée réservée</th><td>{{ reservation.duration_minutes }} min</td></tr>
             <tr>
                 <th scope="row">Durée réelle</th>
                 <td>
@@ -36,11 +36,22 @@
                 </td>
             </tr>
             <tr>
-                <th scope="row">Montant payé</th>
+                <th scope="row">{% if reservation.status == "active" %}Estimation du montant{% else %}Montant final{% endif %}</th>
                 <td>{% if reservation.amount_paid is not None %}{{ reservation.amount_paid|floatformat:2 }} €{% else %}—{% endif %}</td>
             </tr>
+            {% if reservation.status != "active" %}
+                <tr><th scope="row">Montant initialement payé</th><td>{{ reservation.amount_charged|floatformat:2 }} €</td></tr>
+                <tr><th scope="row">Montant remboursé</th><td>{{ reservation.amount_refunded|floatformat:2 }} €</td></tr>
+            {% endif %}
+            <tr><th scope="row">Référence de paiement</th><td>{{ reservation.payment_reference }}</td></tr>
         </tbody>
     </table>
+    {% if reservation.status != "active" and reservation.amount_refunded > 0 %}
+        <aside class="refund-notice" role="status" aria-label="Remboursement effectué">
+            <strong>Remboursement calculé</strong>
+            <span>{{ reservation.amount_refunded|floatformat:2 }} € remboursés pour le temps non utilisé.</span>
+        </aside>
+    {% endif %}
 
     <p class="summary-actions"><a class="button secondary" href="{% url 'parking:reservation_list' %}">&larr; Retour à mes réservations</a></p>
 {% endblock %}
@@ -54,4 +65,5 @@
     .reservation-summary-table th { width: 34%; }
     .reservation-summary-table th, .reservation-summary-table td { padding: .8rem 1rem; }
     .summary-actions { margin: 1.5rem 0 0; }
+    .refund-notice { display: flex; flex-direction: column; gap: .2rem; margin-top: 1rem; padding: 1rem 1.2rem; border: 1px solid #c3ddcb; border-radius: 5px; background: var(--success-bg); color: var(--success); }
 {% endblock %}
