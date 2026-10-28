@@ -50,6 +50,9 @@
                 <strong>{{ entry.occupied }} / {{ entry.total_spots }}</strong> places occupées
                 · {{ entry.free }} libre{{ entry.free|pluralize }} · {{ entry.rate }} %
             </p>
+            {% if entry.high_occupancy %}
+                <p class="message message-warning" role="alert">Alerte : ce parking dépasse le seuil d’occupation de 80 %.</p>
+            {% endif %}
             <div class="gauge"><span style="width: {{ entry.rate }}%"></span></div>
 
             <h3>Véhicules stationnés</h3>
@@ -63,7 +66,7 @@
                             {% for reservation in entry.active_reservations %}
                                 <tr>
                                     <td>n°{{ reservation.spot.number }}</td>
-                                    <td><span class="plate">{{ reservation.plate }}</span></td>
+                                    <td><a href="{% url 'parking:agent_plate_check' %}?plate={{ reservation.plate|urlencode }}"><span class="plate">{{ reservation.plate }}</span></a></td>
                                     <td>{{ reservation.created_at|date:"d/m H:i" }}</td>
                                     <td>{% if reservation.arrived_at %}{{ reservation.arrived_at|date:"d/m H:i" }}{% else %}<span class="muted">non confirmée</span>{% endif %}</td>
                                     <td>{{ reservation.expected_end|date:"d/m H:i" }}</td>
@@ -106,6 +109,35 @@
     {% empty %}
         <p>Aucun parking enregistré.</p>
     {% endfor %}
+
+    <section class="parking-stats" aria-labelledby="fines-title">
+        <h2 id="fines-title">Contraventions enregistrées</h2>
+        {% if contraventions %}
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Contraventions enregistrées">
+                <table>
+                    <thead>
+                        <tr><th scope="col">Date</th><th scope="col">Numéro</th><th scope="col">Véhicule</th><th scope="col">Motif</th><th scope="col">Montant</th><th scope="col">Statut</th><th scope="col">Agent</th><th scope="col">Détail</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for contravention in contraventions %}
+                            <tr>
+                                <td>{{ contravention.created_at|date:"d/m/Y H:i" }}</td>
+                                <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
+                                <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.plate }}</a></td>
+                                <td>{{ contravention.reason }}</td>
+                                <td>{{ contravention.amount|floatformat:2 }} €</td>
+                                <td>{{ contravention.get_status_display }}</td>
+                                <td>{{ contravention.agent_name }}</td>
+                                <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">Voir le détail</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="muted">Aucune contravention enregistrée.</p>
+        {% endif %}
+    </section>
 
     <p>
         <a href="{% url 'parking:agent_affluence' %}">Analyse de l'affluence</a> ·
