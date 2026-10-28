@@ -7,13 +7,13 @@
     <div class="auth-heading">
         <p class="eyebrow">Nouveau compte</p>
         <h1>Créer un compte</h1>
-        <p>Inscrivez-vous pour réserver une place et retrouver vos parkings favoris.</p>
+        <p>Inscrivez-vous avec votre e-mail, puis complétez si vous le souhaitez les informations de votre véhicule.</p>
     </div>
 
     <form method="post" class="auth-form">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Créer mon compte</button>
+        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>Créer mon compte</button>
     </form>
 
     <p class="auth-footnote">Vous avez déjà un compte ? <a href="{% url 'parking:login' %}">Se connecter</a></p>
