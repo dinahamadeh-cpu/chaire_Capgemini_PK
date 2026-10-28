@@ -1,8 +1,8 @@
 from datetime import datetime, time, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import user_passes_test
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -13,8 +13,27 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
-from .forms import ContraventionForm, PaymentDetailsForm, ReservationForm, ParkingFilterForm
-from .models import Contravention, DemoPaymentMethod, Parking, Reservation, Spot, Favorite, plate_validator
+from .forms import (
+    AccountPasswordResetForm,
+    AccountDeletionForm,
+    ContraventionForm,
+    ContraventionOppositionForm,
+    PaymentDetailsForm,
+    ReservationForm,
+    ParkingFilterForm,
+    SignupForm,
+    UserProfileForm,
+)
+from .models import (
+    Contravention,
+    DemoPaymentMethod,
+    Parking,
+    Reservation,
+    Spot,
+    Favorite,
+    UserProfile,
+    plate_validator,
+)
 
 STATS_MOVEMENTS_LIMIT = 20
 HISTORY_PERIODS = ["7", "30", "90"]
@@ -27,13 +46,108 @@ def home(request):
 
 @require_http_methods(["GET", "POST"])
 def signup(request):
-    form = UserCreationForm(request.POST or None)
+    form = SignupForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
+        user.email = form.cleaned_data["email"]
+        user.save(update_fields=["email"])
+        UserProfile.objects.create(
+            user=user,
+            phone_number=form.cleaned_data["phone_number"],
+            vehicle_model=form.cleaned_data["vehicle_model"],
+        )
         login(request, user)
         messages.success(request, "Votre compte a été créé. Bienvenue !")
         return redirect("parking:parking_list")
     return render(request, "parking/signup.html", {"form": form})
+
+
+@login_required(login_url="parking:login")
+@require_http_methods(["GET", "POST"])
+def account(request):
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if request.method == "POST":
+        form = UserProfileForm(request.POST)
+        if form.is_valid():
+            request.user.email = form.cleaned_data["email"]
+            request.user.save(update_fields=["email"])
+            profile.phone_number = form.cleaned_data["phone_number"]
+            profile.vehicle_model = form.cleaned_data["vehicle_model"]
+            profile.pmr_justification_registered = form.cleaned_data[
+                "pmr_justification_registered"
+            ]
+            profile.notifications_enabled = form.cleaned_data[
+                "notifications_enabled"
+            ]
+            profile.save(
+                update_fields=[
+                    "phone_number",
+                    "vehicle_model",
+                    "pmr_justification_registered",
+                    "notifications_enabled",
+                ]
+            )
+            messages.success(
+                request,
+                "Votre profil a été mis à jour. Vos paramètres sont enregistrés.",
+            )
+            return redirect(f"parking:{request.resolver_match.url_name}")
+    else:
+        form = UserProfileForm(
+            initial={
+                "email": request.user.email,
+                "phone_number": profile.phone_number,
+                "vehicle_model": profile.vehicle_model,
+                "pmr_justification_registered": profile.pmr_justification_registered,
+                "notifications_enabled": profile.notifications_enabled,
+            }
+        )
+    payment_method = DemoPaymentMethod.objects.filter(user=request.user).first()
+    return render(
+        request,
+        "parking/account.html",
+        {
+            "form": form,
+            "payment_method": payment_method,
+            "settings_page": request.resolver_match.url_name == "settings",
+        },
+    )
+
+
+@login_required(login_url="parking:login")
+@require_POST
+def delete_account(request):
+    user = request.user
+    form = AccountDeletionForm(request.POST, username=user.get_username())
+    if not form.is_valid():
+        for error in form.errors.values():
+            for message in error:
+                messages.error(request, message)
+        return redirect("parking:settings")
+
+    with transaction.atomic():
+        locked_user = get_user_model().objects.select_for_update().get(pk=user.pk)
+        if Reservation.objects.filter(
+            user=locked_user,
+            status=Reservation.Status.ACTIVE,
+        ).exists():
+            messages.error(
+                request,
+                "Votre compte ne peut pas être supprimé tant qu’un stationnement est en cours.",
+            )
+            return redirect("parking:settings")
+        if Contravention.objects.filter(user=locked_user).exists():
+            messages.error(
+                request,
+                "Votre compte ne peut pas être supprimé tant qu’une contravention reçue lui est associée.",
+            )
+            return redirect("parking:settings")
+
+        locked_user.delete()
+
+    logout(request)
+    messages.success(request, "Votre compte a été supprimé.")
+    return redirect("parking:home")
 
 
 def _is_agent(user):
@@ -88,6 +202,10 @@ def parking_detail(request, parking_id):
     parking = get_object_or_404(Parking, id=parking_id)
     available_spots = parking.spots.filter(is_available=True)
     total_spots = parking.spots.count()
+    pmr_justification_registered = UserProfile.objects.filter(
+        user=request.user,
+        pmr_justification_registered=True,
+    ).exists()
 
     return render(
         request,
@@ -96,6 +214,7 @@ def parking_detail(request, parking_id):
             "parking": parking,
             "available_spots": available_spots,
             "total_spots": total_spots,
+            "pmr_justification_registered": pmr_justification_registered,
             "parking_data": {
                 "name": parking.name,
                 "address": parking.address,
@@ -146,6 +265,16 @@ def payment_methods(request):
 @require_http_methods(["GET", "POST"])
 def reserve_spot(request, parking_id, spot_id):
     spot = get_object_or_404(Spot, pk=spot_id, parking_id=parking_id)
+    if spot.is_pmr and not UserProfile.objects.filter(
+        user=request.user,
+        pmr_justification_registered=True,
+    ).exists():
+        messages.error(
+            request,
+            "Vous ne disposez pas de Justificatif PMR.",
+        )
+        return redirect("parking:parking_detail", parking_id=parking_id)
+
     if spot.parking.hourly_rate is None:
         messages.error(
             request,
@@ -195,7 +324,12 @@ def reserve_spot(request, parking_id, spot_id):
             has_saved_payment_method=saved_payment_method,
             max_duration_minutes=spot.parking.max_duration_minutes,
             initial={
+                "duration_days": request.POST.get("duration_days", ""),
                 "duration_hours": request.POST.get("duration_hours", ""),
+                "duration_extra_minutes": request.POST.get(
+                    "duration_extra_minutes", ""
+                ),
+                "duration_minutes": request.POST.get("duration_minutes", ""),
                 "plate": request.POST.get("plate", ""),
                 "payment_method": request.POST.get("payment_method", ""),
             },
@@ -213,15 +347,19 @@ def reserve_spot(request, parking_id, spot_id):
             },
         )
 
-    amount_paid = spot.parking.hourly_rate * form.cleaned_data["duration_hours"]
+    duration_minutes = form.cleaned_data["duration_minutes"]
+    amount_paid = (
+        spot.parking.hourly_rate * duration_minutes / 60
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     try:
         with transaction.atomic():
-            Reservation.objects.create(
+            reservation = Reservation.objects.create(
                 user=request.user,
                 spot=spot,
                 plate=form.cleaned_data["plate"],
-                duration_hours=form.cleaned_data["duration_hours"],
+                duration_minutes=duration_minutes,
                 amount_paid=amount_paid,
+                amount_charged=amount_paid,
             )
     except IntegrityError:
         messages.error(
@@ -231,8 +369,10 @@ def reserve_spot(request, parking_id, spot_id):
     else:
         messages.success(
             request,
-            f"Paiement simulé de {amount_paid:.2f} € confirmé. "
-            "La place a bien été réservée. Aucune donnée de carte n'a été enregistrée.",
+            f"Réservation confirmée. Estimation du montant simulé : {amount_paid:.2f} €. "
+            f"Référence de paiement : {reservation.payment_reference}. "
+            "Le montant final sera recalculé selon la durée réelle. "
+            "Aucune donnée de carte n'a été enregistrée.",
         )
 
     return redirect("parking:parking_detail", parking_id=parking_id)
@@ -240,16 +380,76 @@ def reserve_spot(request, parking_id, spot_id):
 
 @login_required(login_url="parking:login")
 def reservation_list(request):
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
     reservations = (
         Reservation.objects.filter(user=request.user)
         .select_related("spot", "spot__parking")
         .order_by("-created_at")
     )
+    now = timezone.now()
+    for reservation in reservations:
+        remaining = reservation.expected_end - now
+        reservation.reminder_due = (
+            profile.notifications_enabled
+            and reservation.status == Reservation.Status.ACTIVE
+            and reservation.arrived_at is not None
+            and timedelta(0) < remaining <= timedelta(minutes=15)
+        )
     return render(
         request,
         "parking/reservation_list.html",
         {"reservations": reservations},
     )
+
+
+@login_required(login_url="parking:login")
+@require_POST
+def extend_reservation(request, reservation_id):
+    reservation = get_object_or_404(
+        Reservation.objects.select_related("spot__parking"),
+        pk=reservation_id,
+        user=request.user,
+        status=Reservation.Status.ACTIVE,
+        arrived_at__isnull=False,
+    )
+    try:
+        extra_days = int(request.POST.get("extra_days", "0") or "0")
+        extra_hours = int(request.POST.get("extra_hours", "0") or "0")
+        extra_minutes = int(request.POST.get("extra_minutes", "0") or "0")
+    except (TypeError, ValueError):
+        extra_days = extra_hours = extra_minutes = -1
+    if min(extra_days, extra_hours, extra_minutes) < 0:
+        messages.error(request, "Saisissez une durée de prolongation valide.")
+        return redirect("parking:reservation_list")
+
+    extra_minutes = extra_days * 1440 + extra_hours * 60 + extra_minutes
+    if extra_minutes < 1:
+        messages.error(request, "Saisissez une durée de prolongation supérieure à zéro.")
+        return redirect("parking:reservation_list")
+    if extra_minutes > 2147483647 - reservation.duration_minutes:
+        messages.error(request, "La durée de prolongation est trop longue.")
+        return redirect("parking:reservation_list")
+    extended_duration = reservation.duration_minutes + extra_minutes
+    max_duration = reservation.spot.parking.max_duration_minutes
+    if max_duration is not None and extended_duration > max_duration:
+        messages.error(request, "La durée maximale autorisée par ce parking serait dépassée.")
+        return redirect("parking:reservation_list")
+
+    rate = reservation.spot.parking.hourly_rate
+    if rate is None:
+        messages.error(request, "La prolongation est impossible : le tarif du parking n'est pas renseigné.")
+        return redirect("parking:reservation_list")
+
+    reservation.duration_minutes = extended_duration
+    reservation.amount_paid = (
+        rate * extended_duration / 60
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    reservation.amount_charged = reservation.amount_paid
+    reservation.save(
+        update_fields=["duration_minutes", "amount_paid", "amount_charged"]
+    )
+    messages.success(request, f"Stationnement prolongé de {extra_minutes} minutes.")
+    return redirect("parking:reservation_list")
 
 
 @login_required(login_url="parking:login")
@@ -285,6 +485,7 @@ def cancel_reservation(request, reservation_id):
     )
     reservation.status = Reservation.Status.CANCELLED
     reservation.ended_at = timezone.now()
+    reservation.settle_final_amount()
     reservation.save()
     messages.success(request, "La réservation a bien été annulée.")
     return redirect("parking:reservation_list")
@@ -302,8 +503,12 @@ def declare_departure(request, reservation_id):
     )
     reservation.status = Reservation.Status.COMPLETED
     reservation.ended_at = timezone.now()
+    reservation.settle_final_amount()
     reservation.save()
-    messages.success(request, "Votre départ est enregistré. Voici le récapitulatif de votre stationnement.")
+    messages.success(
+        request,
+        "Votre départ est enregistré. Le montant final a été recalculé selon la durée réelle.",
+    )
     return redirect("parking:reservation_summary", reservation_id=reservation.id)
 
 
@@ -343,6 +548,19 @@ def agent_logout(request):
 def agent_dashboard(request):
     total_spots = Spot.objects.count()
     occupied = Reservation.objects.filter(status=Reservation.Status.ACTIVE).count()
+    high_occupancy_parkings = []
+    for parking in Parking.objects.prefetch_related("spots").all():
+        total = parking.spots.count()
+        if total:
+            occupied_in_parking = Reservation.objects.filter(
+                spot__parking=parking,
+                status=Reservation.Status.ACTIVE,
+            ).count()
+            rate = round(occupied_in_parking * 100 / total)
+            if occupied_in_parking * 100 >= total * 80:
+                high_occupancy_parkings.append(
+                    {"parking": parking, "rate": rate, "occupied": occupied_in_parking, "total": total}
+                )
     return render(
         request,
         "parking/agent_dashboard.html",
@@ -350,6 +568,7 @@ def agent_dashboard(request):
             "occupied": occupied,
             "total_spots": total_spots,
             "occupancy_rate": round(occupied * 100 / total_spots) if total_spots else None,
+            "high_occupancy_parkings": high_occupancy_parkings,
         },
     )
 
@@ -367,10 +586,56 @@ def agent_plate_check(request):
     if plate:
         reservation = (
             Reservation.objects.filter(plate=plate, status=Reservation.Status.ACTIVE)
-            .select_related("spot", "spot__parking")
+            .select_related("spot", "spot__parking", "user")
             .first()
         )
-        result = {"plate": plate, "reservation": reservation}
+        justification_registered = False
+        is_pmr_spot = bool(reservation and reservation.spot.is_pmr)
+        if is_pmr_spot and reservation.user_id:
+            justification_registered = UserProfile.objects.filter(
+                user_id=reservation.user_id,
+                pmr_justification_registered=True,
+            ).exists()
+        duration_elapsed_minutes = None
+        duration_exceeded = False
+        if reservation and reservation.arrived_at:
+            elapsed = timezone.now() - reservation.arrived_at
+            duration_elapsed_minutes = max(0, int(elapsed.total_seconds() // 60))
+            duration_exceeded = elapsed > timedelta(
+                minutes=reservation.duration_minutes
+            )
+
+        expected_payment_amount = None
+        payment_verified = False
+        if reservation and reservation.spot.parking.hourly_rate is not None:
+            expected_payment_amount = (
+                reservation.spot.parking.hourly_rate
+                * reservation.duration_minutes
+                / 60
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            payment_verified = (
+                reservation.payment_reference is not None
+                and reservation.amount_paid == expected_payment_amount
+            )
+
+        is_compliant = bool(
+            reservation
+            and reservation.arrived_at
+            and not duration_exceeded
+            and payment_verified
+            and (not is_pmr_spot or justification_registered)
+        )
+        result = {
+            "plate": plate,
+            "reservation": reservation,
+            "is_pmr_spot": is_pmr_spot,
+            "pmr_justification_registered": justification_registered,
+            "duration_elapsed_minutes": duration_elapsed_minutes,
+            "duration_exceeded": duration_exceeded,
+            "payment_verified": payment_verified,
+            "expected_payment_amount": expected_payment_amount,
+            "is_compliant": is_compliant,
+        }
     contravention_form = None
     if result and result["reservation"] is None:
         contravention_form = ContraventionForm(initial={"plate": plate})
@@ -387,7 +652,11 @@ def create_contravention(request):
     form = ContraventionForm(request.POST)
     plate = request.POST.get("plate", "").strip().upper()
     if not form.is_valid():
-        messages.error(request, "La plaque et le motif sont invalides.")
+        messages.error(
+            request,
+            "Les informations de la contravention sont invalides. "
+            "Vérifiez le type, le motif et le montant.",
+        )
         return redirect(f"{reverse('parking:agent_plate_check')}?plate={plate}")
 
     plate = form.cleaned_data["plate"]
@@ -401,7 +670,17 @@ def create_contravention(request):
     Contravention.objects.create(
         agent=request.user,
         plate=plate,
+        fine_type=form.cleaned_data["fine_type"],
         reason=form.cleaned_data["reason"],
+        parking=form.cleaned_data["parking"],
+        amount=form.cleaned_data["amount"],
+        comment=form.cleaned_data["comment"],
+        user_id=(
+            Reservation.objects.filter(plate=plate)
+            .order_by("-created_at")
+            .values_list("user_id", flat=True)
+            .first()
+        ),
     )
     messages.success(request, "La contravention a bien été créée.")
     return redirect(f"{reverse('parking:agent_plate_check')}?plate={plate}")
@@ -417,9 +696,109 @@ def agent_end_reservation(request, reservation_id):
     )
     reservation.status = Reservation.Status.COMPLETED
     reservation.ended_at = timezone.now()
+    reservation.settle_final_amount()
     reservation.save()
     messages.success(request, "Le stationnement a bien été clôturé.")
     return redirect(f"{reverse('parking:agent_plate_check')}?plate={reservation.plate}")
+
+
+@user_passes_test(_is_agent, login_url="parking:agent_login")
+def agent_contraventions(request):
+    contraventions = (
+        Contravention.objects.select_related("agent", "parking")
+        .order_by("-created_at")
+    )
+    return render(
+        request,
+        "parking/agent_contraventions.html",
+        {"contraventions": contraventions},
+    )
+
+
+@user_passes_test(_is_agent, login_url="parking:agent_login")
+def agent_contravention_detail(request, contravention_id):
+    contravention = get_object_or_404(
+        Contravention.objects.select_related("agent", "parking"),
+        pk=contravention_id,
+    )
+    return render(
+        request,
+        "parking/contravention_detail.html",
+        {"contravention": contravention, "is_agent_view": True},
+    )
+
+
+@login_required(login_url="parking:login")
+def user_contraventions(request):
+    contraventions = Contravention.objects.filter(user=request.user).select_related(
+        "parking"
+    ).order_by("-created_at")
+    return render(
+        request,
+        "parking/user_contraventions.html",
+        {"contraventions": contraventions},
+    )
+
+
+@login_required(login_url="parking:login")
+def user_contravention_detail(request, contravention_id):
+    contravention = get_object_or_404(
+        Contravention.objects.select_related("parking"),
+        pk=contravention_id,
+        user=request.user,
+    )
+    appeal_deadline = contravention.created_at + timedelta(days=30)
+    can_contest = (
+        contravention.status == Contravention.Status.ISSUED
+        and timezone.now() <= appeal_deadline
+    )
+    form = ContraventionOppositionForm() if can_contest else None
+    return render(
+        request,
+        "parking/contravention_detail.html",
+        {
+            "contravention": contravention,
+            "is_agent_view": False,
+            "can_contest": can_contest,
+            "appeal_deadline": appeal_deadline,
+            "form": form,
+        },
+    )
+
+
+@login_required(login_url="parking:login")
+@require_POST
+def contest_contravention(request, contravention_id):
+    contravention = get_object_or_404(
+        Contravention,
+        pk=contravention_id,
+        user=request.user,
+    )
+    detail_url = reverse(
+        "parking:user_contravention_detail",
+        args=[contravention.id],
+    )
+    appeal_deadline = contravention.created_at + timedelta(days=30)
+    if (
+        contravention.status != Contravention.Status.ISSUED
+        or timezone.now() > appeal_deadline
+    ):
+        messages.error(request, "Le délai d’opposition est dépassé ou l’avis est déjà contesté.")
+        return redirect(detail_url)
+
+    form = ContraventionOppositionForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Saisissez le motif de votre opposition.")
+        return redirect(detail_url)
+
+    contravention.opposition_reason = form.cleaned_data["reason"]
+    contravention.opposition_submitted_at = timezone.now()
+    contravention.status = Contravention.Status.CONTESTING
+    contravention.save(
+        update_fields=["opposition_reason", "opposition_submitted_at", "status"]
+    )
+    messages.success(request, "Votre opposition a été enregistrée.")
+    return redirect(detail_url)
 
 
 @user_passes_test(_is_agent, login_url="parking:agent_login")
@@ -437,9 +816,6 @@ def agent_stats(request):
             (r for r in reservations if r.status == Reservation.Status.ACTIVE),
             key=lambda r: r.spot.number,
         )
-        for reservation in active_reservations:
-            reservation.expected_end = reservation.created_at + timedelta(hours=reservation.duration_hours)
-
         events = []
         for reservation in reservations:
             events.append((reservation.created_at, 1, "Réservation", reservation))
@@ -472,6 +848,9 @@ def agent_stats(request):
                 "occupied": occupied_now,
                 "free": total_spots - occupied_now,
                 "rate": round(occupied_now * 100 / total_spots) if total_spots else 0,
+                "high_occupancy": bool(
+                    total_spots and occupied_now * 100 >= total_spots * 80
+                ),
                 "active_reservations": active_reservations,
                 "movements": movements[:STATS_MOVEMENTS_LIMIT],
                 "has_more_movements": len(movements) > STATS_MOVEMENTS_LIMIT,
@@ -489,7 +868,16 @@ def agent_stats(request):
     return render(
         request,
         "parking/agent_stats.html",
-        {"stats": stats, "summary": summary, "movements_limit": STATS_MOVEMENTS_LIMIT},
+        {
+            "stats": stats,
+            "summary": summary,
+            "movements_limit": STATS_MOVEMENTS_LIMIT,
+            "contraventions": Contravention.objects.select_related(
+                "parking", "agent"
+            ).order_by(
+                "-created_at"
+            )[:20],
+        },
     )
 
 
@@ -606,6 +994,10 @@ def parking_list(request):
             "spots",
             filter=Q(spots__is_available=True),
         ),
+        available_pmr_spots_count=Count(
+            "spots",
+            filter=Q(spots__is_available=True, spots__is_pmr=True),
+        ),
     )
 
     if filter_form.is_valid():
@@ -662,6 +1054,7 @@ def parking_list(request):
             "address",
             "latitude",
             "longitude",
+            "available_pmr_spots_count",
         )
     )
 
