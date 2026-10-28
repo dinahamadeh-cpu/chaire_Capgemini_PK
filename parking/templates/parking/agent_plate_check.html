@@ -1,5 +1,5 @@
 {% extends "parking/base.html" %}
-{% block title %}Vérification plaque - Parking{% endblock %}
+{% block title %}Vérification de plaque - Parking{% endblock %}
 {% block content %}
     <style>
         .plate-check-form { max-width: 28rem; }
@@ -9,6 +9,8 @@
         .plate-details dt { font-weight: 700; }
         .plate-details dd { margin: 0; overflow-wrap: anywhere; }
         .contravention-form { margin-top: 1.25rem; }
+        .conforme { color: var(--success); font-weight: 700; }
+        .non-conforme { color: var(--danger); font-weight: 700; }
         @media (max-width: 480px) {
             .plate-details { grid-template-columns: 1fr; gap: .2rem; }
             .plate-details dd { margin-bottom: .6rem; }
@@ -25,14 +27,20 @@
             <label for="plate">Plaque d'immatriculation</label>
             <input type="text" id="plate" name="plate" placeholder="AA-123-AA" value="{{ plate }}" autocomplete="off">
         </p>
-        <button type="submit">Vérifier la plaque</button>
+        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Vérifier la plaque</button>
     </form>
 
     {% if result %}
         {% if result.reservation %}
             <section class="plate-result" aria-labelledby="plate-result-title">
                 <h2 id="plate-result-title">Résultat pour {{ result.plate }}</h2>
-                <p class="conforme">Conforme — réservation active</p>
+                {% if result.is_compliant %}
+                    <p class="conforme">Conforme — durée et paiement vérifiés</p>
+                {% elif not result.reservation.arrived_at %}
+                    <p class="message message-warning">Contrôle incomplet — arrivée non confirmée, durée non vérifiable.</p>
+                {% else %}
+                    <p class="non-conforme">Non conforme — durée, paiement ou justificatif à vérifier</p>
+                {% endif %}
                 <dl class="plate-details">
                     <dt>Plaque</dt>
                     <dd>{{ result.plate }}</dd>
@@ -48,10 +56,53 @@
                             Non confirmée
                         {% endif %}
                     </dd>
+                    <dt>Durée autorisée</dt>
+                    <dd>{{ result.reservation.duration_minutes }} min</dd>
+                    <dt>Durée écoulée</dt>
+                    <dd>
+                        {% if result.duration_elapsed_minutes is not None %}
+                            {{ result.duration_elapsed_minutes }} min
+                            {% if result.duration_exceeded %}
+                                — <strong class="non-conforme">durée dépassée</strong>
+                            {% else %}
+                                — <strong class="conforme">dans la limite autorisée</strong>
+                            {% endif %}
+                        {% else %}
+                            Décompte non commencé
+                        {% endif %}
+                    </dd>
+                    <dt>Statut du paiement</dt>
+                    <dd>
+                        {% if result.payment_verified %}
+                            <strong class="conforme">Paiement simulé vérifié</strong>
+                        {% else %}
+                            <strong class="non-conforme">Paiement absent ou montant incorrect</strong>
+                        {% endif %}
+                    </dd>
+                    <dt>Montant payé</dt>
+                    <dd>{% if result.reservation.amount_paid is not None %}{{ result.reservation.amount_paid|floatformat:2 }} €{% else %}Aucun paiement enregistré{% endif %}</dd>
+                    {% if result.expected_payment_amount is not None %}
+                        <dt>Montant attendu</dt>
+                        <dd>{{ result.expected_payment_amount|floatformat:2 }} €</dd>
+                    {% endif %}
+                    <dt>Référence de paiement</dt>
+                    <dd>{{ result.reservation.payment_reference }}</dd>
+                    {% if result.is_pmr_spot %}
+                        <dt>Place PMR</dt>
+                        <dd>Oui</dd>
+                        <dt>Justificatif PMR</dt>
+                        <dd>
+                            {% if result.pmr_justification_registered %}
+                                Justificatif PMR enregistré — à vérifier
+                            {% else %}
+                                <strong class="non-conforme">Aucun justificatif — véhicule non conforme</strong>
+                            {% endif %}
+                        </dd>
+                    {% endif %}
                 </dl>
                 <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
                     {% csrf_token %}
-                    <button type="submit">Clôturer le stationnement</button>
+                    <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Clôturer le stationnement</button>
                 </form>
             </section>
         {% else %}
@@ -61,15 +112,33 @@
                 <p>Aucun stationnement actif n'a été trouvé pour cette plaque.</p>
                 <div class="contravention-form">
                     <h3>Créer une contravention</h3>
-                    <p>Le motif est obligatoire. Vérifiez la plaque et le motif avant de confirmer.</p>
+                    <p>Choisissez un motif prédéfini ou « Autres » pour saisir vous-même le motif et le montant.</p>
                     <form method="post" action="{% url 'parking:create_contravention' %}" onsubmit="return confirm('Créer une contravention pour la plaque {{ result.plate }} ?');">
                         {% csrf_token %}
                         {{ contravention_form.plate }}
                         <p>
+                            {{ contravention_form.fine_type.label_tag }}
+                            {{ contravention_form.fine_type }}
+                        </p>
+                        <p id="fine-preset-preview" aria-live="polite" hidden></p>
+                        <p id="fine-reason-field" hidden>
                             {{ contravention_form.reason.label_tag }}
                             {{ contravention_form.reason }}
                         </p>
-                        <button type="submit">Créer la contravention</button>
+                        <p id="fine-amount-field" hidden>
+                            {{ contravention_form.amount.label_tag }}
+                            {{ contravention_form.amount }}
+                            <small>Montant autorisé : de 30 € à 200 €.</small>
+                        </p>
+                        <p>
+                            {{ contravention_form.parking.label_tag }}
+                            {{ contravention_form.parking }}
+                        </p>
+                        <p>
+                            {{ contravention_form.comment.label_tag }}
+                            {{ contravention_form.comment }}
+                        </p>
+                        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>Créer la contravention</button>
                     </form>
                 </div>
             </section>
@@ -79,4 +148,32 @@
     {% endif %}
 
     <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+    {% if result and not result.reservation %}
+        <script>
+            const fineType = document.getElementById("id_fine_type");
+            const reasonField = document.getElementById("fine-reason-field");
+            const amountField = document.getElementById("fine-amount-field");
+            const preview = document.getElementById("fine-preset-preview");
+            const finePresets = {
+                no_reservation: ["Stationnement sans réservation", "50,00"],
+                pmr_abuse: ["Usage abusif d’une place PMR", "135,00"],
+                overstay: ["Dépassement de la durée réservée", "35,00"],
+                wrong_spot: ["Stationnement sur une place non autorisée", "50,00"],
+                obstructing: ["Stationnement gênant ou bloquant", "75,00"],
+                no_payment: ["Paiement ou titre de stationnement absent", "50,00"]
+            };
+            const updateFineFields = () => {
+                const isOther = fineType.value === "other";
+                reasonField.hidden = !isOther;
+                amountField.hidden = !isOther;
+                const preset = finePresets[fineType.value];
+                preview.hidden = !preset;
+                preview.textContent = preset
+                    ? `${preset[0]} — montant indicatif : ${preset[1]} €`
+                    : "";
+            };
+            fineType.addEventListener("change", updateFineFields);
+            updateFineFields();
+        </script>
+    {% endif %}
 {% endblock %}
