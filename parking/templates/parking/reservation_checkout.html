@@ -18,14 +18,24 @@
         action="{% url 'parking:reserve_spot' parking.id spot.id %}"
         id="checkout-form"
         data-hourly-rate-cents="{{ rate_cents }}"
+        data-max-duration-minutes="{{ parking.max_duration_minutes|default_if_none:'' }}"
     >
         {% csrf_token %}
 
         <div class="checkout-fields">
-            <p>
-                {{ form.duration_hours.label_tag }}
-                {{ form.duration_hours }}
-            </p>
+            <fieldset class="duration-fields">
+                <legend>Durée souhaitée</legend>
+                <div class="duration-inputs">
+                    {% if form.show_duration_days %}
+                        <p>{{ form.duration_days.label_tag }}{{ form.duration_days }}</p>
+                    {% else %}
+                        {{ form.duration_days }}
+                    {% endif %}
+                    <p>{{ form.duration_hours.label_tag }}{{ form.duration_hours }}</p>
+                    <p>{{ form.duration_extra_minutes.label_tag }}{{ form.duration_extra_minutes }}</p>
+                </div>
+                {{ form.duration_minutes }}
+            </fieldset>
             <p>
                 {{ form.plate.label_tag }}
                 {{ form.plate }}
@@ -74,19 +84,26 @@
                 <dd id="reservation-duration">À choisir</dd>
                 <dt>Moyen de paiement</dt>
                 <dd id="reservation-payment">Nouveau moyen de paiement simulé</dd>
-                <dt>Montant total simulé</dt>
+                <dt>Estimation du paiement simulé</dt>
                 <dd><strong><output id="reservation-total">Choisissez une durée</output></strong></dd>
             </dl>
         </aside>
 
         <p class="message message-info">Aucun débit réel n'est effectué et les données de carte saisies ne sont pas enregistrées.</p>
-        <button type="submit">Confirmer la réservation et le paiement simulé</button>
+        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Confirmer la réservation et le paiement simulé</button>
     </form>
 
     <script>
         const checkoutForm = document.getElementById("checkout-form");
         const hourlyRateCents = Number(checkoutForm.dataset.hourlyRateCents);
-        const durationInput = checkoutForm.querySelector('[name="duration_hours"]');
+        const maxDurationMinutes = checkoutForm.dataset.maxDurationMinutes
+            ? Number(checkoutForm.dataset.maxDurationMinutes)
+            : null;
+        const durationInputs = [
+            checkoutForm.querySelector('[name="duration_days"]'),
+            checkoutForm.querySelector('[name="duration_hours"]'),
+            checkoutForm.querySelector('[name="duration_extra_minutes"]')
+        ];
         const totalOutput = document.getElementById("reservation-total");
         const plateInput = checkoutForm.querySelector('[name="plate"]');
         const plateOutput = document.getElementById("reservation-plate");
@@ -100,14 +117,39 @@
         });
 
         const updateTotal = () => {
-            const hours = Number(durationInput.value);
-            const validHours = Number.isInteger(hours) && hours > 0;
-            durationOutput.textContent = validHours ? `${hours} h` : "À choisir";
-            totalOutput.textContent = validHours
-                ? currencyFormatter.format((hourlyRateCents * hours) / 100)
+            const values = durationInputs.map((input) =>
+                Number(input.value || 0)
+            );
+            if (maxDurationMinutes !== null && values.every(Number.isFinite)) {
+                let excessMinutes = Math.max(
+                    0,
+                    values[0] * 1440 + values[1] * 60 + values[2] - maxDurationMinutes
+                );
+                for (const [index, unitMinutes] of [[2, 1], [1, 60], [0, 1440]]) {
+                    const reduction = Math.min(
+                        values[index],
+                        Math.ceil(excessMinutes / unitMinutes)
+                    );
+                    values[index] -= reduction;
+                    excessMinutes -= reduction * unitMinutes;
+                    durationInputs[index].value = values[index];
+                }
+            }
+            const [days, hours, extraMinutes] = values;
+            const validDuration = [days, hours, extraMinutes].every((value) =>
+                Number.isInteger(value) && value >= 0
+            ) && days + hours + extraMinutes > 0;
+            const minutes = days * 1440 + hours * 60 + extraMinutes;
+            const parts = [];
+            if (days) parts.push(`${days} jour${days === 1 ? "" : "s"}`);
+            if (hours) parts.push(`${hours} heure${hours === 1 ? "" : "s"}`);
+            if (extraMinutes) parts.push(`${extraMinutes} minute${extraMinutes === 1 ? "" : "s"}`);
+            durationOutput.textContent = validDuration ? parts.join(" ") : "À choisir";
+            totalOutput.textContent = validDuration
+                ? currencyFormatter.format((hourlyRateCents * minutes) / 6000)
                 : "Choisissez une durée";
         };
-        durationInput.addEventListener("input", updateTotal);
+        durationInputs.forEach((input) => input.addEventListener("input", updateTotal));
         updateTotal();
 
         const updatePlate = () => {
@@ -157,6 +199,11 @@
     .checkout-heading > p:last-child { margin-top: .5rem; color: var(--muted); }
     #checkout-form { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(19rem, .85fr); align-items: start; gap: 0 1.5rem; }
     .checkout-fields { grid-column: 1; grid-row: 1; }
+    .duration-fields { min-width: 0; margin: 0 0 17px; padding: 0; border: 0; }
+    .duration-fields legend { margin-bottom: 6px; color: var(--ink); font-weight: 700; }
+    .duration-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .duration-inputs p { margin: 0; }
+    .duration-inputs label { display: block; margin-bottom: 6px; }
     .checkout-summary { grid-column: 2; grid-row: 1; position: sticky; top: 1rem; margin-top: 0; }
     #checkout-form > .message, #checkout-form > button { grid-column: 1 / -1; }
     .checkout-summary-list { display: grid; grid-template-columns: minmax(8rem, .8fr) minmax(0, 1.2fr); margin: 1rem 0 0; }
