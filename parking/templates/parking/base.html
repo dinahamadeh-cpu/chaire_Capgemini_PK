@@ -29,13 +29,15 @@
             --background: var(--paper);
         }
         * { box-sizing: border-box; }
+        .icon-library { position: absolute; width: 0; height: 0; overflow: hidden; }
         body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.55; }
         :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
         a { color: var(--brand); }
         .topbar { position: relative; z-index: 5; border-bottom: 1px solid var(--line); background: #fff; }
         .topbar-inner { width: min(100% - 64px, 1440px); min-height: 76px; margin: auto; display: flex; align-items: center; gap: 48px; }
         .brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
-        .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--brand); color: #fff; font-size: 17px; font-weight: 800; }
+        .brand-mark { display: grid; width: 48px; height: 48px; flex: 0 0 auto; place-items: center; color: var(--brand); }
+        .brand-mark .brand-emblem { width: 48px; height: 48px; overflow: visible; }
         .brand-name { font-size: 15px; font-weight: 800; letter-spacing: .1em; }
         .brand-name small { display: block; margin-top: -3px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .16em; }
         .site-navigation { display: flex; flex: 1; align-items: center; gap: 7px; }
@@ -77,6 +79,7 @@
         .content-heading, .page-heading { margin-bottom: 30px; }
         .content-heading > p:last-child, .page-heading > p:last-child { max-width: 62ch; margin: 8px 0 0; color: var(--muted); }
         a.button, button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--brand); border-radius: 5px; background: var(--brand); color: #fff; font: inherit; font-size: 14px; font-weight: 700; line-height: 1.35; text-decoration: none; cursor: pointer; }
+        .button-icon { width: 1.1em; height: 1.1em; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
         a.button:hover, button:hover { border-color: var(--brand-dark); background: var(--brand-dark); }
         a.button.secondary, button.secondary { border-color: var(--line); background: #fff; color: var(--brand); }
         a.button.secondary:hover, button.secondary:hover { border-color: var(--accent); background: var(--accent-soft); }
@@ -138,21 +141,54 @@
     </style>
 </head>
 <body class="{% block body_class %}{% endblock %}">
+    <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+        <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+        <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+        <symbol id="icon-cancel" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+        <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m11 5-7 7 7 7M4 12h16"/></symbol>
+        <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="m13 5 7 7-7 7M20 12H4"/></symbol>
+        <symbol id="icon-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15m6-12v15"/></symbol>
+        <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></symbol>
+        <symbol id="icon-car" viewBox="0 0 24 24"><path d="m5 11 1.5-5h11L19 11l2 2v6h-3v-2H6v2H3v-6l2-2Z"/><path d="M6 11h12M7 14h.01M17 14h.01"/></symbol>
+        <symbol id="icon-wallet" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v16H5a2 2 0 0 1-2-2V6.5Z"/><path d="M3 7h14a2 2 0 0 1 2 2v2h-5a2 2 0 0 0 0 4h5v2"/><path d="M14 13h.01"/></symbol>
+        <symbol id="icon-save" viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></symbol>
+        <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.5-3"/></symbol>
+        <symbol id="icon-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="5"/><path d="m12 11 8-8m-3 3 3 3m-6 0 3 3"/></symbol>
+        <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10m-7 6h4"/></symbol>
+    </svg>
     <header class="topbar">
         <div class="topbar-inner">
-            <a class="brand" href="{% url 'parking:home' %}" aria-label="Parkings, accueil">
-                <span class="brand-mark" aria-hidden="true">P</span>
-                <span class="brand-name">PARKINGS<small>STATIONNEMENT SIMPLIFIÉ</small></span>
+            <a class="brand" href="{% url 'parking:home' %}" aria-label="Parking King, accueil">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg class="brand-emblem" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="brand-shield" x1="8" y1="5" x2="43" y2="47" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#294d73"/>
+                                <stop offset="1" stop-color="#172d49"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M26 3.5 44 10v14.7c0 11.2-7.3 19.2-18 24.3C15.3 43.9 8 35.9 8 24.7V10l18-6.5Z" fill="url(#brand-shield)" stroke="#C99D4B" stroke-width="1.6"/>
+                        <path d="m15.5 15 3.4 2.7 7.1-7.1 7.1 7.1 3.4-2.7-1.6 7.2H17.1L15.5 15Z" fill="#E9C56D" stroke="#F6E6B2" stroke-width=".8" stroke-linejoin="round"/>
+                        <path d="M19 39V26h8a4.2 4.2 0 1 1 0 8.4h-8" stroke="#FFFDF7" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M33.3 30.2v1.6m0 3.1v1.6m0 2.4v1.2" stroke="#E9C56D" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M29.7 39h7.2" stroke="#E9C56D" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="brand-name">PARKING KING<small>STATIONNEMENT SIMPLIFIÉ</small></span>
             </a>
             <nav class="site-navigation" aria-label="Navigation principale">
-                <a href="{% url 'parking:parking_list' %}">Trouver un parking</a>
+                <a href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Trouver un parking</a>
                 {% if request.user.is_authenticated %}
                     <details class="nav-menu">
                         <summary>Mon espace <span class="nav-chevron" aria-hidden="true">▼</span></summary>
                         <div class="nav-dropdown">
                             <a href="{% url 'parking:reservation_list' %}">Mes réservations</a>
                             <a href="{% url 'parking:favorite_list' %}">Mes favoris</a>
+                            <a href="{% url 'parking:user_contraventions' %}">Mes contraventions</a>
                             <a href="{% url 'parking:payment_methods' %}">Moyens de paiement</a>
+                            <a href="{% url 'parking:settings' %}">Paramètres</a>
                         </div>
                     </details>
                     {% if is_agent %}
@@ -161,6 +197,7 @@
                             <div class="nav-dropdown">
                                 <a href="{% url 'parking:agent_dashboard' %}">Tableau de bord</a>
                                 <a href="{% url 'parking:agent_plate_check' %}">Vérifier une plaque</a>
+                                <a href="{% url 'parking:agent_contraventions' %}">Historique des contraventions</a>
                                 <a href="{% url 'parking:agent_stats' %}">Statistiques</a>
                                 <a href="{% url 'parking:agent_affluence' %}">Affluence</a>
                             </div>
@@ -174,12 +211,12 @@
                         <summary class="user-chip"><span class="user-avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span><span class="user-name">{{ request.user.username }}</span><span class="nav-chevron" aria-hidden="true">▼</span></summary>
                         <div class="nav-dropdown">
                             {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a><hr>{% endif %}
-                            <form class="logout-form" method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button class="logout-menu-button" type="submit">Se déconnecter</button></form>
+                            <form class="logout-form" method="post" action="{% url 'parking:logout' %}">{% csrf_token %}<button class="logout-menu-button" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg>Se déconnecter</button></form>
                         </div>
                     </details>
                 </div>
             {% else %}
-                <div class="guest-actions"><a href="{% url 'parking:login' %}">Connexion</a><a href="{% url 'parking:signup' %}">Créer un compte</a></div>
+                <div class="guest-actions"><a href="{% url 'parking:login' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-key"></use></svg>Connexion</a><a href="{% url 'parking:signup' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>Créer un compte</a></div>
             {% endif %}
         </div>
     </header>
@@ -189,5 +226,15 @@
             {% block content %}{% endblock %}
         </main>
     {% endblock %}
+    <script>
+        document.querySelectorAll(".topbar-inner details").forEach((menu) => {
+            menu.addEventListener("toggle", () => {
+                if (!menu.open) return;
+                document.querySelectorAll(".topbar-inner details").forEach((otherMenu) => {
+                    if (otherMenu !== menu) otherMenu.open = false;
+                });
+            });
+        });
+    </script>
 </body>
 </html>
