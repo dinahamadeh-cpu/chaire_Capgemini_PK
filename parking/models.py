@@ -1,8 +1,10 @@
 from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -12,7 +14,6 @@ plate_validator = RegexValidator(
     regex=r"^[A-Z]{2}-\d{3}-[A-Z]{2}$",
     message="La plaque doit respecter le format AA-123-AA.",
 )
-
 
 class Parking(models.Model):
     name = models.CharField(max_length=200)
@@ -69,6 +70,7 @@ class Spot(models.Model):
     parking = models.ForeignKey(Parking, on_delete=models.CASCADE, related_name="spots")
     number = models.PositiveIntegerField()
     is_available = models.BooleanField(default=True)
+    is_pmr = models.BooleanField("place PMR", default=False)
 
     class Meta:
         constraints = [
@@ -107,8 +109,20 @@ class Reservation(models.Model):
     )
     spot = models.ForeignKey(Spot, on_delete=models.CASCADE, related_name="reservations")
     plate = models.CharField(max_length=9, validators=[plate_validator])
-    duration_hours = models.PositiveSmallIntegerField(default=1)
+    duration_minutes = models.PositiveIntegerField(default=60)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    amount_charged = models.DecimalField(
+        "montant initialement payé (€)",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    amount_refunded = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    payment_reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
     arrived_at = models.DateTimeField(null=True, blank=True)
@@ -141,14 +155,47 @@ class Reservation(models.Model):
     def actual_duration_display(self):
         if self.actual_duration is None:
             return None
-        hours, minutes = divmod(int(self.actual_duration.total_seconds()) // 60, 60)
-        if hours:
-            return f"{hours} h {minutes:02d}"
+        minutes = int(self.actual_duration.total_seconds()) // 60
         return f"{minutes} min"
 
     @property
     def exceeded_duration(self):
-        return self.actual_duration is not None and self.actual_duration > timedelta(hours=self.duration_hours)
+        return (
+            self.actual_duration is not None
+            and self.actual_duration > timedelta(minutes=self.duration_minutes)
+        )
+
+    @property
+    def expected_end(self):
+        start = self.arrived_at or self.created_at
+        return start + timedelta(minutes=self.duration_minutes)
+
+    def calculate_final_amount(self):
+        if self.ended_at is None:
+            return self.amount_paid
+        if self.arrived_at is None:
+            return Decimal("0.00")
+        rate = self.spot.parking.hourly_rate
+        if rate is None:
+            return self.amount_paid
+        if self.actual_duration is None:
+            return self.amount_paid
+        amount = rate * Decimal(str(self.actual_duration.total_seconds())) / Decimal(3600)
+        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def settle_final_amount(self):
+        charged_amount = self.amount_charged
+        if charged_amount == Decimal("0.00"):
+            charged_amount = self.amount_paid or Decimal("0.00")
+        final_amount = self.calculate_final_amount()
+        if final_amount is None:
+            self.amount_refunded = Decimal("0.00")
+        else:
+            self.amount_refunded = max(
+                charged_amount - final_amount,
+                Decimal("0.00"),
+            )
+        self.amount_paid = final_amount
 
     def save(self, *args, **kwargs):
         previous_spot_id = None
@@ -188,14 +235,109 @@ def update_spot_availability_after_reservation_delete(sender, instance, **kwargs
 
 
 class Contravention(models.Model):
+    class FineType(models.TextChoices):
+        NO_RESERVATION = "no_reservation", "Stationnement sans réservation"
+        PMR_ABUSE = "pmr_abuse", "Usage abusif d’une place PMR"
+        OVERSTAY = "overstay", "Dépassement de la durée réservée"
+        WRONG_SPOT = "wrong_spot", "Stationnement sur une place non autorisée"
+        OBSTRUCTING = "obstructing", "Stationnement gênant ou bloquant"
+        NO_PAYMENT = "no_payment", "Paiement ou titre de stationnement absent"
+        OTHER = "other", "Autres"
+
+    class Status(models.TextChoices):
+        ISSUED = "issued", "Émise"
+        CONTESTING = "contesting", "En cours de contestation"
+        CLOSED = "closed", "Clôturée"
+
     agent = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="contraventions",
+        on_delete=models.SET_NULL,
+        related_name="created_contraventions",
+        null=True,
+        blank=True,
     )
+    agent_name = models.CharField(max_length=150, blank=True)
     plate = models.CharField(max_length=9, validators=[plate_validator])
+    number = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    fine_type = models.CharField(
+        max_length=20,
+        choices=FineType.choices,
+        default=FineType.OTHER,
+    )
     reason = models.CharField(max_length=255)
+    amount = models.DecimalField(
+        "montant (€)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("50.00"),
+        validators=[MinValueValidator(Decimal("30.00")), MaxValueValidator(Decimal("200.00"))],
+    )
+    comment = models.TextField(blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="received_contraventions",
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.ISSUED,
+    )
+    opposition_reason = models.TextField(blank=True)
+    opposition_submitted_at = models.DateTimeField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    parking = models.ForeignKey(
+        Parking,
+        on_delete=models.SET_NULL,
+        related_name="contraventions",
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.agent_id and not self.agent_name:
+            self.agent_name = self.agent.get_username()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Contravention {self.plate} - {self.created_at:%d/%m/%Y}"
+
+
+class UserProfile(models.Model):
+    class VehicleModel(models.TextChoices):
+        RENAULT_CLIO = "renault_clio", "Renault Clio"
+        PEUGEOT_208 = "peugeot_208", "Peugeot 208"
+        CITROEN_C3 = "citroen_c3", "Citroën C3"
+        DACIA_SANDERO = "dacia_sandero", "Dacia Sandero"
+        TOYOTA_YARIS = "toyota_yaris", "Toyota Yaris"
+        VOLKSWAGEN_GOLF = "volkswagen_golf", "Volkswagen Golf"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="parking_profile",
+    )
+    phone_number = models.CharField(max_length=20, blank=True)
+    vehicle_model = models.CharField(
+        "modèle du véhicule",
+        max_length=30,
+        choices=VehicleModel.choices,
+        blank=True,
+    )
+    pmr_justification_registered = models.BooleanField(
+        "Justificatif PMR enregistré",
+        default=False,
+        help_text="Indique si l’usager déclare disposer d’un justificatif PMR à présenter au contrôle.",
+    )
+    notifications_enabled = models.BooleanField(
+        "Notifications activées",
+        default=True,
+        help_text="Active ou désactive les rappels de stationnement dans l’application.",
+    )
+
+    def __str__(self):
+        return f"Profil de {self.user}"
