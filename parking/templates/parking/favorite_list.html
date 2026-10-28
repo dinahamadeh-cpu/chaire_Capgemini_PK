@@ -34,10 +34,10 @@
                         {% include "parking/_pricing.html" with parking=favorite.parking %}
 
                         <div class="parking-card-actions">
-                            <a class="button" href="{% url 'parking:parking_detail' favorite.parking.id %}">Voir le détail</a>
+                            <a class="button" href="{% url 'parking:parking_detail' favorite.parking.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir le détail</a>
                             <form method="post" action="{% url 'parking:toggle_favorite' favorite.parking.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="favorite-button">★ Retirer des favoris</button>
+                                <button type="submit" class="favorite-button"><svg class="button-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Retirer des favoris</button>
                             </form>
                         </div>
                     </article>
@@ -47,7 +47,7 @@
             <div class="empty-state">
                 <p><strong>Vous n'avez encore aucun parking favori.</strong></p>
                 <p>Ajoutez des parkings à vos favoris depuis la liste des parkings.</p>
-                <a class="button" href="{% url 'parking:parking_list' %}">Découvrir les parkings</a>
+                <a class="button" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Découvrir les parkings</a>
             </div>
         {% endif %}
     </section>
