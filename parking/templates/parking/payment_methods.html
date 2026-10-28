@@ -42,7 +42,7 @@
                         {{ form.security_code }}
                     </p>
                 </div>
-                <button type="submit" class="payment-submit">{% if payment_method %}Remplacer le moyen simulé{% else %}Enregistrer le moyen simulé{% endif %}</button>
+                <button type="submit" class="payment-submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-wallet"></use></svg>{% if payment_method %}Remplacer le moyen simulé{% else %}Enregistrer le moyen simulé{% endif %}</button>
             </form>
         </section>
     </div>
