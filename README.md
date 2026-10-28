@@ -2,8 +2,6 @@
 
 Application web Django pour gérer des parkings, leurs places et les réservations de véhicules.
 
-L’interface affiche l’identité Parking King et des icônes cohérentes sur ses principales actions.
-
 ## Lancer le site
 
 ### Prérequis
