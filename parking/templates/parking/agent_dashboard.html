@@ -13,6 +13,16 @@
         <div><strong>{{ total_spots }}</strong> place{{ total_spots|pluralize }} au total</div>
         <div><strong>{% if occupancy_rate is not None %}{{ occupancy_rate }} %{% else %}—{% endif %}</strong> taux d'occupation</div>
     </section>
+    {% if high_occupancy_parkings %}
+        <section class="message message-warning" role="alert" aria-label="Alerte d'occupation élevée">
+            <strong>Forte occupation (80 % ou plus)</strong>
+            <ul>
+                {% for entry in high_occupancy_parkings %}
+                    <li>{{ entry.parking.name }} : {{ entry.occupied }}/{{ entry.total }} places ({{ entry.rate }} %)</li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
     {% if not total_spots %}
         <p class="agent-note">Aucune place n’est configurée : les statistiques d’occupation seront disponibles dès qu’un parking sera ajouté.</p>
     {% endif %}
@@ -25,6 +35,9 @@
         </a>
         <a class="agent-action" href="{% url 'parking:agent_affluence' %}">
             <strong>Consulter l’affluence</strong><span>Analyser la fréquentation des parkings.</span>
+        </a>
+        <a class="agent-action" href="{% url 'parking:agent_contraventions' %}">
+            <strong>Historique des contraventions</strong><span>Retrouver les verbalisations et leur localisation.</span>
         </a>
     </nav>
     </div>
