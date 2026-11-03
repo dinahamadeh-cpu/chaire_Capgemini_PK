@@ -1,0 +1,29 @@
+{% extends "parking/base.html" %}
+{% block title %}Mes contraventions - Parking King{% endblock %}
+{% block content %}
+    <p class="eyebrow">Votre compte · Avis</p>
+    <h1>Mes contraventions</h1>
+    {% if contraventions %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr><th scope="col">Date</th><th scope="col">Numéro</th><th scope="col">Véhicule</th><th scope="col">Motif</th><th scope="col">Montant</th><th scope="col">Statut</th></tr>
+                </thead>
+                <tbody>
+                    {% for contravention in contraventions %}
+                        <tr>
+                            <td>{{ contravention.created_at|date:"d/m/Y à H:i" }}</td>
+                            <td><a href="{% url 'parking:user_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
+                            <td>{{ contravention.plate }}</td>
+                            <td>{{ contravention.reason }}</td>
+                            <td>{{ contravention.amount|floatformat:2 }} €</td>
+                            <td>{{ contravention.get_status_display }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Aucun avis de contravention n’est associé à votre compte.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "parking/base.html" %}
+
+{% block title %}Paramètres - Parking{% endblock %}
+{% block content %}
+    <p class="eyebrow">Votre compte</p>
+    <h1>Paramètres</h1>
+    <p>Gérez votre profil, votre véhicule, vos moyens de paiement et vos préférences.</p>
+    {% if form.errors %}
+        <div class="message message-error" role="alert">
+            <strong>Vérifiez les informations saisies :</strong>
+            {{ form.errors }}
+        </div>
+    {% endif %}
+    <form method="post" action="{% if settings_page %}{% url 'parking:settings' %}{% else %}{% url 'parking:account' %}{% endif %}">
+        {% csrf_token %}
+        <fieldset class="settings-section">
+            <legend>Profil</legend>
+            <p>{{ form.email.label_tag }}{{ form.email }}</p>
+            <p>{{ form.phone_number.label_tag }}{{ form.phone_number }}</p>
+        </fieldset>
+        <fieldset class="settings-section">
+            <legend>Véhicule et accessibilité</legend>
+            <p>{{ form.vehicle_model.label_tag }}{{ form.vehicle_model }}</p>
+            <p>{{ form.pmr_justification_registered }} {{ form.pmr_justification_registered.label_tag }}</p>
+        </fieldset>
+        <fieldset class="settings-section">
+            <legend>Notifications</legend>
+            <p>{{ form.notifications_enabled }} {{ form.notifications_enabled.label_tag }}</p>
+            <p class="settings-help">Ce réglage contrôle les rappels affichés dans l’application avant la fin de votre stationnement.</p>
+        </fieldset>
+        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-save"></use></svg>Enregistrer les paramètres</button>
+    </form>
+
+    <section class="settings-section" aria-labelledby="password-settings-title">
+        <h2 id="password-settings-title">Mot de passe</h2>
+        <p>Modifiez le mot de passe utilisé pour vous connecter à votre compte.</p>
+        <a class="button secondary" href="{% url 'parking:password_change' %}">Changer mon mot de passe</a>
+    </section>
+
+    <section class="settings-section account-payment" aria-labelledby="account-payment-title">
+        <h2 id="account-payment-title">Moyen de paiement simulé</h2>
+        {% if payment_method %}
+            <p>Un moyen de paiement simulé est associé à votre compte.</p>
+            <p class="account-payment-note">Aucune donnée de carte bancaire n’est conservée et aucun débit réel n’est effectué.</p>
+            <a class="button secondary" href="{% url 'parking:payment_methods' %}">Gérer le moyen de paiement</a>
+        {% else %}
+            <p>Aucun moyen de paiement simulé n’est encore enregistré.</p>
+            <a class="button" href="{% url 'parking:payment_methods' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-wallet"></use></svg>Ajouter un moyen de paiement</a>
+        {% endif %}
+    </section>
+
+    <details class="settings-section account-deletion">
+        <summary>Supprimer mon compte</summary>
+        <p class="account-deletion-warning">
+            Cette action est définitive. La suppression est refusée si vous avez un
+            stationnement en cours ou une contravention qui vous est associée.
+        </p>
+        <form method="post" action="{% url 'parking:delete_account' %}">
+            {% csrf_token %}
+            <p>
+                <label for="confirm-deletion">
+                    <input id="confirm-deletion" type="checkbox" name="confirm_deletion" required>
+                    Je comprends que la suppression de mon compte est définitive.
+                </label>
+            </p>
+            <p>
+                <label for="username-confirmation">Saisissez votre nom de compte : {{ request.user.username }}</label>
+                <input
+                    id="username-confirmation"
+                    name="username_confirmation"
+                    type="text"
+                    autocomplete="off"
+                    required
+                >
+            </p>
+            <button class="danger-button" type="submit">Supprimer définitivement mon compte</button>
+        </form>
+    </details>
+{% endblock %}
+
+{% block extra_styles %}
+    .settings-section { min-width: 0; margin: 24px 0; padding: 20px; border: 1px solid var(--line); border-radius: 6px; background: #faf9f6; }
+    .settings-section legend { padding: 0 .4rem; color: var(--primary-dark); font-size: 1.1rem; font-weight: 700; }
+    .settings-section p { margin: 0 0 14px; }
+    .settings-section p:last-child { margin-bottom: 0; }
+    .settings-section label { margin-right: .4rem; }
+    .settings-help, .account-payment-note { color: var(--muted); font-size: 13px; }
+    .account-payment h2 { margin: 0 0 12px; font-size: 20px; }
+    .account-payment p { margin: 0 0 12px; }
+    .account-deletion { border-color: var(--danger); }
+    .account-deletion summary { color: var(--danger); font-weight: 700; cursor: pointer; }
+    .account-deletion-warning { color: var(--danger); }
+    .danger-button { border-color: var(--danger); background: var(--danger); }
+{% endblock %}

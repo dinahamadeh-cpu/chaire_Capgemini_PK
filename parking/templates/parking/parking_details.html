@@ -36,6 +36,8 @@
         .reservation-form input:focus { outline: 3px solid rgba(36,87,197,.18); border-color: var(--primary); }
         .reservation-form button { min-height: 44px; padding: .65rem .9rem; border: 0; border-radius: 5px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
         .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
+        .reservation-button--disabled { width: 100%; opacity: .55; cursor: not-allowed !important; }
+        .pmr-requirement { margin: .55rem 0 0; color: var(--danger); font-size: .88rem; }
         @media (max-width: 800px) {
             .detail-layout { display: flex; flex-direction: column; }
             .parking-details-section { order: 1; }
@@ -111,8 +113,16 @@
                             <article class="spot-card">
                                 <span class="spot-icon" aria-hidden="true">🅿️</span>
                                 <strong>Place n°{{ spot.number }}</strong>
+                                {% if spot.is_pmr %}
+                                    <span class="pmr-spot-label">Place PMR</span>
+                                {% endif %}
                                 {% if user.is_authenticated %}
-                                    <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}">Réserver la place n°{{ spot.number }}</a>
+                                    {% if spot.is_pmr and not pmr_justification_registered %}
+                                        <button class="button reservation-button--disabled" type="button" disabled aria-describedby="pmr-requirement-{{ spot.id }}">Réservation PMR indisponible</button>
+                                        <p class="pmr-requirement" id="pmr-requirement-{{ spot.id }}">Vous ne disposez pas de Justificatif PMR</p>
+                                    {% else %}
+                                        <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-car"></use></svg>Réserver la place n°{{ spot.number }}</a>
+                                    {% endif %}
                                 {% else %}
                                     <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
                                 {% endif %}
@@ -122,7 +132,7 @@
                 {% else %}
                     <div class="empty-state">
                         <p><strong>Aucune place disponible dans ce parking.</strong></p>
-                        <a class="button" href="{% url 'parking:parking_list' %}">Voir un autre parking</a>
+                        <a class="button" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir un autre parking</a>
                     </div>
                 {% endif %}
             </section>

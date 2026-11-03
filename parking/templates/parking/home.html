@@ -10,8 +10,8 @@
             <h1 id="landing-title">La bonne place.<br><em>Au bon endroit.</em></h1>
             <p class="hero-description">Repérez les parkings disponibles, choisissez votre place et gérez votre stationnement au même endroit.</p>
             <div class="hero-actions">
-                <a class="hero-primary" href="{% url 'parking:parking_list' %}">Explorer les parkings <span aria-hidden="true">↗</span></a>
-                {% if not user.is_authenticated %}<a class="hero-secondary" href="{% url 'parking:login' %}">J’ai déjà un compte</a>{% else %}<a class="hero-secondary" href="{% url 'parking:reservation_list' %}">Voir mes réservations</a>{% endif %}
+                <a class="hero-primary" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Explorer les parkings <span aria-hidden="true">↗</span></a>
+                {% if not user.is_authenticated %}<a class="hero-secondary" href="{% url 'parking:login' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-key"></use></svg>J’ai déjà un compte</a>{% else %}<a class="hero-secondary" href="{% url 'parking:reservation_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-car"></use></svg>Voir mes réservations</a>{% endif %}
             </div>
             <div class="hero-footnote"><span aria-hidden="true">✓</span> Disponibilités et tarifs consultables avant de réserver</div>
         </div>
@@ -23,21 +23,72 @@
                 <div class="parking-bay parking-bay--three"><b>P</b></div>
                 <div class="parking-bay parking-bay--four"><i></i></div>
                 <div class="map-pin"><span aria-hidden="true">P</span></div>
+                <div class="visual-label"><span class="visual-label-icon" aria-hidden="true">P</span><span><strong>Votre stationnement</strong><small>Simple, du début à la fin</small></span></div>
+                <div class="visual-note"><span aria-hidden="true">✓</span> Tarifs visibles avant de réserver</div>
             </div>
         </div>
     </section>
-    <section class="landing-services" aria-label="Les services">
-        <div><div><strong>Trouvez</strong><p>Comparez les parkings et leurs disponibilités.</p></div></div>
-        <div><div><strong>Réservez</strong><p>Choisissez une place et la durée souhaitée.</p></div></div>
-        <div><div><strong>Gérez</strong><p>Suivez vos réservations depuis votre espace.</p></div></div>
+    <section class="landing-steps" aria-labelledby="landing-steps-title">
+        <div class="steps-heading">
+            <div>
+                <p class="eyebrow">VOTRE PARCOURS</p>
+                <h2 id="landing-steps-title">Un stationnement plus simple, en trois étapes.</h2>
+            </div>
+            <a href="{% url 'parking:parking_list' %}">Commencer <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="steps-grid">
+            <article class="step-card">
+                <span class="step-number">01</span>
+                <span class="step-icon" aria-hidden="true"><svg class="button-icon"><use href="#icon-search"></use></svg></span>
+                <h3>Trouvez</h3>
+                <p>Repérez un parking et comparez les places disponibles près de votre destination.</p>
+            </article>
+            <article class="step-card">
+                <span class="step-number">02</span>
+                <span class="step-icon" aria-hidden="true"><svg class="button-icon"><use href="#icon-car"></use></svg></span>
+                <h3>Choisissez</h3>
+                <p>Sélectionnez votre place et la durée qui correspond à votre besoin.</p>
+            </article>
+            <article class="step-card">
+                <span class="step-number">03</span>
+                <span class="step-icon" aria-hidden="true"><svg class="button-icon"><use href="#icon-arrow-right"></use></svg></span>
+                <h3>Gérez</h3>
+                <p>Retrouvez vos réservations et suivez votre stationnement depuis votre espace.</p>
+            </article>
+        </div>
+    </section>
+    <section class="landing-faq" aria-labelledby="landing-faq-title">
+        <div class="faq-heading">
+            <p class="eyebrow">BESOIN D’AIDE ?</p>
+            <h2 id="landing-faq-title">Questions fréquentes</h2>
+            <p>Les réponses pour préparer votre stationnement en toute simplicité.</p>
+        </div>
+        <div class="faq-list">
+            <details class="faq-item">
+                <summary>Comment trouver un parking disponible ?<span class="faq-toggle" aria-hidden="true"></span></summary>
+                <p>Ouvrez la liste des parkings pour consulter les places disponibles et comparer les parkings proposés.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Comment réserver une place ?<span class="faq-toggle" aria-hidden="true"></span></summary>
+                <p>Choisissez un parking, sélectionnez une place disponible, puis indiquez la durée souhaitée. Les limites de durée du parking sont prises en compte lors de la réservation.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Où retrouver mes réservations ?<span class="faq-toggle" aria-hidden="true"></span></summary>
+                <p>Connectez-vous à votre compte puis ouvrez « Mes réservations » depuis le menu ou le bouton sur cette page.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Comment accéder aux places PMR ?<span class="faq-toggle" aria-hidden="true"></span></summary>
+                <p>Activez la déclaration de justificatif PMR dans les paramètres de votre compte. Sans cette déclaration, la réservation d’une place PMR n’est pas accessible.</p>
+            </details>
+        </div>
     </section>
     <footer class="landing-footer">
-        <span>Parkings · Un service de stationnement clair et pratique</span>
+        <span>Parking King · Un service de stationnement clair et pratique</span>
         <div>
             {% if user.is_authenticated %}
-                {% for group in user.groups.all %}{% if group.name == "Agents" %}<a href="{% url 'parking:agent_dashboard' %}">Accéder à l’espace agent <span aria-hidden="true">↗</span></a>{% endif %}{% endfor %}
-            {% else %}<a href="{% url 'parking:agent_login' %}">Accès professionnel <span aria-hidden="true">↗</span></a>{% endif %}
-            {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration <span aria-hidden="true">↗</span></a>{% endif %}
+                {% for group in user.groups.all %}{% if group.name == "Agents" %}<a href="{% url 'parking:agent_dashboard' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>Accéder à l’espace agent</a>{% endif %}{% endfor %}
+            {% else %}<a href="{% url 'parking:agent_login' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-key"></use></svg>Accès professionnel</a>{% endif %}
+            {% if user.is_staff %}<a href="{% url 'admin:index' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-filter"></use></svg>Administration</a>{% endif %}
         </div>
     </footer>
 </main>
@@ -74,11 +125,41 @@
     .parking-bay--three b { font-size: 19px; }
     .map-pin { position: absolute; z-index: 3; top: 34%; left: 68%; display: grid; width: 48px; height: 48px; place-items: center; border: 5px solid #ffffff44; border-radius: 50% 50% 50% 8px; background: #bf5a43; color: #fff; font-size: 15px; font-weight: 850; transform: rotate(-45deg); }
     .map-pin span { transform: rotate(45deg); }
-    .landing-services { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-    .landing-services > div { display: flex; gap: 17px; padding: 0 27px; border-right: 1px solid var(--line); }.landing-services > div:first-child { padding-left: 0; }.landing-services > div:last-child { border: 0; }
-    .landing-services strong { color: var(--brand); font-size: 14px; }.landing-services p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .visual-label { position: absolute; z-index: 4; top: 25px; left: 25px; display: flex; align-items: center; gap: 11px; padding: 11px 14px; border: 1px solid #ffffff2b; border-radius: 8px; background: #172d49e8; box-shadow: 0 12px 30px #10243a3d; }
+    .visual-label-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 6px; background: #f2a18d; color: var(--brand-dark); font-size: 17px; font-weight: 850; }
+    .visual-label strong, .visual-label small { display: block; }.visual-label strong { font-size: 12px; }.visual-label small { margin-top: 2px; color: #d6e0e8; font-size: 10px; }
+    .visual-note { position: absolute; z-index: 4; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 8px; padding: 11px 14px; border: 1px solid #ffffff38; border-radius: 6px; background: #fff; box-shadow: 0 10px 25px #10243a30; color: var(--brand); font-size: 11px; font-weight: 750; }
+    .visual-note span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--brand); }
+    .landing-steps { padding: 32px 0 28px; border-top: 1px solid var(--line); }
+    .steps-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+    .steps-heading .eyebrow { margin-bottom: 8px; color: var(--accent); }
+    .steps-heading h2 { max-width: 580px; margin: 0; font-size: clamp(22px, 2.4vw, 30px); }
+    .steps-heading > a { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 10px; padding: 10px 0; color: var(--brand); font-size: 13px; font-weight: 750; text-decoration: none; }
+    .steps-heading > a:hover { color: var(--accent); }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .step-card { position: relative; min-height: 185px; padding: 22px; border: 1px solid #e5e3de; border-radius: 8px; background: #fff; box-shadow: 0 8px 24px #213b5b08; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+    .step-card:hover { transform: translateY(-3px); border-color: #c8d1da; box-shadow: 0 14px 30px #213b5b12; }
+    .step-number { position: absolute; top: 18px; right: 20px; color: #a6afb7; font-size: 11px; font-weight: 800; letter-spacing: .1em; }
+    .step-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 7px; background: var(--accent-soft); color: var(--brand); }
+    .step-card h3 { margin: 15px 0 5px; font-size: 16px; }
+    .step-card p { max-width: 34ch; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .landing-faq { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(30px, 8vw, 110px); padding: 42px 0; border-top: 1px solid var(--line); }
+    .faq-heading .eyebrow { margin-bottom: 8px; color: var(--accent); }
+    .faq-heading h2 { margin: 0; font-size: clamp(24px, 2.6vw, 32px); }
+    .faq-heading > p:last-child { max-width: 34ch; margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+    .faq-list { border-top: 1px solid var(--line); }
+    .faq-item { border-bottom: 1px solid var(--line); }
+    .faq-item summary { display: flex; min-height: 59px; align-items: center; justify-content: space-between; gap: 18px; color: var(--ink); font-size: 14px; font-weight: 720; list-style: none; cursor: pointer; }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-toggle { position: relative; width: 22px; height: 22px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 50%; }
+    .faq-toggle::before, .faq-toggle::after { position: absolute; top: 9px; left: 6px; width: 8px; height: 2px; background: var(--brand); content: ""; }
+    .faq-toggle::after { transform: rotate(90deg); transition: transform .2s ease; }
+    .faq-item[open] .faq-toggle { border-color: var(--accent); background: var(--accent-soft); }
+    .faq-item[open] .faq-toggle::after { transform: rotate(0); }
+    .faq-item > p { max-width: 65ch; margin: -2px 35px 18px 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
     .landing-footer { display: flex; min-height: 77px; align-items: center; justify-content: space-between; gap: 18px; color: var(--muted); font-size: 11px; }
     .landing-footer div { display: flex; gap: 24px; }.landing-footer a { color: #526075; font-weight: 700; text-decoration: none; }.landing-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
-    @media (max-width: 900px) { .landing-page { width: min(100% - 36px, 700px); }.landing-hero { grid-template-columns: 1fr; gap: 34px; padding: 48px 0; }.hero-visual { min-height: 390px; }.landing-services > div { padding: 0 13px; } }
-    @media (max-width: 600px) { .landing-page { width: calc(100% - 32px); }.hero-copy h1 { font-size: 52px; }.hero-actions { align-items: flex-start; flex-direction: column; gap: 15px; }.hero-visual { min-height: 330px; }.landing-services { grid-template-columns: 1fr; gap: 17px; }.landing-services > div, .landing-services > div:first-child { padding: 0; border: 0; }.landing-footer { align-items: flex-start; flex-direction: column; padding: 20px 0; }.landing-footer div { flex-wrap: wrap; gap: 14px; } }
+    @media (max-width: 900px) { .landing-page { width: min(100% - 36px, 700px); }.landing-hero { grid-template-columns: 1fr; gap: 34px; padding: 48px 0; }.hero-visual { min-height: 390px; }.steps-grid { gap: 12px; }.step-card { padding: 18px; }.landing-faq { grid-template-columns: 1fr; gap: 22px; } }
+    @media (max-width: 600px) { .landing-page { width: calc(100% - 32px); }.hero-copy h1 { font-size: 52px; }.hero-actions { align-items: flex-start; flex-direction: column; gap: 15px; }.hero-visual { min-height: 330px; }.visual-label { top: 16px; left: 14px; }.visual-note { right: 12px; bottom: 13px; max-width: calc(100% - 24px); font-size: 10px; }.steps-heading { align-items: flex-start; flex-direction: column; gap: 5px; }.steps-grid { grid-template-columns: 1fr; }.step-card { min-height: 0; }.landing-faq { padding: 32px 0; }.faq-item summary { font-size: 13px; }.landing-footer { align-items: flex-start; flex-direction: column; padding: 20px 0; }.landing-footer div { flex-wrap: wrap; gap: 14px; } }
+    @media (prefers-reduced-motion: reduce) { .step-card { transition: none; } .step-card:hover { transform: none; } }
 {% endblock %}

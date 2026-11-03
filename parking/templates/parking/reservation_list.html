@@ -7,7 +7,7 @@
     <section class="reservation-page">
     <header class="page-heading">
         <p class="eyebrow">Votre activité</p>
-        <div class="reservation-page-title"><div><h1>Mes réservations</h1><p>Retrouvez vos stationnements en cours et passés.</p></div><a class="button" href="{% url 'parking:parking_list' %}">Réserver une place <span aria-hidden="true">↗</span></a></div>
+        <div class="reservation-page-title"><div><h1>Mes réservations</h1><p>Retrouvez vos stationnements en cours et passés.</p></div><a class="button" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-car"></use></svg>Réserver une place</a></div>
     </header>
 
     {% if reservations %}
@@ -24,10 +24,11 @@
                         </header>
 
                         <dl class="reservation-details">
-                            <div><dt>Durée réservée</dt><dd>{{ reservation.duration_hours }} h</dd></div>
+                            <div><dt>Durée réservée</dt><dd>{{ reservation.duration_minutes }} min</dd></div>
                             {% if reservation.amount_paid is not None %}
-                                <div><dt>Paiement simulé</dt><dd>{{ reservation.amount_paid|floatformat:2 }} €</dd></div>
+                                <div><dt>{% if reservation.status == "active" %}Estimation simulée{% else %}Montant final{% endif %}</dt><dd>{{ reservation.amount_paid|floatformat:2 }} €</dd></div>
                             {% endif %}
+                            <div><dt>Référence de paiement</dt><dd>{{ reservation.payment_reference }}</dd></div>
                             <div><dt>Créée le</dt><dd>{{ reservation.created_at|date:"d/m/Y à H:i" }}</dd></div>
                         </dl>
 
@@ -35,11 +36,25 @@
                             <div class="reservation-progress">
                                 {% if reservation.arrived_at %}
                                     <p>Arrivée confirmée le {{ reservation.arrived_at|date:"d/m/Y à H:i" }}</p>
-                                    <p class="parking-countdown" role="status" data-arrival="{{ reservation.arrived_at|date:'c' }}" data-duration-hours="{{ reservation.duration_hours }}">Calcul du temps restant…</p>
+                                    <p class="parking-countdown" role="status" data-arrival="{{ reservation.arrived_at|date:'c' }}" data-duration-minutes="{{ reservation.duration_minutes }}">Calcul du temps restant…</p>
+                                    <p class="parking-reminder message message-warning" role="alert" {% if not reservation.reminder_due %}hidden{% endif %}>Votre stationnement se termine dans moins de 15 minutes.</p>
                                 {% else %}
                                     <p>Le décompte commencera après confirmation de votre arrivée.</p>
                                 {% endif %}
                             </div>
+                            {% if reservation.arrived_at %}
+                                <form class="reservation-extension" method="post" action="{% url 'parking:extend_reservation' reservation.id %}">
+                                    {% csrf_token %}
+                                    <span>Prolonger de :</span>
+                                    <label for="extra-days-{{ reservation.id }}">Jours</label>
+                                    <input id="extra-days-{{ reservation.id }}" name="extra_days" type="number" min="0" max="2147483647" step="1" value="0">
+                                    <label for="extra-hours-{{ reservation.id }}">Heures</label>
+                                    <input id="extra-hours-{{ reservation.id }}" name="extra_hours" type="number" min="0" max="2147483647" step="1" value="0">
+                                    <label for="extra-minutes-{{ reservation.id }}">Minutes</label>
+                                    <input id="extra-minutes-{{ reservation.id }}" name="extra_minutes" type="number" min="0" max="2147483647" step="1" value="0">
+                                    <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-clock"></use></svg>Prolonger</button>
+                                </form>
+                            {% endif %}
                         {% elif reservation.status == "cancelled" %}
                             <p class="reservation-note">Annulée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
                         {% elif reservation.ended_at %}
@@ -51,20 +66,20 @@
                                 {% if reservation.arrived_at %}
                                     <form method="post" action="{% url 'parking:declare_departure' reservation.id %}">
                                         {% csrf_token %}
-                                        <button type="submit">Déclarer mon départ</button>
+                                        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>Déclarer mon départ</button>
                                     </form>
                                 {% else %}
                                     <form method="post" action="{% url 'parking:confirm_arrival' reservation.id %}">
                                         {% csrf_token %}
-                                        <button type="submit">Confirmer mon arrivée</button>
+                                        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Confirmer mon arrivée</button>
                                     </form>
                                 {% endif %}
                                 <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}">
                                     {% csrf_token %}
-                                    <button class="secondary" type="submit">Annuler la réservation</button>
+                                    <button class="secondary" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-cancel"></use></svg>Annuler la réservation</button>
                                 </form>
                             {% endif %}
-                            <a class="button secondary" href="{% url 'parking:reservation_summary' reservation.id %}">Voir le récapitulatif</a>
+                            <a class="button secondary" href="{% url 'parking:reservation_summary' reservation.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir le récapitulatif</a>
                         </div>
                     </article>
                 </li>
@@ -74,7 +89,7 @@
         <section class="empty-state">
             <h2>Aucune réservation pour le moment</h2>
             <p>Choisissez un parking pour réserver une place.</p>
-            <a class="button" href="{% url 'parking:parking_list' %}">Voir les parkings</a>
+            <a class="button" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir les parkings</a>
         </section>
     {% endif %}
     </section>
@@ -90,8 +105,10 @@
         const updateCountdowns = () => {
             document.querySelectorAll(".parking-countdown").forEach((countdown) => {
                 const arrival = new Date(countdown.dataset.arrival).getTime();
-                const durationMs = Number(countdown.dataset.durationHours) * 60 * 60 * 1000;
+                const durationMs = Number(countdown.dataset.durationMinutes) * 60 * 1000;
                 const remainingMs = arrival + durationMs - Date.now();
+                const reminder = countdown.parentElement.querySelector(".parking-reminder");
+                reminder.hidden = remainingMs <= 0 || remainingMs > 15 * 60 * 1000;
 
                 countdown.textContent = remainingMs > 0
                     ? `Temps de stationnement restant : ${formatRemainingTime(Math.floor(remainingMs / 1000))}`
@@ -125,8 +142,14 @@
     .reservation-progress, .reservation-note { margin: 1rem 0; padding: .75rem 1rem; border-left: 3px solid var(--accent); background: var(--accent-soft); }
     .reservation-progress p, .reservation-note { margin-top: .3rem; margin-bottom: .3rem; }
     .parking-countdown { font-weight: 700; color: var(--primary-dark); }
+    .reservation-extension { display: grid; justify-items: start; gap: .55rem; max-width: 18rem; margin: 1rem 0 0; }
+    .reservation-extension label { margin: 0; }
+    .reservation-extension input { max-width: 12rem; }
     .reservation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin-top: 1rem; }
     .reservation-actions > * { margin: 0; }
+    .reservation-actions form { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+    .reservation-actions form select { width: auto; min-width: 9rem; }
+    .reservation-actions form label { margin: 0; }
     .reservation-actions form button, .reservation-actions .button { margin: 0; }
     .empty-state { padding: 28px; border: 1px solid var(--border); border-radius: 5px; background: #fff; }
     .empty-state h2 { margin-top: 0; }

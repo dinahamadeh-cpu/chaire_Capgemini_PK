@@ -1,0 +1,41 @@
+{% extends "parking/base.html" %}
+{% block title %}Historique des contraventions - Parking{% endblock %}
+{% block content %}
+    <p class="eyebrow">Espace professionnel · Contrôle</p>
+    <h1>Historique des contraventions</h1>
+    {% if contraventions %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Numéro</th>
+                        <th scope="col">Plaque</th>
+                        <th scope="col">Motif</th>
+                        <th scope="col">Montant</th>
+                        <th scope="col">Statut</th>
+                        <th scope="col">Agent</th>
+                        <th scope="col">Localisation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contravention in contraventions %}
+                        <tr>
+                            <td>{{ contravention.created_at|date:"d/m/Y à H:i" }}</td>
+                            <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
+                            <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.plate }}</a></td>
+                            <td>{{ contravention.reason }}</td>
+                            <td>{{ contravention.amount|floatformat:2 }} €</td>
+                            <td>{{ contravention.get_status_display }}</td>
+                            <td>{{ contravention.agent_name }}</td>
+                            <td>{% if contravention.parking %}{{ contravention.parking.name }}{% else %}Non renseigné{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Aucune contravention n’a été enregistrée.</p>
+    {% endif %}
+    <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+{% endblock %}

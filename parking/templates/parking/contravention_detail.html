@@ -1,0 +1,50 @@
+{% extends "parking/base.html" %}
+{% block title %}Avis de contravention - Parking King{% endblock %}
+{% block content %}
+    <p class="eyebrow">{% if is_agent_view %}Espace professionnel · Avis{% else %}Votre compte · Avis{% endif %}</p>
+    <h1>Avis de contravention</h1>
+    <dl class="contravention-details">
+        <dt>Numéro</dt><dd>{{ contravention.number }}</dd>
+        <dt>Véhicule</dt><dd>{{ contravention.plate }}</dd>
+        <dt>Motif</dt><dd>{{ contravention.reason }}</dd>
+        <dt>Montant</dt><dd>{{ contravention.amount|floatformat:2 }} €</dd>
+        <dt>Date</dt><dd>{{ contravention.created_at|date:"d/m/Y à H:i" }}</dd>
+        <dt>Lieu</dt><dd>{% if contravention.parking %}{{ contravention.parking.name }} — {{ contravention.parking.address }}{% else %}Non renseigné{% endif %}</dd>
+        <dt>Commentaire</dt><dd>{% if contravention.comment %}{{ contravention.comment|linebreaksbr }}{% else %}Aucun commentaire{% endif %}</dd>
+        <dt>Statut</dt><dd>{{ contravention.get_status_display }}</dd>
+        {% if contravention.opposition_submitted_at %}
+            <dt>Opposition déposée le</dt><dd>{{ contravention.opposition_submitted_at|date:"d/m/Y à H:i" }}</dd>
+            <dt>Motif de l’opposition</dt><dd>{{ contravention.opposition_reason|linebreaksbr }}</dd>
+        {% endif %}
+        {% if is_agent_view %}
+            <dt>Agent</dt><dd>{{ contravention.agent_name|default:"Compte supprimé" }}</dd>
+        {% endif %}
+    </dl>
+
+    {% if not is_agent_view %}
+        {% if can_contest %}
+            <section class="opposition-panel" aria-labelledby="opposition-title">
+                <h2 id="opposition-title">Contester cet avis</h2>
+                <p>Vous pouvez déposer une opposition jusqu’au {{ appeal_deadline|date:"d/m/Y à H:i" }}.</p>
+                <form method="post" action="{% url 'parking:contest_contravention' contravention.id %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>Envoyer l’opposition</button>
+                </form>
+            </section>
+        {% elif contravention.status == "issued" %}
+            <p class="message message-warning">Le délai de 30 jours pour contester cet avis est dépassé.</p>
+        {% endif %}
+        <p><a href="{% url 'parking:user_contraventions' %}">&larr; Retour à mes contraventions</a></p>
+    {% else %}
+        <p><a href="{% url 'parking:agent_contraventions' %}">&larr; Retour à l’historique des contraventions</a></p>
+    {% endif %}
+{% endblock %}
+{% block extra_styles %}
+    .contravention-details { display: grid; grid-template-columns: minmax(9rem, auto) 1fr; gap: .65rem 1rem; }
+    .contravention-details dt { font-weight: 700; }
+    .contravention-details dd { margin: 0; overflow-wrap: anywhere; }
+    .opposition-panel { margin-top: 2rem; padding: 1.3rem; border: 1px solid var(--line); border-radius: 6px; background: #faf9f6; }
+    .opposition-panel h2 { margin: 0; font-size: 20px; }
+    @media (max-width: 520px) { .contravention-details { grid-template-columns: 1fr; gap: .15rem; }.contravention-details dd { margin-bottom: .5rem; } }
+{% endblock %}

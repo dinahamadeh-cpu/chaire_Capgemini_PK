@@ -25,6 +25,13 @@
 
         .map-section { grid-column: 2; grid-row: 1; position: sticky; top: 0; height: calc(100vh - 76px); background: #eeece6; }
         #map { width: 100%; height: 100%; min-height: 420px; }
+        .pmr-map-filter { position: absolute; top: 16px; left: 16px; z-index: 1; display: flex; align-items: center; gap: .55rem; padding: .7rem .9rem; border: 1px solid var(--line); border-radius: 6px; background: #fff; box-shadow: 0 2px 8px #20395624; font-weight: 700; }
+        .pmr-map-filter input { width: 18px; height: 18px; accent-color: var(--success); }
+        .terrain-map-filter { position: absolute; top: 76px; left: 16px; z-index: 1; display: flex; align-items: center; gap: .45rem; padding: .45rem .7rem; border: 1px solid var(--line); border-radius: 5px; background: #fff; box-shadow: 0 2px 8px #20395624; font-weight: 600; cursor: pointer; }
+        .terrain-map-filter input { width: 16px; height: 16px; accent-color: var(--primary); }
+        .pmr-availability { margin: .5rem 0 0; color: var(--success); font-weight: 650; }
+        .pmr-marker-key { display: none; position: absolute; right: 16px; bottom: 16px; z-index: 1; padding: .5rem .75rem; border-radius: 5px; background: #fff; color: var(--success); font-weight: 700; }
+        .pmr-marker-key.is-visible { display: block; }
 
         .parking-list-section { grid-column: 1; grid-row: 1; max-height: calc(100vh - 76px); padding: 24px clamp(20px, 2.3vw, 38px); overflow-y: auto; }
         .content-heading { max-width: 760px; margin-bottom: 1.25rem; }
@@ -167,6 +174,15 @@
       <div class="page-layout">
         <section class="map-section" aria-label="Carte des parkings">
             <div id="map"></div>
+            <label class="pmr-map-filter" for="pmr-map-toggle">
+                <input id="pmr-map-toggle" type="checkbox">
+                Places PMR disponibles
+            </label>
+            <label class="terrain-map-filter" for="terrain-map-toggle">
+                <input id="terrain-map-toggle" type="checkbox">
+                Terrain
+            </label>
+            <span class="pmr-marker-key" id="pmr-marker-key">Parking avec places PMR disponibles</span>
         </section>
 
         <section class="parking-list-section">
@@ -206,10 +222,12 @@
                     </div>
 
                     <button type="submit" class="button">
+                        <svg class="button-icon" aria-hidden="true"><use href="#icon-filter"></use></svg>
                         Appliquer les filtres
                     </button>
 
                     <a href="{% url 'parking:parking_list' %}" class="button secondary">
+                        <svg class="button-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>
                         Réinitialiser
                     </a>
                 </form>
@@ -245,11 +263,14 @@
                             place{{ parking.available_spots_count|pluralize }} disponible{{ parking.available_spots_count|pluralize }}
                             sur {{ parking.total_spots_count }}
                         </p>
+                        {% if parking.available_pmr_spots_count %}
+                            <p class="pmr-availability">{{ parking.available_pmr_spots_count }} place{{ parking.available_pmr_spots_count|pluralize }} PMR disponible{{ parking.available_pmr_spots_count|pluralize }}</p>
+                        {% endif %}
 
                         {% include "parking/_pricing.html" %}
 
                         <div class="parking-card-actions">
-                            <a class="button" href="{% url 'parking:parking_detail' parking.id %}">Voir le détail</a>
+                            <a class="button" href="{% url 'parking:parking_detail' parking.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir le détail</a>
 
                             <form
                                 method="post"
@@ -259,11 +280,11 @@
 
                                 {% if parking.id in favorite_parking_ids %}
                                     <button type="submit" class="favorite-button is-favorite">
-                                        ★ Retirer des favoris
+                                        <svg class="button-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Retirer des favoris
                                     </button>
                                 {% else %}
                                     <button type="submit" class="favorite-button">
-                                        ☆ Ajouter aux favoris
+                                        <svg class="button-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Ajouter aux favoris
                                     </button>
                                 {% endif %}
                             </form>
@@ -275,6 +296,7 @@
                                     data-parking-id="{{ parking.id }}"
                                     aria-label="Voir {{ parking.name }} sur la carte"
                                 >
+                                    <svg class="button-icon" aria-hidden="true"><use href="#icon-map"></use></svg>
                                     Voir sur la carte
                                 </button>
                             {% endif %}
@@ -297,10 +319,36 @@
         function initMap() {
             const map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 12,
-                center: { lat: 48.8566, lng: 2.3522 }
+                center: { lat: 48.8566, lng: 2.3522 },
+                mapTypeControlOptions: {
+                    position: google.maps.ControlPosition.BOTTOM_LEFT
+                }
             });
+            const terrainToggle = document.getElementById("terrain-map-toggle");
+            const syncTerrainToggle = () => {
+                terrainToggle.checked =
+                    map.getMapTypeId() === google.maps.MapTypeId.TERRAIN;
+            };
+            terrainToggle.addEventListener("change", () => {
+                map.setMapTypeId(
+                    terrainToggle.checked
+                        ? google.maps.MapTypeId.TERRAIN
+                        : google.maps.MapTypeId.ROADMAP
+                );
+            });
+            map.addListener("maptypeid_changed", syncTerrainToggle);
+            syncTerrainToggle();
+
             const parkings = JSON.parse(document.getElementById("parkings-data").textContent);
             const parkingMarkers = new Map();
+            const pmrMarkerIcon = {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#176349",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2
+            };
 
             parkings.forEach((parking) => {
                 if (parking.latitude !== null && parking.longitude !== null) {
@@ -311,17 +359,35 @@
                     });
                     parking.marker = marker;
                     const infoWindow = new google.maps.InfoWindow({
-                        content: `<strong>${parking.name}</strong><br>${parking.address}`
+                        content: `<strong>${parking.name}</strong><br>${parking.address}<br>${parking.available_pmr_spots_count} place(s) PMR disponible(s)`
                     });
                     marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
-                    parkingMarkers.set(String(parking.id), marker);
+                    parkingMarkers.set(String(parking.id), { marker, parking });
                 }
             });
 
+            const pmrToggle = document.getElementById("pmr-map-toggle");
+            const pmrMarkerKey = document.getElementById("pmr-marker-key");
+            const updatePmrMarkers = () => {
+                const showPmrOnly = pmrToggle.checked;
+                pmrMarkerKey.classList.toggle("is-visible", showPmrOnly);
+                parkingMarkers.forEach(({ marker, parking }) => {
+                    const hasAvailablePmrSpot = parking.available_pmr_spots_count > 0;
+                    marker.setMap(!showPmrOnly || hasAvailablePmrSpot ? map : null);
+                    marker.setIcon(showPmrOnly && hasAvailablePmrSpot ? pmrMarkerIcon : null);
+                });
+            };
+            pmrToggle.addEventListener("change", updatePmrMarkers);
+
             document.querySelectorAll(".focus-map-button").forEach((button) => {
                 button.addEventListener("click", () => {
-                    const marker = parkingMarkers.get(button.dataset.parkingId);
-                    if (!marker) return;
+                    const entry = parkingMarkers.get(button.dataset.parkingId);
+                    if (!entry) return;
+                    if (pmrToggle.checked && entry.parking.available_pmr_spots_count === 0) {
+                        pmrToggle.checked = false;
+                        updatePmrMarkers();
+                    }
+                    const { marker } = entry;
                     map.panTo(marker.getPosition());
                     map.setZoom(15);
                     google.maps.event.trigger(marker, "click");

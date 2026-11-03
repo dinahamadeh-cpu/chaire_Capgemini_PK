@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from parking.models import Parking, Reservation, Spot
+from parking.models import Contravention, Parking, Reservation, Spot
 
 AGENTS = [
     {"username": "agent1", "password": "agent1234"},
@@ -132,7 +132,13 @@ class Command(BaseCommand):
                 closing_time=data["closing_time"],
             )
             for number in range(1, data["spots"] + 1):
-                spots.append(Spot.objects.create(parking=parking, number=number))
+                spots.append(
+                    Spot.objects.create(
+                        parking=parking,
+                        number=number,
+                        is_pmr=number in (9, 10),
+                    )
+                )
         self.stdout.write(f"{len(PARKINGS)} parkings et {len(spots)} places créés.")
 
         stationed_spots = spots[: len(STATIONED_PLATES)]
@@ -159,10 +165,81 @@ class Command(BaseCommand):
             Reservation.objects.filter(pk=reservation.pk).update(created_at=started, ended_at=ended)
         self.stdout.write(f"{len(LEFT_PLATES)} véhicules déjà partis (historique).")
 
+        self.create_demo_summary(demo_user, spots[10], now)
+
         history_count = self.create_history(timezone.localdate())
         self.stdout.write(f"{history_count} réservations passées sur {HISTORY_DAYS} jours (affluence).")
 
+        self.create_contraventions(demo_user)
         self.stdout.write(self.style.SUCCESS("Données factices créées avec succès."))
+
+    def create_demo_summary(self, demo_user, spot, now):
+        arrived_at = now - timedelta(days=2)
+        ended_at = arrived_at + timedelta(hours=2, minutes=16)
+        reservation = Reservation(
+            user=demo_user,
+            spot=spot,
+            plate="II-901-II",
+            duration_minutes=210,
+            amount_paid=Decimal("6.30"),
+            amount_charged=Decimal("6.30"),
+            status=Reservation.Status.COMPLETED,
+            arrived_at=arrived_at,
+            ended_at=ended_at,
+        )
+        reservation.settle_final_amount()
+        reservation.save()
+        Reservation.objects.filter(pk=reservation.pk).update(created_at=arrived_at)
+        self.stdout.write(
+            "Récapitulatif de démonstration créé : 3 h 30 réservées, "
+            "2 h 16 de stationnement réel."
+        )
+
+    def create_contraventions(self, demo_user):
+        agents = {
+            agent["username"]: get_user_model().objects.get(username=agent["username"])
+            for agent in AGENTS
+        }
+        centre_ville = Parking.objects.get(name="Parking Centre-Ville")
+        gare = Parking.objects.get(name="Parking Gare")
+        sample_contraventions = [
+            {
+                "agent": agents["agent1"],
+                "user": demo_user,
+                "plate": "YY-111-YY",
+                "fine_type": Contravention.FineType.NO_PAYMENT,
+                "reason": "Paiement ou titre de stationnement absent",
+                "parking": centre_ville,
+                "amount": Decimal("50.00"),
+                "comment": "Exemple de contravention associée au compte demo.",
+                "status": Contravention.Status.ISSUED,
+                "opposition_reason": "",
+                "opposition_submitted_at": None,
+            },
+            {
+                "agent": agents["agent2"],
+                "user": None,
+                "plate": "ZZ-222-ZZ",
+                "fine_type": Contravention.FineType.OVERSTAY,
+                "reason": "Dépassement de la durée réservée",
+                "parking": gare,
+                "amount": Decimal("35.00"),
+                "comment": "Exemple d’avis créé par agent2.",
+                "status": Contravention.Status.ISSUED,
+                "opposition_reason": "",
+                "opposition_submitted_at": None,
+            },
+        ]
+        for data in sample_contraventions:
+            agent = data["agent"]
+            plate = data["plate"]
+            Contravention.objects.update_or_create(
+                agent=agent,
+                plate=plate,
+                reason=data["reason"],
+                defaults=data,
+            )
+        self.stdout.write(f"{len(sample_contraventions)} contraventions de démonstration créées ou actualisées.")
 
     def create_history(self, today):
         """Crée des stationnements terminés sur les jours précédents, sans chevauchement sur une même place."""
@@ -197,7 +274,7 @@ class Command(BaseCommand):
                         Reservation(
                             spot=spot,
                             plate=random_plate(rng),
-                            duration_hours=-(-(end - start).seconds // 3600),
+                            duration_minutes=int((end - start).total_seconds() // 60),
                             status=Reservation.Status.COMPLETED,
                             arrived_at=start,
                             ended_at=end,
