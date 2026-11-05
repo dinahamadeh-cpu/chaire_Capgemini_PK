@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, time
 from decimal import Decimal
 from io import StringIO
+from importlib import import_module
 import re
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core import mail
 from django.contrib.auth import get_user_model
@@ -111,6 +112,60 @@ class SeedDataTests(TestCase):
         self.assertEqual(
             Contravention.objects.get(plate="YY-111-YY").parking.name,
             "Parking Centre-Ville",
+        )
+
+    def test_seed_data_rerun_preserves_existing_data_without_duplicates(self):
+        call_command("seed_data", stdout=StringIO())
+        user = get_user_model().objects.create_user(username="custom-user")
+        parking = Parking.objects.create(name="Parking personnalisé", address="1 rue locale")
+        spot = Spot.objects.create(parking=parking, number=1)
+        reservation = Reservation.objects.create(
+            user=user,
+            spot=spot,
+            plate="XX-123-XX",
+            status=Reservation.Status.COMPLETED,
+        )
+        Favorite.objects.create(user=user, parking=parking)
+        counts = (
+            Parking.objects.count(),
+            Spot.objects.count(),
+            Reservation.objects.count(),
+            Contravention.objects.count(),
+            Favorite.objects.count(),
+        )
+
+        call_command("seed_data", stdout=StringIO())
+
+        self.assertEqual(
+            (
+                Parking.objects.count(),
+                Spot.objects.count(),
+                Reservation.objects.count(),
+                Contravention.objects.count(),
+                Favorite.objects.count(),
+            ),
+            counts,
+        )
+        self.assertTrue(Reservation.objects.filter(pk=reservation.pk).exists())
+        self.assertTrue(Favorite.objects.filter(user=user, parking=parking).exists())
+        self.assertTrue(UserProfile.objects.filter(user__username="demo").exists())
+
+
+class MigrationDataTests(TestCase):
+    def test_reversing_duration_conversion_rounds_up_to_an_hour(self):
+        migration = import_module(
+            "parking.migrations.0012_minutes_profile_location_payment_reference"
+        )
+        reservation = Mock(pk=1, duration_minutes=1)
+        manager = Mock()
+        manager.only.return_value.iterator.return_value = [reservation]
+        apps = Mock()
+        apps.get_model.return_value.objects = manager
+
+        migration.convert_durations_to_hours(apps, None)
+
+        manager.filter.return_value.update.assert_called_once_with(
+            duration_minutes=1
         )
 
 
@@ -850,14 +905,18 @@ class ParkingViewsTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.check_password("New-password-456!"))
 
-    def test_password_reset_rejects_an_unknown_email(self):
+    def test_password_reset_does_not_reveal_an_unknown_email(self):
         response = self.client.post(
             reverse("parking:password_reset"),
             {"email": "unknown@example.com"},
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Aucun compte n’est associé à cette adresse e-mail.")
+        self.assertRedirects(response, reverse("parking:password_reset_done"))
+        response = self.client.get(response.url)
+        self.assertContains(
+            response,
+            "Si l’adresse est associée à un compte, un lien de réinitialisation vient d’être envoyé.",
+        )
         self.assertEqual(len(mail.outbox), 0)
 
     def test_user_can_add_a_phone_number_to_their_account(self):

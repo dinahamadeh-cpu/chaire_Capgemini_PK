@@ -14,7 +14,6 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import (
-    AccountPasswordResetForm,
     AccountDeletionForm,
     ContraventionForm,
     ContraventionOppositionForm,

@@ -16,7 +16,7 @@ def convert_durations_to_hours(apps, schema_editor):
     Reservation = apps.get_model("parking", "Reservation")
     for reservation in Reservation.objects.only("pk", "duration_minutes").iterator():
         Reservation.objects.filter(pk=reservation.pk).update(
-            duration_minutes=reservation.duration_minutes // 60
+            duration_minutes=(reservation.duration_minutes + 59) // 60
         )
 
 

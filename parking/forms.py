@@ -3,7 +3,7 @@ import re
 from decimal import Decimal
 
 from django import forms
-from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
+from django.contrib.auth.forms import UserCreationForm
 
 from .models import (
     Contravention,
@@ -382,15 +382,6 @@ class ContraventionOppositionForm(forms.Form):
             raise forms.ValidationError("Le motif de l’opposition est obligatoire.")
         return reason
 
-
-class AccountPasswordResetForm(PasswordResetForm):
-    def clean_email(self):
-        email = self.cleaned_data["email"]
-        if not any(self.get_users(email)):
-            raise forms.ValidationError(
-                "Aucun compte n’est associé à cette adresse e-mail."
-            )
-        return email
 
 class ParkingFilterForm(forms.Form):
     min_rate = forms.DecimalField(
