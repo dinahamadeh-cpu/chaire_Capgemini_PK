@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from parking.models import Contravention, Parking, Reservation, Spot
+from parking.models import Contravention, Parking, Reservation, Spot, UserProfile
 
 AGENTS = [
     {"username": "agent1", "password": "agent1234"},
@@ -114,82 +114,79 @@ class Command(BaseCommand):
             self.stdout.write(f"Utilisateur de démonstration créé : {DEMO_USER['username']}")
         else:
             self.stdout.write(f"Utilisateur déjà existant : {DEMO_USER['username']}")
-
-        Reservation.objects.all().delete()
-        Spot.objects.all().delete()
-        Parking.objects.all().delete()
+        UserProfile.objects.get_or_create(user=demo_user)
 
         spots = []
         for data in PARKINGS:
-            parking = Parking.objects.create(
+            parking, _ = Parking.objects.get_or_create(
                 name=data["name"],
-                address=data["address"],
-                latitude=data["latitude"],
-                longitude=data["longitude"],
-                hourly_rate=data["hourly_rate"],
-                max_duration_minutes=data["max_duration_minutes"],
-                opening_time=data["opening_time"],
-                closing_time=data["closing_time"],
+                defaults={key: value for key, value in data.items() if key != "spots"},
             )
             for number in range(1, data["spots"] + 1):
-                spots.append(
-                    Spot.objects.create(
-                        parking=parking,
-                        number=number,
-                        is_pmr=number in (9, 10),
-                    )
+                spot, _ = Spot.objects.get_or_create(
+                    parking=parking,
+                    number=number,
+                    defaults={"is_pmr": number in (9, 10)},
                 )
+                spots.append(spot)
         self.stdout.write(f"{len(PARKINGS)} parkings et {len(spots)} places créés.")
 
         stationed_spots = spots[: len(STATIONED_PLATES)]
         for plate, spot in zip(STATIONED_PLATES, stationed_spots):
-            Reservation.objects.create(
-                user=demo_user if plate in DEMO_RESERVATION_PLATES else None,
+            Reservation.objects.get_or_create(
                 plate=plate,
                 spot=spot,
-                status=Reservation.Status.ACTIVE,
+                defaults={
+                    "user": demo_user if plate in DEMO_RESERVATION_PLATES else None,
+                    "status": Reservation.Status.ACTIVE,
+                },
             )
         self.stdout.write(f"{len(STATIONED_PLATES)} véhicules stationnés (plaques actives).")
 
         left_spots = spots[len(STATIONED_PLATES) : len(STATIONED_PLATES) + len(LEFT_PLATES)]
         now = timezone.now()
         for index, (plate, spot) in enumerate(zip(LEFT_PLATES, left_spots)):
-            reservation = Reservation.objects.create(
-                user=demo_user if plate in DEMO_RESERVATION_PLATES else None,
+            reservation, created = Reservation.objects.get_or_create(
                 plate=plate,
                 spot=spot,
-                status=Reservation.Status.COMPLETED,
+                defaults={
+                    "user": demo_user if plate in DEMO_RESERVATION_PLATES else None,
+                    "status": Reservation.Status.COMPLETED,
+                },
             )
-            started = now - timedelta(hours=3 - index)
-            ended = now - timedelta(hours=1)
-            Reservation.objects.filter(pk=reservation.pk).update(created_at=started, ended_at=ended)
+            if created:
+                started = now - timedelta(hours=3 - index)
+                ended = now - timedelta(hours=1)
+                Reservation.objects.filter(pk=reservation.pk).update(created_at=started, ended_at=ended)
         self.stdout.write(f"{len(LEFT_PLATES)} véhicules déjà partis (historique).")
-
-        self.create_demo_summary(demo_user, spots[10], now)
 
         history_count = self.create_history(timezone.localdate())
         self.stdout.write(f"{history_count} réservations passées sur {HISTORY_DAYS} jours (affluence).")
 
+        self.create_demo_summary(demo_user, spots[10], now)
         self.create_contraventions(demo_user)
         self.stdout.write(self.style.SUCCESS("Données factices créées avec succès."))
 
     def create_demo_summary(self, demo_user, spot, now):
         arrived_at = now - timedelta(days=2)
         ended_at = arrived_at + timedelta(hours=2, minutes=16)
-        reservation = Reservation(
-            user=demo_user,
-            spot=spot,
+        reservation, created = Reservation.objects.get_or_create(
             plate="II-901-II",
-            duration_minutes=210,
-            amount_paid=Decimal("6.30"),
-            amount_charged=Decimal("6.30"),
-            status=Reservation.Status.COMPLETED,
-            arrived_at=arrived_at,
-            ended_at=ended_at,
+            spot=spot,
+            defaults={
+                "user": demo_user,
+                "duration_minutes": 210,
+                "amount_paid": Decimal("6.30"),
+                "amount_charged": Decimal("6.30"),
+                "status": Reservation.Status.COMPLETED,
+                "arrived_at": arrived_at,
+                "ended_at": ended_at,
+            },
         )
-        reservation.settle_final_amount()
-        reservation.save()
-        Reservation.objects.filter(pk=reservation.pk).update(created_at=arrived_at)
+        if created:
+            reservation.settle_final_amount()
+            reservation.save()
+            Reservation.objects.filter(pk=reservation.pk).update(created_at=arrived_at)
         self.stdout.write(
             "Récapitulatif de démonstration créé : 3 h 30 réservées, "
             "2 h 16 de stationnement réel."
@@ -243,6 +240,13 @@ class Command(BaseCommand):
 
     def create_history(self, today):
         """Crée des stationnements terminés sur les jours précédents, sans chevauchement sur une même place."""
+        if Reservation.objects.filter(
+            spot__parking__name__in=[parking["name"] for parking in PARKINGS],
+            arrived_at__isnull=False,
+            ended_at__isnull=False,
+        ).exists():
+            return 0
+
         rng = random.Random(42)
         reservations = []
         starts = []

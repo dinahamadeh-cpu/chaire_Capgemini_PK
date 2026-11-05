@@ -38,7 +38,6 @@ urlpatterns = [
             template_name="parking/password_reset_form.html",
             email_template_name="parking/password_reset_email.txt",
             subject_template_name="parking/password_reset_subject.txt",
-            form_class=views.AccountPasswordResetForm,
             success_url=reverse_lazy("parking:password_reset_done"),
         ),
         name="password_reset",
