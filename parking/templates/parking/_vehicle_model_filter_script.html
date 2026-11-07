@@ -1,0 +1,57 @@
+<script>
+    (() => {
+        for (const vehicleModel of document.querySelectorAll("[data-vehicle-model-select]")) {
+            const form = vehicleModel.form;
+            const vehicleType = form?.querySelector('[name="vehicle_type"]');
+            if (!vehicleType) continue;
+
+            const options = Array.from(vehicleModel.options);
+            const vehicleHeight = document.getElementById("id_vehicle_height_m");
+            const filterModels = () => {
+                const selectedOption = vehicleModel.selectedOptions[0];
+                const selectedModel = vehicleModel.value;
+                const selectedModelType = selectedOption?.dataset.vehicleType || "";
+                const selectedSuggestedHeight =
+                    selectedOption?.dataset.suggestedHeight || "";
+                const compatibleOptions = options.filter(
+                    (option) =>
+                        !option.value ||
+                        option.dataset.vehicleType === vehicleType.value,
+                );
+                vehicleModel.replaceChildren(...compatibleOptions);
+
+                if (
+                    selectedModelType &&
+                    selectedModelType !== vehicleType.value
+                ) {
+                    if (
+                        vehicleHeight &&
+                        vehicleHeight.value === selectedSuggestedHeight
+                    ) {
+                        vehicleHeight.value = "";
+                    }
+                    vehicleModel.value = "";
+                } else {
+                    vehicleModel.value = compatibleOptions.some(
+                        (option) => option.value === selectedModel,
+                    )
+                        ? selectedModel
+                        : "";
+                }
+            };
+
+            vehicleType.addEventListener("change", filterModels);
+            vehicleModel.addEventListener("change", () => {
+                const height =
+                    vehicleModel.selectedOptions[0]?.dataset.suggestedHeight || "";
+                if (vehicleHeight && height) vehicleHeight.value = height;
+            });
+            filterModels();
+            const suggestedHeight =
+                vehicleModel.selectedOptions[0]?.dataset.suggestedHeight || "";
+            if (vehicleHeight && !vehicleHeight.value && suggestedHeight) {
+                vehicleHeight.value = suggestedHeight;
+            }
+        }
+    })();
+</script>
