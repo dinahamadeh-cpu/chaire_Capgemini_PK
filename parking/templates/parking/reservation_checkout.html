@@ -37,6 +37,15 @@
                 {{ form.duration_minutes }}
             </fieldset>
             <p>
+                {{ form.starts_at.label_tag }}
+                {{ form.starts_at }}
+                <small>Le chronomètre démarrera lorsqu’un agent validera votre QR à partir de cette heure.</small>
+            </p>
+            <p>
+                {{ form.saved_vehicle.label_tag }}
+                {{ form.saved_vehicle }}
+            </p>
+            <p>
                 {{ form.plate.label_tag }}
                 {{ form.plate }}
             </p>
@@ -80,6 +89,13 @@
                 <dd>{{ parking.name }} — place n°{{ spot.number }}</dd>
                 <dt>Plaque</dt>
                 <dd id="reservation-plate">À saisir</dd>
+                <dt>Véhicule</dt>
+                <dd>
+                    <svg class="button-icon" aria-hidden="true"><use href="{% if vehicle_type == 'motorcycle' %}#icon-motorcycle{% else %}#icon-car{% endif %}"></use></svg>
+                    {% if vehicle_type == "motorcycle" %}Moto{% else %}Voiture{% endif %}
+                </dd>
+                <dt>Début prévu</dt>
+                <dd id="reservation-start">À choisir</dd>
                 <dt>Durée</dt>
                 <dd id="reservation-duration">À choisir</dd>
                 <dt>Moyen de paiement</dt>
@@ -89,7 +105,7 @@
             </dl>
         </aside>
 
-        <p class="message message-info">Aucun débit réel n'est effectué et les données de carte saisies ne sont pas enregistrées.</p>
+        <p class="message message-info">Aucun débit réel n'est effectué et les données de carte saisies ne sont pas enregistrées. L’annulation est gratuite jusqu’à 30 minutes avant le début prévu ; passé ce délai, le montant de la réservation est conservé. Sans validation du QR dans les 30 minutes suivant l’heure prévue, la place est libérée et le montant reste dû.</p>
         <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Confirmer la réservation et le paiement simulé</button>
     </form>
 
@@ -106,9 +122,12 @@
         ];
         const totalOutput = document.getElementById("reservation-total");
         const plateInput = checkoutForm.querySelector('[name="plate"]');
+        const savedVehicleInput = checkoutForm.querySelector('[name="saved_vehicle"]');
+        const startsAtInput = checkoutForm.querySelector('[name="starts_at"]');
         const plateOutput = document.getElementById("reservation-plate");
         const durationOutput = document.getElementById("reservation-duration");
         const paymentOutput = document.getElementById("reservation-payment");
+        const startOutput = document.getElementById("reservation-start");
         const paymentFields = document.getElementById("new-payment-fields");
         const paymentRadios = checkoutForm.querySelectorAll('[name="payment_method"]');
         const currencyFormatter = new Intl.NumberFormat("fr-FR", {
@@ -153,10 +172,25 @@
         updateTotal();
 
         const updatePlate = () => {
-            plateOutput.textContent = plateInput.value.trim().toUpperCase() || "À saisir";
+            const selectedVehicle = savedVehicleInput?.selectedOptions[0];
+            const selectedPlate = selectedVehicle?.value
+                ? selectedVehicle.textContent.split(" — ")[0]
+                : "";
+            plateOutput.textContent =
+                selectedPlate || plateInput.value.trim().toUpperCase() || "À saisir";
         };
         plateInput.addEventListener("input", updatePlate);
+        savedVehicleInput?.addEventListener("change", updatePlate);
         updatePlate();
+
+        const updateStart = () => {
+            const start = startsAtInput.value
+                ? new Date(startsAtInput.value).toLocaleString("fr-FR")
+                : "À choisir";
+            startOutput.textContent = start;
+        };
+        startsAtInput.addEventListener("input", updateStart);
+        updateStart();
 
         const updatePaymentFields = () => {
             const selectedMethod = checkoutForm.querySelector(
@@ -166,7 +200,7 @@
             paymentFields.hidden = !useNewMethod;
             paymentOutput.textContent = useNewMethod
                 ? "Nouveau moyen de paiement simulé"
-                : "Moyen de paiement simulé enregistré";
+                : selectedMethod.closest("label").innerText.trim().replace(/\s+/g, " ");
             paymentFields.querySelectorAll("input").forEach((input) => {
                 input.required = useNewMethod;
             });
