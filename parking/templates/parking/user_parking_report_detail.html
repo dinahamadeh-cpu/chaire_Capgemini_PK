@@ -1,0 +1,80 @@
+{% extends "parking/base.html" %}
+{% block title %}{{ report.title|default:report.get_category_display }} - Mes signalements{% endblock %}
+{% block content %}
+    <a class="back-link" href="{% url 'parking:user_parking_reports' %}">&larr; Retour à mes signalements</a>
+    <header class="content-heading report-heading">
+        <p class="eyebrow">{{ report.get_category_display }}</p>
+        <div class="report-heading-row">
+            <h1>{{ report.title|default:report.get_category_display }}</h1>
+            <span class="report-status report-status--{{ report.status }}">{{ report.get_status_display }}</span>
+        </div>
+        <p>Transmis le {{ report.created_at|date:"d/m/Y à H:i" }}</p>
+        <p>Priorité actuelle : <strong>{{ report.get_priority_display }}</strong></p>
+    </header>
+    <section class="section-card report-details" aria-label="Détails du signalement">
+        <p><strong>Parking :</strong> {% if report.parking %}{{ report.parking.name }}{% else %}Parking non disponible{% endif %}</p>
+        {% if report.spot %}<p><strong>Place :</strong> n°{{ report.spot.number }}</p>{% endif %}
+        {% if report.reservation %}<p><strong>Réservation :</strong> {{ report.reservation.plate }}</p>{% endif %}
+        <h2>Description</h2>
+        <p>{{ report.description|linebreaksbr }}</p>
+        {% if report.photo %}
+            <h2>Photo jointe</h2>
+            <a href="{% url 'parking:parking_report_photo' report.id %}" target="_blank" rel="noopener">
+                <img class="report-photo" src="{% url 'parking:parking_report_photo' report.id %}" alt="Photo jointe à votre signalement">
+            </a>
+        {% endif %}
+    </section>
+    <section class="section-card report-comments" aria-labelledby="report-comments-title">
+        <h2 id="report-comments-title">Historique des échanges</h2>
+        {% for comment in report.comments.all %}
+            <article>
+                <p class="report-meta">{% if comment.author_id == request.user.id %}Vous{% elif comment.author %}{{ comment.author.get_full_name|default:comment.author.username }}{% else %}Équipe{% endif %} · {{ comment.created_at|date:"d/m/Y à H:i" }}</p>
+                <p>{{ comment.message|linebreaksbr }}</p>
+            </article>
+        {% empty %}
+            {% if report.status == "resolved" %}
+                <p>Ce signalement a été résolu par l’équipe.</p>
+            {% elif report.status == "refused" %}
+                <p>Ce signalement a été refusé. L’équipe n’a pas précisé de motif.</p>
+            {% else %}
+                <p>L’équipe n’a pas encore ajouté de commentaire.</p>
+            {% endif %}
+        {% endfor %}
+    </section>
+    <section class="section-card report-reply" aria-labelledby="report-reply-title">
+        <h2 id="report-reply-title">{% if report.status == "resolved" or report.status == "refused" %}Rouvrir le signalement{% else %}Répondre à l’équipe{% endif %}</h2>
+        {% if report.status == "resolved" or report.status == "refused" %}
+            <p>Votre réponse rouvrira le signalement et le remettra en cours de traitement.</p>
+        {% else %}
+            <p>Ajoutez des précisions ou répondez au dernier message de l’équipe.</p>
+        {% endif %}
+        {% if form.errors %}
+            <div class="message message-error" role="alert">{{ form.errors }}</div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <p>{{ form.message.label_tag }}{{ form.message }}</p>
+            {% for error in form.message.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+            <button type="submit">{% if report.status == "resolved" or report.status == "refused" %}Rouvrir le signalement{% else %}Envoyer ma réponse{% endif %}</button>
+        </form>
+    </section>
+{% endblock %}
+{% block extra_styles %}
+    .report-heading { margin-bottom: 20px; }
+    .report-heading-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .report-heading-row h1 { margin: 0; }
+    .report-heading > p:last-child, .report-meta { color: var(--muted); font-size: 13px; }
+    .report-status { display: inline-flex; flex: 0 0 auto; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 750; }
+    .report-status--new, .report-status--in_progress { border-color: #e2c36d; background: #fff5d8; color: #70520b; }
+    .report-status--resolved { border-color: #9dc9ac; background: #e8f3ed; color: #176349; }
+    .report-status--refused { border-color: #d7a09a; background: #fff0ee; color: #8a3028; }
+    .report-details p { margin: 0 0 10px; }
+    .report-details h2, .report-comments h2 { margin: 0 0 14px; }
+    .report-details .report-photo { display: block; max-width: min(100%, 560px); max-height: 420px; border: 1px solid var(--line); border-radius: 6px; object-fit: contain; }
+    .report-comments article { padding: 12px 0; border-top: 1px solid var(--line); }
+    .report-comments article p { margin: 0 0 6px; }
+    .report-reply h2 { margin: 0 0 12px; }
+    .report-reply > p { color: var(--muted); }
+    .report-reply form p { margin-bottom: 10px; }
+    .report-reply label { display: block; margin-bottom: 6px; }
+{% endblock %}

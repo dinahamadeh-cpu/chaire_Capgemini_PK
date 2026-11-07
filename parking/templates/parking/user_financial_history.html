@@ -1,0 +1,48 @@
+{% extends "parking/base.html" %}
+{% block title %}Mes dépenses et remboursements - Parking King{% endblock %}
+{% block content %}
+    <p class="eyebrow">Votre compte · Historique financier</p>
+    <h1>Mes dépenses et remboursements</h1>
+    <p>Retrouvez les paiements simulés et remboursements enregistrés depuis le début de votre activité.</p>
+    <div class="financial-summary">
+        <article><span>Total des dépenses</span><strong>{{ total_expenses|floatformat:2 }} €</strong></article>
+        <article><span>Total remboursé</span><strong>{{ total_refunds|floatformat:2 }} €</strong></article>
+        <article><span>Solde net</span><strong>{{ net_total|floatformat:2 }} €</strong></article>
+    </div>
+    {% if transactions %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr><th scope="col">Date</th><th scope="col">Opération</th><th scope="col">Détail</th><th scope="col">Montant</th><th scope="col">Référence</th></tr>
+                </thead>
+                <tbody>
+                    {% for entry in transactions %}
+                        <tr>
+                            <td>{{ entry.created_at|date:"d/m/Y à H:i" }}</td>
+                            <td>{{ entry.get_kind_display }}</td>
+                            <td>
+                                {% if entry.reservation %}
+                                    {{ entry.reservation.spot.parking.name }} · place n°{{ entry.reservation.spot.number }}
+                                {% elif entry.contravention %}
+                                    Contravention {{ entry.contravention.number }}
+                                {% else %}
+                                    Opération historique
+                                {% endif %}
+                            </td>
+                            <td>{% if entry.kind == "refund" %}+{% else %}−{% endif %}{{ entry.amount|floatformat:2 }} €</td>
+                            <td>{{ entry.reference }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Aucune dépense ni aucun remboursement n’est enregistré.</p>
+    {% endif %}
+{% endblock %}
+{% block extra_styles %}
+    .financial-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 20px 0 28px; }
+    .financial-summary article { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .financial-summary span { color: var(--muted); font-size: 13px; }
+    .financial-summary strong { font-size: 22px; }
+{% endblock %}

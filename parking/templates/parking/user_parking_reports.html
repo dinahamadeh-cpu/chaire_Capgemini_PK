@@ -1,0 +1,49 @@
+{% extends "parking/base.html" %}
+{% block title %}Mes signalements - Parking King{% endblock %}
+{% block content %}
+    <header class="content-heading">
+        <p class="eyebrow">Votre compte</p>
+        <h1>Mes signalements</h1>
+        <p>Consultez l’état de vos problèmes signalés et les réponses de l’équipe.</p>
+    </header>
+    {% if reports %}
+        <div class="report-list">
+            {% for report in reports %}
+                <article class="report-card">
+                    <div class="report-card-heading">
+                        <h2><a href="{% url 'parking:user_parking_report_detail' report.id %}">{{ report.title|default:report.get_category_display }}</a></h2>
+                        <span class="report-status report-status--{{ report.status }}">{{ report.get_status_display }}</span>
+                    </div>
+                    <p class="report-meta">
+                        {{ report.get_category_display }} ·
+                        {% if report.parking %}{{ report.parking.name }}{% else %}Parking non disponible{% endif %}
+                        {% if report.spot %} · Place n°{{ report.spot.number }}{% endif %}
+                        · Priorité : {{ report.get_priority_display }}
+                        · Transmis le {{ report.created_at|date:"d/m/Y à H:i" }}
+                    </p>
+                    <a class="report-detail-link" href="{% url 'parking:user_parking_report_detail' report.id %}">Consulter le signalement</a>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">Vous n’avez pas encore transmis de signalement.</p>
+    {% endif %}
+    <p><a class="button secondary" href="{% url 'parking:submit_parking_report' %}">Signaler un problème</a></p>
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 24px; }
+    .content-heading > p:last-child { color: var(--muted); }
+    .report-list { display: grid; gap: 14px; }
+    .report-card { padding: 16px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .report-card-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .report-card-heading h2 { margin: 0; font-size: 19px; }
+    .report-card-heading h2 a { color: var(--ink); text-decoration: none; }
+    .report-card-heading h2 a:hover { color: var(--brand); text-decoration: underline; }
+    .report-card > p { margin: 10px 0; }
+    .report-meta { color: var(--muted); font-size: 13px; }
+    .report-detail-link { font-size: 14px; font-weight: 650; }
+    .report-status { display: inline-flex; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 750; }
+    .report-status--new, .report-status--in_progress { border-color: #e2c36d; background: #fff5d8; color: #70520b; }
+    .report-status--resolved { border-color: #9dc9ac; background: #e8f3ed; color: #176349; }
+    .report-status--refused { border-color: #d7a09a; background: #fff0ee; color: #8a3028; }
+{% endblock %}

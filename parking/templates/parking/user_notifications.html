@@ -1,0 +1,29 @@
+{% extends "parking/base.html" %}
+{% block title %}Mes notifications - Parking King{% endblock %}
+{% block extra_styles %}
+    .reservation-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+    .reservation-card { padding: 1.5rem 1.6rem; border: 1px solid var(--border); border-left: 4px solid var(--brand); border-radius: 5px; background: var(--surface); }
+    .reservation-card h2 { margin-top: 0; }
+{% endblock %}
+{% block content %}
+    <p class="eyebrow">Votre compte</p>
+    <h1>Mes notifications</h1>
+    {% if notifications %}
+        <ul class="reservation-list">
+            {% for notification in notifications %}
+                <li>
+                    <article class="reservation-card">
+                        <h2>{{ notification.title }}</h2>
+                        <p>{{ notification.message }}</p>
+                        <p class="reservation-note">{{ notification.created_at|date:"d/m/Y à H:i" }}</p>
+                        {% if notification.url %}
+                            <a class="button" href="{% url 'parking:consult_user_notification' notification.id %}">Consulter</a>
+                        {% endif %}
+                    </article>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Vous n’avez aucune notification pour le moment.</p>
+    {% endif %}
+{% endblock %}

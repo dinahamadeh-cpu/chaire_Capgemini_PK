@@ -1,0 +1,44 @@
+{% extends "parking/base.html" %}
+{% block title %}Mes véhicules - Parking King{% endblock %}
+{% block content %}
+    <header class="content-heading">
+        <p class="eyebrow">Votre compte</p>
+        <h1>Mes véhicules</h1>
+        <p>Enregistrez vos véhicules pour choisir rapidement la bonne plaque lors d’une réservation.</p>
+    </header>
+    <section class="section-card">
+        <h2>Ajouter un véhicule</h2>
+        {% if form.errors %}<div class="message message-error" role="alert">{{ form.errors }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <p>{{ field.label_tag }}{{ field }}{% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}</p>
+            {% endfor %}
+            <button type="submit">Enregistrer le véhicule</button>
+        </form>
+    </section>
+    <section class="section-card">
+        <h2>Véhicules enregistrés</h2>
+        {% for vehicle in vehicles %}
+            <article class="vehicle-row">
+                <p><strong>{{ vehicle.plate }}</strong> · {{ vehicle.get_vehicle_type_display }}{% if vehicle.get_model_display %} · {{ vehicle.get_model_display }}{% endif %}</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_vehicle_id" value="{{ vehicle.id }}">
+                    <button class="secondary" type="submit" onclick="return confirm('Supprimer ce véhicule enregistré ?');">Supprimer</button>
+                </form>
+            </article>
+        {% empty %}
+            <p>Aucun véhicule enregistré. Vous pourrez toujours saisir une plaque directement lors d’une réservation.</p>
+        {% endfor %}
+    </section>
+    {% include "parking/_vehicle_model_filter_script.html" %}
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 24px; }
+    .section-card { margin-bottom: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .section-card h2 { margin: 0 0 16px; }
+    .section-card form p { margin: 0 0 14px; }
+    .section-card label { display: block; margin-bottom: 6px; }
+    .vehicle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid var(--line); }
+{% endblock %}
