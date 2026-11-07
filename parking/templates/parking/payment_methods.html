@@ -13,22 +13,47 @@
             {% if payment_method %}
                 <span class="payment-label"><span aria-hidden="true">✓</span> PAIEMENT SIMULÉ ACTIF</span>
                 <h2>Prêt pour votre prochaine réservation</h2>
-                <p>Un moyen de paiement simulé est enregistré. Il sera proposé lors de vos prochaines réservations ; rien ne sera réellement débité.</p>
+                {% if payment_methods|length == 1 %}
+                    <p>Un moyen de paiement simulé est enregistré. Il sera proposé lors de vos prochaines réservations ; rien ne sera réellement débité.</p>
+                {% else %}
+                    <p>Vos moyens de paiement simulés seront proposés lors de vos prochaines réservations ; rien ne sera réellement débité.</p>
+                {% endif %}
             {% else %}
                 <span class="payment-label"><span aria-hidden="true">i</span> PAIEMENT SIMULÉ</span>
                 <h2>Aucun moyen enregistré</h2>
                 <p>Ajoutez un moyen simulé pour poursuivre le parcours de réservation. Aucun débit réel ne sera effectué.</p>
             {% endif %}
+            {% if payment_methods %}
+                <section class="saved-payment-methods" aria-labelledby="saved-payment-methods-title">
+                    <h3 id="saved-payment-methods-title">Moyens enregistrés</h3>
+                    <ul>
+                        {% for method in payment_methods %}
+                            <li>
+                                <strong>{{ method.name }}</strong>
+                                <form method="post" action="{% url 'parking:payment_methods' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="remove_payment_method_id" value="{{ method.id }}">
+                                    <button type="submit" class="button secondary">Supprimer</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
             <div class="payment-assurance"><span aria-hidden="true">↗</span><p><strong>Aucune donnée bancaire conservée</strong><br>Les informations saisies servent uniquement à valider ce parcours et ne sont pas conservées.</p></div>
         </aside>
         <section class="payment-form-panel" aria-labelledby="payment-form-title">
             <p class="eyebrow">Moyen de paiement</p>
-            <h2 id="payment-form-title">{% if payment_method %}Remplacer le moyen simulé{% else %}Ajouter un moyen simulé{% endif %}</h2>
-            <p class="payment-form-intro">{% if payment_method %}Saisissez les informations d’un nouveau moyen simulé.{% else %}Renseignez les champs ci-dessous pour enregistrer un moyen simulé.{% endif %}</p>
+            <h2 id="payment-form-title">Ajouter un moyen simulé</h2>
+            <p class="payment-form-intro">Renseignez les champs ci-dessous pour ajouter un moyen simulé avec un nom facile à reconnaître.</p>
             {% include "parking/_form_errors.html" %}
             <form method="post" action="{% url 'parking:payment_methods' %}" class="payment-form" aria-labelledby="payment-form-title">
                 {% csrf_token %}
                 <div class="payment-fields">
+                    <p class="payment-field payment-field--wide">
+                        {{ form.name.label_tag }}
+                        {{ form.name }}
+                    </p>
                     <p class="payment-field payment-field--wide">
                         {{ form.card_number.label_tag }}
                         {{ form.card_number }}
@@ -42,7 +67,7 @@
                         {{ form.security_code }}
                     </p>
                 </div>
-                <button type="submit" class="payment-submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-wallet"></use></svg>{% if payment_method %}Remplacer le moyen simulé{% else %}Enregistrer le moyen simulé{% endif %}</button>
+                <button type="submit" class="payment-submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-wallet"></use></svg>Enregistrer le moyen simulé</button>
             </form>
         </section>
     </div>
@@ -69,6 +94,12 @@
     .content-heading .eyebrow { margin-bottom: 10px; }
     .content-heading p:last-child { max-width: 60ch; margin: 0; color: var(--muted); }
     .payment-layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); gap: 26px; align-items: stretch; }
+    .saved-payment-methods { margin-top: 20px; }
+    .saved-payment-methods h3 { margin: 0 0 10px; color: #fff; font-size: 15px; }
+    .saved-payment-methods ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .saved-payment-methods li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid #ffffff50; border-radius: 5px; background: #ffffff12; color: #fff; }
+    .saved-payment-methods form { margin: 0; }
+    .saved-payment-methods button { min-height: 34px; padding: 6px 10px; font-size: 12px; }
     .payment-explainer { display: flex; min-height: 370px; flex-direction: column; padding: 27px; border-radius: 6px; background: var(--brand); color: #fff; }
     .payment-label { display: inline-flex; align-items: center; gap: 8px; color: #f4b8a8; font-size: 10px; font-weight: 800; letter-spacing: .11em; }
     .payment-label span { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 50%; background: #ffffff1c; font-size: 12px; }
