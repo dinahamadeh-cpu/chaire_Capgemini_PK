@@ -1,0 +1,41 @@
+{% if available_spots %}
+    <div class="spot-grid">
+        {% for spot in available_spots %}
+            <article class="spot-card">
+                <span class="spot-icon" aria-hidden="true">🅿️</span>
+                <strong>Place n°{{ spot.number }}</strong>
+                {% if spot.is_pmr %}
+                    <span class="pmr-spot-label">Place PMR</span>
+                {% endif %}
+                {% if user.is_authenticated %}
+                    {% if spot.is_pmr and not pmr_justification_registered %}
+                        <button class="button reservation-button--disabled" type="button" disabled aria-describedby="pmr-requirement-{{ spot.id }}">Réservation PMR indisponible</button>
+                        <p class="pmr-requirement" id="pmr-requirement-{{ spot.id }}">Vous ne disposez pas de Justificatif PMR</p>
+                    {% else %}
+                        <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-car"></use></svg>Réserver la place n°{{ spot.number }}</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <p><strong>Aucune place disponible dans ce parking.</strong></p>
+        <p>Inscrivez-vous pour recevoir une notification si une place se libère.</p>
+        <form method="post" action="{% url 'parking:toggle_waitlist' parking.id %}">
+            {% csrf_token %}
+            {% if is_waitlisted %}
+                <button class="secondary" type="submit">Quitter la liste d’attente</button>
+            {% else %}
+                {% if waitlist_form %}
+                    <p>{{ waitlist_form.starts_at.label_tag }}{{ waitlist_form.starts_at }}</p>
+                    <p>{{ waitlist_form.ends_at.label_tag }}{{ waitlist_form.ends_at }}</p>
+                {% endif %}
+                <button type="submit">Rejoindre la liste d’attente</button>
+            {% endif %}
+        </form>
+        <a class="button" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir un autre parking</a>
+    </div>
+{% endif %}
