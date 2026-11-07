@@ -1,50 +1,238 @@
 {% extends "parking/base.html" %}
 {% block title %}Avis de contravention - Parking King{% endblock %}
+{% block main_class %}card--notice{% endblock %}
 {% block content %}
-    <p class="eyebrow">{% if is_agent_view %}Espace professionnel · Avis{% else %}Votre compte · Avis{% endif %}</p>
-    <h1>Avis de contravention</h1>
-    <dl class="contravention-details">
-        <dt>Numéro</dt><dd>{{ contravention.number }}</dd>
-        <dt>Véhicule</dt><dd>{{ contravention.plate }}</dd>
-        <dt>Motif</dt><dd>{{ contravention.reason }}</dd>
-        <dt>Montant</dt><dd>{{ contravention.amount|floatformat:2 }} €</dd>
-        <dt>Date</dt><dd>{{ contravention.created_at|date:"d/m/Y à H:i" }}</dd>
-        <dt>Lieu</dt><dd>{% if contravention.parking %}{{ contravention.parking.name }} — {{ contravention.parking.address }}{% else %}Non renseigné{% endif %}</dd>
-        <dt>Commentaire</dt><dd>{% if contravention.comment %}{{ contravention.comment|linebreaksbr }}{% else %}Aucun commentaire{% endif %}</dd>
-        <dt>Statut</dt><dd>{{ contravention.get_status_display }}</dd>
-        {% if contravention.opposition_submitted_at %}
-            <dt>Opposition déposée le</dt><dd>{{ contravention.opposition_submitted_at|date:"d/m/Y à H:i" }}</dd>
-            <dt>Motif de l’opposition</dt><dd>{{ contravention.opposition_reason|linebreaksbr }}</dd>
-        {% endif %}
-        {% if is_agent_view %}
-            <dt>Agent</dt><dd>{{ contravention.agent_name|default:"Compte supprimé" }}</dd>
-        {% endif %}
-    </dl>
+    <article class="contravention-card">
+        <header class="contravention-heading">
+            <div class="contravention-heading__copy">
+                <p class="eyebrow">{% if is_agent_view %}Espace professionnel · Dossier{% else %}Votre compte · Dossier{% endif %}</p>
+                <h1>Avis de contravention</h1>
+                <p class="contravention-reference">Référence du dossier <span>{{ contravention.number }}</span></p>
+            </div>
+            <div class="contravention-heading__status">
+                <span class="contravention-status__label">État du dossier</span>
+                <span class="contravention-status{% if contravention.status == 'issued' %} contravention-status--issued{% elif contravention.status == 'contesting' %} contravention-status--review{% elif contravention.status == 'closed' %} contravention-status--closed{% elif contravention.status == 'appeal_won' %} contravention-status--appeal-won{% endif %}">
+                    <span class="status-dot" aria-hidden="true"></span>{{ contravention.get_status_display }}
+                </span>
+            </div>
+        </header>
 
-    {% if not is_agent_view %}
-        {% if can_contest %}
-            <section class="opposition-panel" aria-labelledby="opposition-title">
-                <h2 id="opposition-title">Contester cet avis</h2>
-                <p>Vous pouvez déposer une opposition jusqu’au {{ appeal_deadline|date:"d/m/Y à H:i" }}.</p>
-                <form method="post" action="{% url 'parking:contest_contravention' contravention.id %}">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>Envoyer l’opposition</button>
-                </form>
+        <section class="contravention-summary" aria-label="Résumé de l’avis">
+            <div class="contravention-summary__vehicle">
+                <span class="summary-icon" aria-hidden="true">
+                    <svg class="button-icon"><use href="#icon-car"></use></svg>
+                </span>
+                <div>
+                    <span class="summary-label">Véhicule concerné</span>
+                    <strong class="vehicle-plate">{{ contravention.plate }}</strong>
+                </div>
+            </div>
+            <div class="contravention-summary__amount">
+                <span class="summary-label">Montant de l’avis</span>
+                <strong>{{ contravention.amount|floatformat:2 }} €</strong>
+                <span class="payment-status{% if contravention.paid_at %} payment-status--paid{% endif %}">
+                    {% if contravention.paid_at %}Payée{% else %}À payer{% endif %}
+                </span>
+            </div>
+        </section>
+
+        <section class="contravention-section" aria-labelledby="notice-details-title">
+            {% if contravention.status == "appeal_won" %}
+                <div class="appeal-result" role="status">
+                    <span class="appeal-result__icon" aria-hidden="true">✓</span>
+                    <div>
+                        <strong>Contestation acceptée</strong>
+                        <p>{{ contravention.comment|default:"Après examen, l’avis a été annulé." }}</p>
+                    </div>
+                </div>
+            {% endif %}
+            <div class="section-heading">
+                <div>
+                    <h2 id="notice-details-title">Détails de l’avis</h2>
+                    <p>Les informations associées à cette constatation.</p>
+                </div>
+            </div>
+            <dl class="contravention-details">
+                <dt>Numéro de dossier</dt><dd class="reference-value">{{ contravention.number }}</dd>
+                <dt>Motif</dt><dd>{{ contravention.reason }}</dd>
+                <dt>Date et heure</dt><dd>{{ contravention.created_at|date:"d/m/Y à H:i" }}</dd>
+                <dt>Place concernée</dt>
+                <dd>
+                    {% if contravention.spot %}
+                        Place n°{{ contravention.spot.number }}{% if contravention.spot.is_pmr %} <span class="pmr-tag">PMR</span>{% endif %}
+                    {% else %}
+                        <span class="muted">Non renseignée</span>
+                    {% endif %}
+                </dd>
+                <dt class="location-label">Localisation</dt>
+                <dd class="location-value">
+                    {% if contravention.parking %}
+                        <span class="location-pin" aria-hidden="true">⌖</span>
+                        <span class="location-copy"><strong>{{ contravention.parking.name }}</strong><span>{{ contravention.parking.address }}</span></span>
+                        {% if contravention.latitude != None and contravention.longitude != None %}
+                            <a class="location-link" href="https://www.google.com/maps/search/?api=1&amp;query={{ contravention.latitude }},{{ contravention.longitude }}" target="_blank" rel="noopener noreferrer">Voir sur la carte <span aria-hidden="true">↗</span></a>
+                        {% else %}
+                            <a class="location-link" href="https://www.google.com/maps/search/?api=1&amp;query={{ contravention.parking.address|urlencode }}" target="_blank" rel="noopener noreferrer">Voir sur la carte <span aria-hidden="true">↗</span></a>
+                        {% endif %}
+                    {% elif contravention.latitude != None and contravention.longitude != None %}
+                        <span class="location-pin" aria-hidden="true">⌖</span>
+                        <span class="location-copy"><strong>Coordonnées du constat</strong><span>{{ contravention.latitude }}, {{ contravention.longitude }}</span></span>
+                        <a class="location-link" href="https://www.google.com/maps/search/?api=1&amp;query={{ contravention.latitude }},{{ contravention.longitude }}" target="_blank" rel="noopener noreferrer">Voir sur la carte <span aria-hidden="true">↗</span></a>
+                    {% else %}
+                        <span class="location-missing">Localisation non renseignée</span>
+                    {% endif %}
+                </dd>
+                <dt>Commentaire</dt><dd>{% if contravention.comment %}{{ contravention.comment|linebreaksbr }}{% else %}<span class="muted">Aucun commentaire</span>{% endif %}</dd>
+                {% if contravention.paid_at %}
+                    <dt>Paiement effectué le</dt>
+                    <dd>{{ contravention.paid_at|date:"d/m/Y à H:i" }}{% if contravention.payment_reference %}<span class="payment-reference">Réf. {{ contravention.payment_reference }}</span>{% endif %}</dd>
+                {% endif %}
+                {% if contravention.opposition_submitted_at %}
+                    <dt>Opposition déposée le</dt><dd>{{ contravention.opposition_submitted_at|date:"d/m/Y à H:i" }}</dd>
+                    <dt>Motif de l’opposition</dt><dd>{{ contravention.opposition_reason|linebreaksbr }}</dd>
+                {% endif %}
+                {% if is_agent_view %}
+                    <dt>Agent</dt><dd>{{ contravention.agent_name|default:"Compte supprimé" }}</dd>
+                    <dt>Photo</dt>
+                    <dd>
+                        {% if contravention.photo %}
+                            <a class="photo-link" href="{% url 'parking:agent_contravention_photo' contravention.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Consulter la photo</a>
+                        {% else %}
+                            <span class="muted">Aucune photo jointe</span>
+                        {% endif %}
+                    </dd>
+                {% endif %}
+            </dl>
+        </section>
+
+        {% if not is_agent_view %}
+            <section class="contravention-actions" aria-label="Actions sur l’avis">
+                {% if not contravention.paid_at %}
+                    <div class="action-card action-card--payment">
+                        <span class="action-icon" aria-hidden="true"><svg class="button-icon"><use href="#icon-wallet"></use></svg></span>
+                        <div class="action-card__copy">
+                            <h2>Régler cet avis</h2>
+                            <p>Le paiement est simulé. Aucune donnée bancaire n’est conservée.</p>
+                        </div>
+                        <form method="post" action="{% url 'parking:pay_contravention' contravention.id %}">
+                            {% csrf_token %}
+                            <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-wallet"></use></svg>Payer {{ contravention.amount|floatformat:2 }} €</button>
+                        </form>
+                    </div>
+                {% endif %}
+                {% if can_contest %}
+                    <div class="opposition-panel">
+                        <div class="section-heading">
+                            <span class="section-index section-index--warning">02</span>
+                            <div>
+                                <h2 id="opposition-title">Contester cet avis</h2>
+                                <p>Vous pouvez déposer une opposition jusqu’au <strong>{{ appeal_deadline|date:"d/m/Y à H:i" }}</strong>.</p>
+                            </div>
+                        </div>
+                        <form method="post" action="{% url 'parking:contest_contravention' contravention.id %}">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>Envoyer l’opposition</button>
+                        </form>
+                    </div>
+                {% elif contravention.status == "issued" %}
+                    <p class="message message-warning">Le délai de 30 jours pour contester cet avis est dépassé.</p>
+                {% endif %}
             </section>
-        {% elif contravention.status == "issued" %}
-            <p class="message message-warning">Le délai de 30 jours pour contester cet avis est dépassé.</p>
         {% endif %}
-        <p><a href="{% url 'parking:user_contraventions' %}">&larr; Retour à mes contraventions</a></p>
-    {% else %}
-        <p><a href="{% url 'parking:agent_contraventions' %}">&larr; Retour à l’historique des contraventions</a></p>
-    {% endif %}
+
+        {% if not is_agent_view %}
+            <p class="contravention-back"><a class="button secondary" href="{% url 'parking:user_contraventions' %}"><span aria-hidden="true">←</span> Retour à mes contraventions</a></p>
+        {% else %}
+            <p class="contravention-back"><a class="button secondary" href="{% url 'parking:agent_contraventions' %}"><span aria-hidden="true">←</span> Retour à l’historique des contraventions</a></p>
+        {% endif %}
+    </article>
 {% endblock %}
 {% block extra_styles %}
-    .contravention-details { display: grid; grid-template-columns: minmax(9rem, auto) 1fr; gap: .65rem 1rem; }
-    .contravention-details dt { font-weight: 700; }
-    .contravention-details dd { margin: 0; overflow-wrap: anywhere; }
-    .opposition-panel { margin-top: 2rem; padding: 1.3rem; border: 1px solid var(--line); border-radius: 6px; background: #faf9f6; }
-    .opposition-panel h2 { margin: 0; font-size: 20px; }
-    @media (max-width: 520px) { .contravention-details { grid-template-columns: 1fr; gap: .15rem; }.contravention-details dd { margin-bottom: .5rem; } }
+    main.card--notice { width: min(100% - 40px, 1020px); margin: 48px auto; padding: 0; overflow: hidden; border: 1px solid #dce3e9; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px #172d4917; }
+    .contravention-card { margin: 0; }
+    .contravention-heading { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; padding: clamp(1.5rem, 4vw, 2.8rem); overflow: hidden; background: radial-gradient(ellipse at 92% 10%, #ffffff20 0, transparent 34%), linear-gradient(125deg, #172d49, #284f70); color: #fff; }
+    .contravention-heading::after { position: absolute; right: 12%; bottom: -88px; width: 220px; height: 220px; border: 1px solid #ffffff20; border-radius: 50%; content: ""; pointer-events: none; }
+    .contravention-heading__copy, .contravention-heading__status { position: relative; z-index: 1; }
+    .contravention-heading .eyebrow { margin-bottom: .65rem; color: #c7d7e5; }
+    .contravention-heading h1 { margin: 0; color: #fff; font-size: clamp(1.8rem, 4vw, 2.7rem); letter-spacing: -.045em; }
+    .contravention-reference { margin: .7rem 0 0; color: #d3deea; font-size: .85rem; }
+    .contravention-reference span { display: inline-block; margin-left: .3rem; color: #fff; font-family: Consolas, monospace; overflow-wrap: anywhere; }
+    .contravention-heading__status { display: grid; justify-items: end; gap: .4rem; }
+    .contravention-status__label, .summary-label { color: #c6d1dc; font-size: .72rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .contravention-status, .payment-status { display: inline-flex; align-items: center; gap: .5rem; padding: .45rem .8rem; border: 1px solid #a9d2bb; border-radius: 999px; background: #eaf5ee; color: #20583a; font-size: .82rem; font-weight: 800; white-space: nowrap; }
+    .contravention-status--issued { border-color: #b8d5e6; background: #eaf4fa; color: #285a77; }
+    .contravention-status--review { border-color: #f0d17a; background: #fff5d8; color: #72520a; }
+    .contravention-status--closed { border-color: #d1d9e0; background: #edf0f3; color: #465362; }
+    .contravention-status--appeal-won { border-color: #a9d2bb; background: #eaf5ee; color: #20583a; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .contravention-summary { display: flex; align-items: stretch; justify-content: space-between; gap: 1rem; margin: 1.5rem clamp(1.2rem, 4vw, 2.8rem) 0; padding: 1.1rem 1.3rem; border: 1px solid #e0e7ed; border-radius: 10px; background: linear-gradient(110deg, #f5f8fb, #fff); }
+    .contravention-summary__vehicle, .contravention-summary__amount { display: flex; align-items: center; gap: .85rem; }
+    .summary-icon, .action-icon { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: #e6eef5; color: var(--brand); }
+    .summary-icon .button-icon, .action-icon .button-icon { width: 21px; height: 21px; }
+    .contravention-summary__vehicle > div, .contravention-summary__amount { display: grid; gap: .15rem; }
+    .contravention-summary .summary-label { color: var(--muted); font-size: .68rem; }
+    .vehicle-plate { color: var(--brand); font-family: Consolas, monospace; font-size: 1.2rem; letter-spacing: .08em; }
+    .contravention-summary__amount { grid-template-columns: auto auto; justify-items: end; column-gap: .8rem; }
+    .contravention-summary__amount .summary-label { grid-column: 1 / -1; }
+    .contravention-summary__amount > strong { color: var(--brand); font-size: 1.55rem; letter-spacing: -.04em; }
+    .contravention-summary .payment-status { align-self: center; padding: .3rem .6rem; font-size: .74rem; }
+    .contravention-section { padding: 2rem clamp(1.2rem, 4vw, 2.8rem) 0; }
+    .section-heading { display: flex; align-items: flex-start; gap: .85rem; margin-bottom: 1rem; }
+    .section-heading h2, .action-card h2 { margin: 0; font-size: 1.08rem; letter-spacing: -.02em; }
+    .section-heading p { margin: .22rem 0 0; color: var(--muted); font-size: .86rem; }
+    .appeal-result { display: flex; align-items: flex-start; gap: .8rem; margin-bottom: 1.2rem; padding: 1rem 1.1rem; border: 1px solid #b7d9c4; border-radius: 10px; background: linear-gradient(110deg, #eaf5ee, #f8fcf9); color: #20583a; }
+    .appeal-result__icon { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #d4eadb; font-weight: 900; }
+    .appeal-result strong { display: block; }
+    .appeal-result p { margin: .15rem 0 0; color: #416b52; }
+    .contravention-details { display: grid; grid-template-columns: minmax(12rem, .34fr) minmax(0, 1fr); overflow: hidden; border: 1px solid #e0e6eb; border-radius: 10px; }
+    .contravention-details dt, .contravention-details dd { display: flex; align-items: center; min-height: 50px; margin: 0; padding: .75rem 1rem; border-bottom: 1px solid #e8edf1; }
+    .contravention-details dt { background: #f6f8fa; color: #43566a; font-size: .83rem; font-weight: 750; }
+    .contravention-details dd { gap: .45rem; overflow-wrap: anywhere; line-height: 1.55; }
+    .contravention-details dt:nth-last-of-type(1), .contravention-details dd:last-child { border-bottom: 0; }
+    .reference-value { color: #415a70; font-family: Consolas, monospace; font-size: .88rem; }
+    .detail-separator { padding: 0 .25rem; color: #94a3af; }
+    .contravention-details .location-label, .contravention-details .location-value { background: #f1f7fb; }
+    .contravention-details .location-label { color: #285a77; }
+    .section-index { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid #dce5ed; border-radius: 10px; background: #f1f5f8; color: #496780; font-size: .72rem; font-weight: 850; }
+    .location-pin { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #dcecf5; color: #285a77; font-size: 1.2rem; font-weight: 800; }
+    .pmr-tag { display: inline-flex; padding: .12rem .45rem; border: 1px solid #9bb9cd; border-radius: 999px; background: #edf5fa; color: #234b65; font-size: .72rem; font-weight: 800; }
+    .location-copy { display: grid; gap: .12rem; }
+    .location-copy strong { color: #284761; }
+    .location-copy > span { color: var(--muted); font-size: .86rem; }
+    .location-link { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .35rem; margin-left: auto; padding: .42rem .65rem; border: 1px solid #c9dce8; border-radius: 7px; background: #fff; color: #285a77; font-size: .78rem; font-weight: 750; text-decoration: none; }
+    .location-link:hover { border-color: #9dbed1; background: #eaf4fa; }
+    .location-missing { color: #805318; font-size: .88rem; font-weight: 700; }
+    .payment-reference { margin-left: .5rem; color: var(--muted); font-family: Consolas, monospace; font-size: .8rem; }
+    .photo-link { display: inline-flex; align-items: center; gap: .45rem; font-weight: 750; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .contravention-actions { display: grid; gap: 1rem; padding: 1.5rem clamp(1.2rem, 4vw, 2.8rem) 0; }
+    .action-card { display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid #dce7e1; border-radius: 10px; background: linear-gradient(110deg, #f2f8f4, #fff); }
+    .action-card__copy { flex: 1; }
+    .action-card__copy p { margin: .25rem 0 0; color: var(--muted); font-size: .84rem; }
+    .action-card form { margin: 0; }
+    .action-card button { box-shadow: 0 5px 14px #213b5b20; }
+    .opposition-panel { padding: 1.2rem; border: 1px solid #eadcae; border-radius: 10px; background: #fffcf3; }
+    .opposition-panel .section-heading { margin-bottom: .8rem; }
+    .section-index--warning { border-color: #eadcae; background: #fff5d8; color: #72520a; }
+    .opposition-panel form p { margin: .8rem 0; }
+    .contravention-back { margin: 1.5rem clamp(1.2rem, 4vw, 2.8rem) 2rem; }
+    .contravention-back .button { min-height: 42px; }
+    @media (max-width: 620px) {
+        main.card--notice { width: min(100% - 24px, 1020px); margin: 20px auto; }
+        .contravention-heading { flex-direction: column; gap: 1rem; }
+        .contravention-heading__status { justify-items: start; }
+        .contravention-summary { flex-direction: column; align-items: stretch; }
+        .contravention-summary__amount { grid-template-columns: 1fr auto; justify-items: start; padding-top: .85rem; border-top: 1px solid #e0e7ed; }
+        .contravention-summary__amount .summary-label { grid-column: 1 / -1; }
+        .contravention-details { grid-template-columns: 1fr; }
+        .contravention-details dt { min-height: 0; padding: .75rem 1rem .1rem; border-bottom: 0; }
+        .contravention-details dd { min-height: 0; padding: .1rem 1rem .75rem; }
+        .contravention-details dt:nth-last-of-type(1) { border-bottom: 0; }
+        .contravention-details dd:last-child { border-bottom: 1px solid #e8edf1; }
+        .contravention-details .location-value { flex-wrap: wrap; }
+        .location-link { margin-left: 2.8rem; }
+        .action-card { align-items: flex-start; flex-wrap: wrap; }
+        .action-card form { width: 100%; }
+        .action-card button { width: 100%; }
+    }
 {% endblock %}
