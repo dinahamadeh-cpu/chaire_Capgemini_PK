@@ -28,8 +28,10 @@
                 <th scope="row">Durée réelle</th>
                 <td>
                     {% if reservation.actual_duration_display %}
-                        {{ reservation.actual_duration_display }}
-                        {% if reservation.exceeded_duration %}<br><span class="error">Durée réservée dépassée</span>{% endif %}
+                        <div class="duration-display">
+                            <span>{{ reservation.actual_duration_display }}</span>
+                            {% if reservation.exceeded_duration %}<span class="duration-warning">Durée réservée dépassée</span>{% endif %}
+                        </div>
                     {% else %}
                         —
                     {% endif %}
@@ -48,11 +50,48 @@
     </table>
     {% if reservation.status != "active" and reservation.amount_refunded > 0 %}
         <aside class="refund-notice" role="status" aria-label="Remboursement effectué">
-            <strong>Remboursement calculé</strong>
-            <span>{{ reservation.amount_refunded|floatformat:2 }} € remboursés pour le temps non utilisé.</span>
+            {% if reservation.status == "refused" %}
+                <strong>Remboursement simulé intégral</strong>
+                <span>{{ reservation.amount_refunded|floatformat:2 }} € remboursés à la suite du refus de la réservation.</span>
+            {% else %}
+                <strong>Remboursement calculé</strong>
+                <span>{{ reservation.amount_refunded|floatformat:2 }} € remboursés pour le temps non utilisé.</span>
+            {% endif %}
         </aside>
     {% endif %}
 
+    {% if reservation.status == "active" %}
+        <p><a class="button" href="{% url 'parking:reservation_qr' reservation.id %}">Afficher mon QR code de contrôle</a></p>
+        {% if not reservation.arrived_at %}
+            <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}" onsubmit="return confirm('{% if cancellation_free %}Confirmer l’annulation de cette réservation ?{% else %}L’annulation conservera le montant prévu comme frais. Confirmer ?{% endif %}');">
+                {% csrf_token %}
+                <button class="secondary" type="submit">Annuler cette réservation</button>
+                <p class="settings-help">{% if cancellation_free %}L’annulation est actuellement gratuite.{% else %}Le montant prévu sera conservé comme frais d’annulation.{% endif %}</p>
+            </form>
+        {% endif %}
+    {% endif %}
+    {% if reservation_history %}
+        <section class="reservation-change-history" aria-labelledby="reservation-change-history-title">
+            <h2 id="reservation-change-history-title">Historique des modifications</h2>
+            <ol>
+                {% for entry in reservation_history %}
+                    <li><strong>{{ entry.get_action_display }}</strong> · {{ entry.created_at|date:"d/m/Y à H:i" }} — {{ entry.summary }}</li>
+                {% endfor %}
+            </ol>
+        </section>
+    {% endif %}
+    {% if review_form %}
+        <section class="reservation-review" aria-labelledby="reservation-review-title">
+            <h2 id="reservation-review-title">{% if review %}Modifier mon avis{% else %}Donner mon avis{% endif %}</h2>
+            <p>Votre note et votre commentaire seront visibles sur la fiche du parking.</p>
+            <form method="post" action="{% url 'parking:submit_parking_review' reservation.id %}">
+                {% csrf_token %}
+                <p>{{ review_form.rating.label_tag }}{{ review_form.rating }}</p>
+                <p>{{ review_form.comment.label_tag }}{{ review_form.comment }}</p>
+                <button type="submit">{% if review %}Mettre à jour mon avis{% else %}Publier mon avis{% endif %}</button>
+            </form>
+        </section>
+    {% endif %}
     <p class="summary-actions"><a class="button secondary" href="{% url 'parking:reservation_list' %}">&larr; Retour à mes réservations</a></p>
 {% endblock %}
 
@@ -64,6 +103,13 @@
     .reservation-summary-table { margin: 0; }
     .reservation-summary-table th { width: 34%; }
     .reservation-summary-table th, .reservation-summary-table td { padding: .8rem 1rem; }
+    .duration-display { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+    .duration-warning { margin-left: auto; padding: .5rem .75rem; border: 1px solid #e9bdb8; border-radius: 5px; background: var(--danger-bg); color: var(--danger); white-space: nowrap; }
     .summary-actions { margin: 1.5rem 0 0; }
     .refund-notice { display: flex; flex-direction: column; gap: .2rem; margin-top: 1rem; padding: 1rem 1.2rem; border: 1px solid #c3ddcb; border-radius: 5px; background: var(--success-bg); color: var(--success); }
+    .reservation-change-history, .reservation-review { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: 6px; background: #faf9f6; }
+    .reservation-change-history h2, .reservation-review h2 { margin: 0 0 .75rem; font-size: 20px; }
+    .reservation-change-history li { margin-bottom: .6rem; }
+    .reservation-review label { display: block; margin-bottom: 5px; }
+    .settings-help { color: var(--muted); font-size: 13px; }
 {% endblock %}
