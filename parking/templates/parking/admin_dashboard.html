@@ -1,0 +1,66 @@
+{% extends "parking/base.html" %}
+{% block title %}Tableau de bord admin - Parking King{% endblock %}
+{% block main_class %}card--wide{% endblock %}
+{% block content %}
+    <p class="eyebrow">Administration</p>
+    <h1>Tableau de bord</h1>
+    <div class="admin-kpis">
+        <article><strong>{{ active_reservations }}</strong><span>réservations actives</span></article>
+        <article><strong>{{ open_reports }}</strong><span>signalements à traiter</span></article>
+        <article><strong>{{ waitlist_entries }}</strong><span>inscriptions en liste d’attente</span></article>
+    </div>
+
+    <section aria-labelledby="admin-parking-title">
+        <h2 id="admin-parking-title">Occupation par parking</h2>
+        <div class="table-scroll">
+            <table>
+                <thead><tr><th scope="col">Parking</th><th scope="col">Places occupées</th><th scope="col">Places libres</th><th scope="col">Occupation</th></tr></thead>
+                <tbody>
+                    {% for parking in parkings %}
+                        <tr>
+                            <td>{{ parking.name }}</td>
+                            <td>{{ parking.occupied_spots }}</td>
+                            <td>{{ parking.free_spots }}</td>
+                            <td><progress max="100" value="{{ parking.occupancy_rate }}">{{ parking.occupancy_rate }} %</progress> {{ parking.occupancy_rate }} %</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4">Aucun parking configuré.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section aria-labelledby="admin-reports-title">
+        <h2 id="admin-reports-title">Signalements récents</h2>
+        <div class="table-scroll">
+            <table>
+                <thead><tr><th scope="col">Date</th><th scope="col">Parking</th><th scope="col">Type</th><th scope="col">Description</th><th scope="col">Statut</th></tr></thead>
+                <tbody>
+                    {% for report in recent_reports %}
+                        <tr>
+                            <td>{{ report.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>{{ report.parking|default:"Parking supprimé" }}{% if report.spot %} · place n°{{ report.spot.number }}{% endif %}</td>
+                            <td>{{ report.get_category_display }}</td>
+                            <td>{{ report.description|truncatechars:100 }}</td>
+                            <td>{{ report.get_status_display }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5">Aucun signalement reçu.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <p><a class="button secondary" href="{% url 'admin:index' %}">Ouvrir l’administration Django</a></p>
+{% endblock %}
+{% block extra_styles %}
+    .admin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin: 1.5rem 0 2rem; }
+    .admin-kpis article { display: grid; gap: .3rem; padding: 1.2rem; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .admin-kpis strong { color: var(--brand); font-size: 2rem; }
+    .admin-kpis span { color: var(--muted); }
+    section { margin: 2rem 0; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: .7rem; border-bottom: 1px solid var(--line); text-align: left; }
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "parking/base.html" %}
+{% block title %}Historique des actions - Espace agent{% endblock %}
+{% block content %}
+    <header class="content-heading">
+        <p class="eyebrow">Espace professionnel · Traçabilité</p>
+        <h1>Historique des actions</h1>
+        <p>Consultez les interventions enregistrées par les agents.</p>
+    </header>
+    <section class="section-card action-filters" aria-labelledby="action-filters-title">
+        <h2 id="action-filters-title">Filtrer les actions</h2>
+        <form method="get">
+            {% for field in filter_form %}
+                <p>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+                </p>
+            {% endfor %}
+            {% for error in filter_form.non_field_errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+            <button type="submit">Appliquer les filtres</button>
+            <a class="button secondary" href="{% url 'parking:agent_action_history' %}">Effacer</a>
+        </form>
+    </section>
+    <section class="section-card" aria-labelledby="action-list-title">
+        <h2 id="action-list-title">Actions récentes</h2>
+        {% for action in actions %}
+            <article class="action-item">
+                <div class="action-heading">
+                    <h3>{{ action.get_action_type_display }}</h3>
+                    <time datetime="{{ action.created_at|date:'c' }}">{{ action.created_at|date:"d/m/Y à H:i" }}</time>
+                </div>
+                <p class="action-actor">Agent : {% if action.actor %}{{ action.actor.get_full_name|default:action.actor.username }}{% else %}Compte supprimé{% endif %}</p>
+                <p>{{ action.summary }}</p>
+                {% if action.report %}<a href="{% url 'parking:agent_parking_report_detail' action.report.id %}">Consulter le signalement</a>{% endif %}
+            </article>
+        {% empty %}
+            <p>Aucune action ne correspond aux filtres sélectionnés.</p>
+        {% endfor %}
+        {% if has_more_actions %}<p class="action-limit">Les 100 actions les plus récentes sont affichées.</p>{% endif %}
+    </section>
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 24px; }
+    .section-card { margin-bottom: 22px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .section-card h2 { margin: 0 0 18px; font-size: 22px; }
+    .action-filters form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; gap: 12px; }
+    .action-filters form p { margin: 0; }
+    .action-filters label { display: block; margin-bottom: 6px; }
+    .action-filters button, .action-filters a { align-self: end; }
+    .action-item { padding: 17px 0; border-top: 1px solid var(--line); }
+    .action-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .action-heading h3 { margin: 0; font-size: 17px; }
+    .action-heading time, .action-actor, .action-limit { color: var(--muted); font-size: 13px; }
+    .action-item p { margin: 7px 0; }
+{% endblock %}
