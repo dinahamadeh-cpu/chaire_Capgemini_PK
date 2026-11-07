@@ -1,0 +1,19 @@
+{% extends "parking/base.html" %}
+{% block title %}Signaler un problème - Parking King{% endblock %}
+{% block content %}
+    <p class="eyebrow">Votre compte</p>
+    <h1>Signaler un problème</h1>
+    <p>Signalez une place occupée, un équipement en panne, un danger immédiat, une information incorrecte, un objet oublié ou un véhicule endommagé. Pour un danger immédiat, choisissez la priorité urgente. Pour un objet oublié ou un véhicule endommagé, associez le signalement à l’une de vos réservations.</p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="message message-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% for field in form %}
+            <p>
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+            </p>
+        {% endfor %}
+        <button type="submit">Envoyer le signalement</button>
+    </form>
+{% endblock %}
