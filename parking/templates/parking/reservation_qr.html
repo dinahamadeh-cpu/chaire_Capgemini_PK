@@ -1,0 +1,76 @@
+{% extends "parking/base.html" %}
+{% block title %}QR code de stationnement - Parking{% endblock %}
+{% block content %}
+    <p class="eyebrow">Contrôle du stationnement</p>
+    <h1>Votre QR code temporaire</h1>
+    <p>Présentez ce QR code à l’agent. Il change automatiquement toutes les 30 secondes et chaque code ne peut être vérifié qu’une seule fois pour une réservation active.</p>
+
+    <section class="reservation-qr-card" aria-label="QR code de contrôle">
+        <img
+            id="reservation-qr-image"
+            {% if qr_data.consumed %}hidden{% else %}
+            src="{{ qr_data.image_data_uri }}"
+            {% endif %}
+            alt="QR code temporaire pour le contrôle de votre stationnement"
+            width="280"
+            height="280"
+        >
+        <p id="qr-code-label" class="qr-code-label" {% if qr_data.consumed %}hidden{% endif %}>Code de vérification</p>
+        <p id="reservation-qr-code" class="qr-verification-code" {% if qr_data.consumed %}hidden{% endif %}>{{ qr_data.verification_code }}</p>
+        <p>Immatriculation : <strong>{{ reservation.plate }}</strong></p>
+        <p id="reservation-qr-status" class="qr-status" role="status">{% if qr_data.consumed %}Ce code a déjà été vérifié. Un nouveau sera disponible au prochain renouvellement.{% else %}Le code se renouvelle automatiquement.{% endif %}</p>
+    </section>
+
+    <p><a class="button secondary" href="{% url 'parking:reservation_list' %}">&larr; Retour à mes réservations</a></p>
+
+    <script>
+        const qrImage = document.getElementById("reservation-qr-image");
+        const qrCode = document.getElementById("reservation-qr-code");
+        const qrCodeLabel = document.getElementById("qr-code-label");
+        const qrStatus = document.getElementById("reservation-qr-status");
+        const refreshUrl = "{{ qr_data.refresh_url|escapejs }}";
+
+        const refreshReservationQr = async () => {
+            try {
+                const response = await fetch(refreshUrl, {
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
+                if (!response.ok) {
+                    throw new Error(`QR refresh failed with status ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.consumed) {
+                    qrImage.removeAttribute("src");
+                    qrImage.hidden = true;
+                    qrCode.hidden = true;
+                    qrCodeLabel.hidden = true;
+                    qrStatus.textContent = "Ce code a déjà été vérifié. Un nouveau sera disponible au prochain renouvellement.";
+                    return;
+                }
+                qrImage.src = data.image_data_uri;
+                qrImage.hidden = false;
+                qrCode.textContent = data.verification_code;
+                qrCode.hidden = false;
+                qrCodeLabel.hidden = false;
+                qrStatus.textContent = "QR code et code de vérification actualisés.";
+            } catch (error) {
+                console.error("Impossible d’actualiser le QR code de stationnement.", error);
+                qrImage.removeAttribute("src");
+                qrCode.textContent = "Indisponible";
+                qrStatus.textContent = "Impossible d’actualiser le QR code. Rechargez cette page.";
+            }
+        };
+
+        window.setInterval(refreshReservationQr, 10000);
+    </script>
+{% endblock %}
+
+{% block extra_styles %}
+    .reservation-qr-card { display: flex; max-width: 430px; flex-direction: column; align-items: center; margin: 24px auto; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: #fff; text-align: center; }
+    .reservation-qr-card img { width: min(100%, 280px); height: auto; }
+    .reservation-qr-card p { margin: 7px 0; }
+    .qr-code-label { margin-top: 14px !important; color: var(--muted); font-size: 13px; }
+    .qr-verification-code { color: var(--brand); font-family: ui-monospace, Consolas, monospace; font-size: 28px; font-weight: 800; letter-spacing: .16em; }
+    .qr-status { color: var(--muted); font-size: 12px; }
+{% endblock %}
