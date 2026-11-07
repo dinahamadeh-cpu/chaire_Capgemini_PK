@@ -1,0 +1,49 @@
+{% extends "parking/base.html" %}
+{% block title %}Vérification QR - Espace agent{% endblock %}
+{% block content %}
+    <p class="eyebrow">Espace professionnel · Contrôle</p>
+    <h1>Vérification du QR code</h1>
+    {% if reservation %}
+        {% if arrival_started %}
+            <div class="message message-success" role="status">
+                QR validé : l’arrivée est enregistrée et le chronomètre a démarré.
+            </div>
+        {% elif arrival_pending %}
+            <div class="message message-warning" role="status">
+                QR valide, mais l’arrivée ne peut être enregistrée qu’à partir de l’heure prévue.
+            </div>
+        {% else %}
+            <div class="message message-success" role="status">
+                QR valide pour une réservation active ; le chronomètre est déjà en cours.
+            </div>
+        {% endif %}
+        <dl class="qr-reservation-details">
+            <dt>Code de vérification</dt>
+            <dd class="qr-verification-code">{{ verification_code }}</dd>
+            <dt>Immatriculation</dt>
+            <dd>{{ reservation.plate }}</dd>
+            <dt>Véhicule</dt>
+            <dd>{% if reservation.vehicle_type == "motorcycle" %}Moto{% else %}Voiture{% endif %}</dd>
+            <dt>Parking</dt>
+            <dd>{{ reservation.spot.parking.name }}</dd>
+            <dt>Place</dt>
+            <dd>n°{{ reservation.spot.number }}</dd>
+            <dt>Durée réservée</dt>
+            <dd>{{ reservation.duration_minutes }} min</dd>
+        </dl>
+        <p>Vérifiez que le code affiché correspond à celui présenté par l’usager.</p>
+        <p><a class="button secondary" href="{% url 'parking:agent_plate_check' %}?plate={{ reservation.plate|urlencode }}">Vérifier aussi la plaque</a></p>
+    {% else %}
+        <div class="message message-error" role="alert">
+            Ce QR code est invalide, expiré ou associé à un stationnement terminé. Demandez à l’usager d’afficher son QR code actuel.
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_styles %}
+    .qr-reservation-details { display: grid; grid-template-columns: minmax(9rem, auto) 1fr; gap: .55rem 1rem; }
+    .qr-reservation-details dt { font-weight: 700; }
+    .qr-reservation-details dd { margin: 0; overflow-wrap: anywhere; }
+    .qr-verification-code { color: var(--brand); font-family: ui-monospace, Consolas, monospace; font-size: 1.4rem; font-weight: 800; letter-spacing: .12em; }
+    @media (max-width: 480px) { .qr-reservation-details { grid-template-columns: 1fr; gap: .2rem; }.qr-reservation-details dd { margin-bottom: .6rem; } }
+{% endblock %}
