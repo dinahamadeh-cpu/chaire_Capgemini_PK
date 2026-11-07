@@ -1,0 +1,50 @@
+{% extends "parking/base.html" %}
+{% block title %}Mes habitudes de réservation - Parking King{% endblock %}
+{% block content %}
+    <header class="content-heading">
+        <p class="eyebrow">Votre compte</p>
+        <h1>Mes habitudes de réservation</h1>
+        <p>Recevez un rappel hebdomadaire pour vos déplacements habituels. Chaque réservation reste à confirmer par vous ; aucun paiement ni stationnement n’est créé automatiquement.</p>
+    </header>
+    <section class="section-card">
+        <h2>Ajouter un rappel hebdomadaire</h2>
+        {% if form.errors %}<div class="message message-error" role="alert">{{ form.errors }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <p>{{ field.label_tag }}{{ field }}{% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}</p>
+            {% endfor %}
+            <button type="submit">Enregistrer le rappel</button>
+        </form>
+    </section>
+    <section class="section-card">
+        <h2>Rappels enregistrés</h2>
+        {% for plan in plans %}
+            <article class="plan-row">
+                <div>
+                    <h3>{{ plan.get_weekday_display }} à {{ plan.start_time|time:"H:i" }} · {{ plan.parking.name }}</h3>
+                    <p>{{ plan.duration_minutes }} min{% if plan.vehicle %} · {{ plan.vehicle.plate }}{% endif %}</p>
+                    <p class="muted">Prochain rappel : {{ plan.next_reminder_at|date:"d/m/Y à H:i" }}</p>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_plan_id" value="{{ plan.id }}">
+                    <button class="secondary" type="submit" onclick="return confirm('Supprimer ce rappel récurrent ?');">Supprimer</button>
+                </form>
+            </article>
+        {% empty %}
+            <p>Vous n’avez pas encore configuré de rappel récurrent.</p>
+        {% endfor %}
+    </section>
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 24px; }
+    .section-card { margin-bottom: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .section-card h2 { margin: 0 0 16px; }
+    .section-card form p { margin: 0 0 14px; }
+    .section-card label { display: block; margin-bottom: 6px; }
+    .plan-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+    .plan-row h3, .plan-row p { margin: 0 0 6px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    @media (max-width: 600px) { .plan-row { align-items: flex-start; flex-direction: column; } }
+{% endblock %}
