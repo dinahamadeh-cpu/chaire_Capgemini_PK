@@ -18,13 +18,19 @@
                         <header class="reservation-card-heading">
                             <div>
                                 <h2>{{ reservation.spot.parking.name }}</h2>
-                                <p>Place n°{{ reservation.spot.number }} · Plaque <strong>{{ reservation.plate }}</strong></p>
+                                <p>Place n°{{ reservation.spot.number }} ·
+                                    <svg class="button-icon" aria-hidden="true"><use href="{% if reservation.vehicle_type == 'motorcycle' %}#icon-motorcycle{% else %}#icon-car{% endif %}"></use></svg>
+                                    {% if reservation.vehicle_type == "motorcycle" %}Moto{% else %}Voiture{% endif %} ·
+                                    Plaque <strong>{{ reservation.plate }}</strong>
+                                </p>
                             </div>
-                            <span class="reservation-status{% if reservation.status == 'cancelled' %} reservation-status--cancelled{% elif reservation.status == 'completed' %} reservation-status--completed{% endif %}">{{ reservation.get_status_display }}</span>
+                            <span class="reservation-status{% if reservation.status == 'cancelled' or reservation.status == 'expired' %} reservation-status--cancelled{% elif reservation.status == 'completed' %} reservation-status--completed{% endif %}">{{ reservation.get_status_display }}</span>
                         </header>
 
                         <dl class="reservation-details">
                             <div><dt>Durée réservée</dt><dd>{{ reservation.duration_minutes }} min</dd></div>
+                            {% if reservation.starts_at %}<div><dt>Début prévu</dt><dd>{{ reservation.starts_at|date:"d/m/Y à H:i" }}</dd></div>{% endif %}
+                            <div><dt>Type de véhicule</dt><dd>{% if reservation.vehicle_type == "motorcycle" %}Moto{% else %}Voiture{% endif %}</dd></div>
                             {% if reservation.amount_paid is not None %}
                                 <div><dt>{% if reservation.status == "active" %}Estimation simulée{% else %}Montant final{% endif %}</dt><dd>{{ reservation.amount_paid|floatformat:2 }} €</dd></div>
                             {% endif %}
@@ -37,9 +43,22 @@
                                 {% if reservation.arrived_at %}
                                     <p>Arrivée confirmée le {{ reservation.arrived_at|date:"d/m/Y à H:i" }}</p>
                                     <p class="parking-countdown" role="status" data-arrival="{{ reservation.arrived_at|date:'c' }}" data-duration-minutes="{{ reservation.duration_minutes }}">Calcul du temps restant…</p>
-                                    <p class="parking-reminder message message-warning" role="alert" {% if not reservation.reminder_due %}hidden{% endif %}>Votre stationnement se termine dans moins de 15 minutes.</p>
+                                    <p class="parking-reminder message message-warning" role="alert" {% if not reservation.reminder_due %}hidden{% endif %}>Il vous reste moins de 10 minutes de stationnement.</p>
                                 {% else %}
-                                    <p>Le décompte commencera après confirmation de votre arrivée.</p>
+                                    {% if reservation.starts_at %}
+                                        <p>Le décompte commencera lorsqu’un agent validera votre QR, à partir du {{ reservation.starts_at|date:"d/m/Y à H:i" }}.</p>
+                                    {% else %}
+                                        <p>Le décompte commencera après confirmation de votre arrivée.</p>
+                                    {% endif %}
+                                    {% if reservation.late_arrival_deadline %}
+                                        <p class="reservation-note">Retard signalé : confirmez votre arrivée avant le {{ reservation.late_arrival_deadline|date:"d/m/Y à H:i" }}. Après cette heure, la réservation sera libérée.</p>
+                                    {% else %}
+                                        <p class="reservation-note">En cas de retard, signalez-le ici. Le délai accordé est de {{ reservation.spot.parking.late_arrival_grace_minutes }} minutes.</p>
+                                        <form method="post" action="{% url 'parking:report_late_arrival' reservation.id %}">
+                                            {% csrf_token %}
+                                            <button class="secondary" type="submit">Signaler mon arrivée tardive</button>
+                                        </form>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             {% if reservation.arrived_at %}
@@ -57,6 +76,8 @@
                             {% endif %}
                         {% elif reservation.status == "cancelled" %}
                             <p class="reservation-note">Annulée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
+                        {% elif reservation.status == "expired" %}
+                            <p class="reservation-note">Réservation expirée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}.</p>
                         {% elif reservation.ended_at %}
                             <p class="reservation-note">Terminée le : {{ reservation.ended_at|date:"d/m/Y à H:i" }}</p>
                         {% endif %}
@@ -64,22 +85,33 @@
                         <div class="reservation-actions">
                             {% if reservation.status == "active" %}
                                 {% if reservation.arrived_at %}
+                                    <p class="reservation-note">Après l’arrivée, l’annulation n’est plus possible : déclarez votre départ pour clôturer le stationnement.</p>
                                     <form method="post" action="{% url 'parking:declare_departure' reservation.id %}">
                                         {% csrf_token %}
                                         <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>Déclarer mon départ</button>
                                     </form>
                                 {% else %}
-                                    <form method="post" action="{% url 'parking:confirm_arrival' reservation.id %}">
+                                    {% if reservation.free_cancellation %}
+                                        <p class="reservation-note">Annulation gratuite jusqu’à 30 minutes avant le début prévu.</p>
+                                    {% else %}
+                                        <p class="reservation-note">Annulation tardive : le montant prévu sera conservé.</p>
+                                    {% endif %}
+                                    {% if not reservation.starts_at %}
+                                        <form method="post" action="{% url 'parking:confirm_arrival' reservation.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Confirmer mon arrivée</button>
+                                        </form>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}" onsubmit="return confirm('{% if reservation.free_cancellation %}Confirmer l’annulation de cette réservation ?{% else %}L’annulation conservera le montant prévu comme frais. Confirmer ?{% endif %}');">
                                         {% csrf_token %}
-                                        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Confirmer mon arrivée</button>
+                                        <button class="secondary" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-cancel"></use></svg>Annuler la réservation</button>
                                     </form>
                                 {% endif %}
-                                <form method="post" action="{% url 'parking:cancel_reservation' reservation.id %}">
-                                    {% csrf_token %}
-                                    <button class="secondary" type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-cancel"></use></svg>Annuler la réservation</button>
-                                </form>
                             {% endif %}
                             <a class="button secondary" href="{% url 'parking:reservation_summary' reservation.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir le récapitulatif</a>
+                            {% if reservation.status == "active" %}
+                                <a class="button secondary" href="{% url 'parking:reservation_qr' reservation.id %}">Afficher mon QR code de contrôle</a>
+                            {% endif %}
                         </div>
                     </article>
                 </li>
@@ -102,14 +134,35 @@
             return `${hours} h ${minutes} min ${seconds} s`;
         };
 
+        const blendHexColors = (startColor, endColor, ratio) => {
+            const start = startColor.match(/[0-9a-f]{2}/gi).map((part) => parseInt(part, 16));
+            const end = endColor.match(/[0-9a-f]{2}/gi).map((part) => parseInt(part, 16));
+            const channels = start.map((value, index) =>
+                Math.round(value + (end[index] - value) * ratio)
+            );
+            return `#${channels.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+        };
+
         const updateCountdowns = () => {
             document.querySelectorAll(".parking-countdown").forEach((countdown) => {
                 const arrival = new Date(countdown.dataset.arrival).getTime();
                 const durationMs = Number(countdown.dataset.durationMinutes) * 60 * 1000;
                 const remainingMs = arrival + durationMs - Date.now();
+                const redProgress = Math.max(
+                    0,
+                    Math.min(1, (10 * 60 * 1000 - remainingMs) / (10 * 60 * 1000))
+                );
                 const reminder = countdown.parentElement.querySelector(".parking-reminder");
-                reminder.hidden = remainingMs <= 0 || remainingMs > 15 * 60 * 1000;
+                reminder.hidden = remainingMs <= 0 || remainingMs > 10 * 60 * 1000;
 
+                countdown.style.setProperty(
+                    "--countdown-color",
+                    blendHexColors("#795a13", "#b42318", redProgress)
+                );
+                countdown.style.setProperty(
+                    "--countdown-background",
+                    blendHexColors("#fff5d8", "#fde8e7", redProgress)
+                );
                 countdown.textContent = remainingMs > 0
                     ? `Temps de stationnement restant : ${formatRemainingTime(Math.floor(remainingMs / 1000))}`
                     : "La durée réservée est écoulée.";
@@ -141,7 +194,7 @@
     .reservation-details dd { margin: .2rem 0 0; font-weight: 650; }
     .reservation-progress, .reservation-note { margin: 1rem 0; padding: .75rem 1rem; border-left: 3px solid var(--accent); background: var(--accent-soft); }
     .reservation-progress p, .reservation-note { margin-top: .3rem; margin-bottom: .3rem; }
-    .parking-countdown { font-weight: 700; color: var(--primary-dark); }
+    .parking-countdown { padding: .6rem .75rem; border-radius: 4px; background: var(--countdown-background, #fff5d8); color: var(--countdown-color, #795a13); font-weight: 750; transition: background-color 1s linear, color 1s linear; }
     .reservation-extension { display: grid; justify-items: start; gap: .55rem; max-width: 18rem; margin: 1rem 0 0; }
     .reservation-extension label { margin: 0; }
     .reservation-extension input { max-width: 12rem; }
