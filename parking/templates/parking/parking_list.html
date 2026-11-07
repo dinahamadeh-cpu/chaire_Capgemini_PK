@@ -115,6 +115,12 @@
             border: 1px solid var(--border);
             border-radius: 10px;
         }
+        .compare-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin: 0 0 1rem; padding: .8rem 1rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+        .compare-toolbar p { margin: 0; color: var(--muted); }
+        .compare-toolbar button:disabled { opacity: .55; cursor: not-allowed; }
+        .compare-choice { display: inline-flex; align-items: center; gap: .5rem; margin-top: .75rem; color: var(--muted); font-size: .9rem; font-weight: 650; cursor: pointer; }
+        .compare-choice input { width: 18px; height: 18px; accent-color: var(--primary); }
+        .compare-choice input:disabled { cursor: not-allowed; }
 
         .filters-section h2 {
             margin: 0 0 .65rem;
@@ -239,33 +245,50 @@
                 {% endif %}
             </section>
 
+            <form method="get" action="{% url 'parking:compare_parkings' %}" id="parking-compare-form" class="compare-toolbar">
+                <p>Sélectionnez de 2 à 3 parkings pour comparer leurs caractéristiques.</p>
+                <button type="submit" class="button" disabled data-compare-submit>Comparer les parkings</button>
+            </form>
+
             {% if parkings %}
                 {% for parking in parkings %}
-                    <article class="parking-card">
+                    <article class="parking-card" data-parking-id="{{ parking.id }}">
                         <div class="parking-card-header">
                             <div>
                                 <h2><a href="{% url 'parking:parking_detail' parking.id %}">{{ parking.name }}</a></h2>
                                 <p class="parking-address">{{ parking.address }}</p>
                             </div>
+                            <label class="compare-choice">
+                                <input type="checkbox" name="parking_ids" value="{{ parking.id }}" form="parking-compare-form" data-compare-parking>
+                                Ajouter à la comparaison
+                            </label>
                             <span class="parking-icon" aria-hidden="true">🅿️</span>
                         </div>
 
-                        {% if parking.available_spots_count == 0 %}
-                            <span class="availability-badge availability-full">Complet</span>
-                        {% elif parking.available_spots_count <= 3 %}
-                            <span class="availability-badge availability-low">Presque complet</span>
-                        {% else %}
-                            <span class="availability-badge availability-ok">Places disponibles</span>
-                        {% endif %}
+                        <span class="availability-badge{% if parking.available_spots_count == 0 %} availability-full{% elif parking.available_spots_count <= 3 %} availability-low{% else %} availability-ok{% endif %}" data-availability-badge>
+                            {% if parking.available_spots_count == 0 %}Complet{% elif parking.available_spots_count <= 3 %}Presque complet{% else %}Places disponibles{% endif %}
+                        </span>
 
                         <p class="availability-count">
-                            <strong>{{ parking.available_spots_count }}</strong>
+                            <strong data-available-spots>{{ parking.available_spots_count }}</strong>
                             place{{ parking.available_spots_count|pluralize }} disponible{{ parking.available_spots_count|pluralize }}
-                            sur {{ parking.total_spots_count }}
+                            sur <span data-total-spots>{{ parking.total_spots_count }}</span>
                         </p>
-                        {% if parking.available_pmr_spots_count %}
-                            <p class="pmr-availability">{{ parking.available_pmr_spots_count }} place{{ parking.available_pmr_spots_count|pluralize }} PMR disponible{{ parking.available_pmr_spots_count|pluralize }}</p>
-                        {% endif %}
+                        <p class="pmr-availability" data-available-pmr{% if not parking.available_pmr_spots_count %} hidden{% endif %}>{{ parking.available_pmr_spots_count }} place{{ parking.available_pmr_spots_count|pluralize }} PMR disponible{{ parking.available_pmr_spots_count|pluralize }}</p>
+                        <p class="availability-updated-at" data-availability-updated-at>
+                            {% if parking.last_availability_update %}Mis à jour le {{ parking.last_availability_update|date:"d/m/Y à H:i:s" }}{% else %}Disponibilité non renseignée{% endif %}
+                        </p>
+                        <ul class="pricing" aria-label="Équipements et accès">
+                            <li>{% if parking.is_covered %}Parking couvert{% else %}Parking non couvert{% endif %}</li>
+                            <li>{% if parking.max_vehicle_height_m %}Hauteur maximale : {{ parking.max_vehicle_height_m|floatformat:2 }} m{% else %}Hauteur maximale non renseignée{% endif %}</li>
+                            <li>{% if parking.has_ev_charging %}Recharge électrique disponible{% else %}Pas de borne de recharge renseignée{% endif %}</li>
+                        </ul>
+                        <form method="post" action="{% url 'parking:toggle_waitlist' parking.id %}" data-waitlist-form {% if parking.available_spots_count %}hidden{% endif %}>
+                            {% csrf_token %}
+                            <button class="secondary" type="submit" data-waitlist-button>
+                                {% if parking.id in waitlisted_parking_ids %}Quitter la liste d’attente{% else %}Rejoindre la liste d’attente{% endif %}
+                            </button>
+                        </form>
 
                         {% include "parking/_pricing.html" %}
 
@@ -310,6 +333,24 @@
                 </div>
             {% endif %}
         </section>
+
+        <script>
+            (() => {
+                const choices = Array.from(document.querySelectorAll("[data-compare-parking]"));
+                const submit = document.querySelector("[data-compare-submit]");
+                const updateCompareChoices = () => {
+                    const selected = choices.filter((choice) => choice.checked);
+                    for (const choice of choices) {
+                        choice.disabled = selected.length >= 3 && !choice.checked;
+                    }
+                    submit.disabled = selected.length < 2 || selected.length > 3;
+                };
+                for (const choice of choices) {
+                    choice.addEventListener("change", updateCompareChoices);
+                }
+                updateCompareChoices();
+            })();
+        </script>
       </div>
     </main>
 
@@ -341,6 +382,7 @@
 
             const parkings = JSON.parse(document.getElementById("parkings-data").textContent);
             const parkingMarkers = new Map();
+            window.parkingMarkers = parkingMarkers;
             const pmrMarkerIcon = {
                 path: google.maps.SymbolPath.CIRCLE,
                 scale: 10,
@@ -362,7 +404,7 @@
                         content: `<strong>${parking.name}</strong><br>${parking.address}<br>${parking.available_pmr_spots_count} place(s) PMR disponible(s)`
                     });
                     marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
-                    parkingMarkers.set(String(parking.id), { marker, parking });
+                    parkingMarkers.set(String(parking.id), { marker, parking, infoWindow });
                 }
             });
 
@@ -377,6 +419,7 @@
                     marker.setIcon(showPmrOnly && hasAvailablePmrSpot ? pmrMarkerIcon : null);
                 });
             };
+            window.updatePmrMarkers = updatePmrMarkers;
             pmrToggle.addEventListener("change", updatePmrMarkers);
 
             document.querySelectorAll(".focus-map-button").forEach((button) => {
@@ -394,6 +437,69 @@
                 });
             });
         };
+
+        (() => {
+            const endpoint = "{% url 'parking:parking_availability' %}";
+            const refreshAvailability = async () => {
+                try {
+                    const response = await fetch(endpoint, { cache: "no-store" });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    data.parkings.forEach((parking) => {
+                        const card = document.querySelector(
+                            `[data-parking-id="${parking.id}"]`
+                        );
+                        if (!card) return;
+                        const available = Number(parking.available_spots);
+                        const total = Number(parking.total_spots);
+                        const pmr = Number(parking.available_pmr_spots);
+                        card.querySelector("[data-available-spots]").textContent = available;
+                        card.querySelector("[data-total-spots]").textContent = total;
+                        const badge = card.querySelector("[data-availability-badge]");
+                        badge.classList.remove("availability-full", "availability-low", "availability-ok");
+                        if (available === 0) {
+                            badge.classList.add("availability-full");
+                            badge.textContent = "Complet";
+                        } else if (available <= 3) {
+                            badge.classList.add("availability-low");
+                            badge.textContent = "Presque complet";
+                        } else {
+                            badge.classList.add("availability-ok");
+                            badge.textContent = "Places disponibles";
+                        }
+                        const pmrLabel = card.querySelector("[data-available-pmr]");
+                        pmrLabel.hidden = pmr === 0;
+                        pmrLabel.textContent = `${pmr} place${pmr > 1 ? "s" : ""} PMR disponible${pmr > 1 ? "s" : ""}`;
+                        const lastUpdated = card.querySelector("[data-availability-updated-at]");
+                        lastUpdated.textContent = parking.updated_at
+                            ? `Mis à jour le ${new Date(parking.updated_at).toLocaleString("fr-FR")}`
+                            : "Disponibilité non renseignée";
+                        const waitlistForm = card.querySelector("[data-waitlist-form]");
+                        waitlistForm.hidden = available > 0;
+                        waitlistForm.querySelector("[data-waitlist-button]").textContent =
+                            parking.waitlisted
+                                ? "Quitter la liste d’attente"
+                                : "Rejoindre la liste d’attente";
+
+                        const markerEntry = window.parkingMarkers?.get(String(parking.id));
+                        if (markerEntry) {
+                            markerEntry.parking.available_pmr_spots_count = pmr;
+                            markerEntry.infoWindow.setContent(
+                                `<strong>${markerEntry.parking.name}</strong><br>${markerEntry.parking.address}<br>${pmr} place(s) PMR disponible(s)`
+                            );
+                        }
+                    });
+                    window.updatePmrMarkers?.();
+                } catch (error) {
+                    document.querySelectorAll("[data-availability-updated-at]").forEach((label) => {
+                        label.textContent = "Actualisation de la disponibilité impossible.";
+                    });
+                    console.error("Échec de l’actualisation des places disponibles.", error);
+                }
+            };
+
+            window.setInterval(refreshAvailability, 30000);
+        })();
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap" async defer></script>
 {% endblock %}
