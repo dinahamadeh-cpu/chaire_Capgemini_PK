@@ -1,13 +1,25 @@
 import random
+import uuid
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
+from django.urls import reverse
 from django.utils import timezone
 
-from parking.models import Contravention, Parking, Reservation, Spot, UserProfile
+from parking.models import (
+    Contravention,
+    DemoPaymentMethod,
+    Parking,
+    ParkingReport,
+    ParkingReportComment,
+    PaymentTransaction,
+    Reservation,
+    Spot,
+    UserNotification,
+)
 
 AGENTS = [
     {"username": "agent1", "password": "agent1234"},
@@ -72,6 +84,9 @@ STATIONED_PLATES = [
     "FF-678-FF",
     "GG-789-GG",
     "HH-890-HH",
+    "JJ-012-JJ",
+    "KK-123-KK",
+    "LL-234-LL",
 ]
 
 LEFT_PLATES = ["YY-111-YY", "ZZ-222-ZZ"]
@@ -114,79 +129,225 @@ class Command(BaseCommand):
             self.stdout.write(f"Utilisateur de démonstration créé : {DEMO_USER['username']}")
         else:
             self.stdout.write(f"Utilisateur déjà existant : {DEMO_USER['username']}")
-        UserProfile.objects.get_or_create(user=demo_user)
+        DemoPaymentMethod.objects.get_or_create(
+            user=demo_user,
+            name="Exemple",
+        )
+
+        PaymentTransaction.objects.filter(reservation__isnull=False).delete()
+        Reservation.objects.all().delete()
+        Spot.objects.all().delete()
+        Parking.objects.all().delete()
 
         spots = []
         for data in PARKINGS:
-            parking, _ = Parking.objects.get_or_create(
+            parking = Parking.objects.create(
                 name=data["name"],
-                defaults={key: value for key, value in data.items() if key != "spots"},
+                address=data["address"],
+                latitude=data["latitude"],
+                longitude=data["longitude"],
+                hourly_rate=data["hourly_rate"],
+                max_duration_minutes=data["max_duration_minutes"],
+                opening_time=data["opening_time"],
+                closing_time=data["closing_time"],
             )
             for number in range(1, data["spots"] + 1):
-                spot, _ = Spot.objects.get_or_create(
-                    parking=parking,
-                    number=number,
-                    defaults={"is_pmr": number in (9, 10)},
+                spots.append(
+                    Spot.objects.create(
+                        parking=parking,
+                        number=number,
+                        is_pmr=number in (9, 10),
+                    )
                 )
-                spots.append(spot)
         self.stdout.write(f"{len(PARKINGS)} parkings et {len(spots)} places créés.")
 
-        stationed_spots = spots[: len(STATIONED_PLATES)]
+        stationed_spot_indexes = list(range(7)) + [10, 11, 20, 30]
+        stationed_spots = [spots[index] for index in stationed_spot_indexes]
+        arrival_time = timezone.now()
         for plate, spot in zip(STATIONED_PLATES, stationed_spots):
-            Reservation.objects.get_or_create(
+            is_demo_reservation = plate in DEMO_RESERVATION_PLATES
+            amount_paid = (
+                spot.parking.hourly_rate
+                if is_demo_reservation and spot.parking.hourly_rate is not None
+                else Decimal("0.00")
+            )
+            reservation = Reservation.objects.create(
+                user=demo_user if plate in DEMO_RESERVATION_PLATES else None,
                 plate=plate,
                 spot=spot,
-                defaults={
-                    "user": demo_user if plate in DEMO_RESERVATION_PLATES else None,
-                    "status": Reservation.Status.ACTIVE,
-                },
+                status=Reservation.Status.ACTIVE,
+                arrived_at=arrival_time,
+                duration_minutes=60,
+                amount_paid=amount_paid,
+                amount_charged=amount_paid,
             )
+            if is_demo_reservation and amount_paid > 0:
+                PaymentTransaction.objects.create(
+                    user=demo_user,
+                    reservation=reservation,
+                    kind=PaymentTransaction.Kind.RESERVATION,
+                    amount=amount_paid,
+                    created_at=arrival_time,
+                )
         self.stdout.write(f"{len(STATIONED_PLATES)} véhicules stationnés (plaques actives).")
+        active_demo_reservation = Reservation.objects.get(
+            user=demo_user,
+            plate=STATIONED_PLATES[0],
+            status=Reservation.Status.ACTIVE,
+        )
+        UserNotification.objects.update_or_create(
+            user=demo_user,
+            title="Votre stationnement est en cours",
+            defaults={
+                "message": (
+                    f"Votre véhicule est stationné au parking "
+                    f"{active_demo_reservation.spot.parking.name}, place "
+                    f"{active_demo_reservation.spot.number}. Consultez le récapitulatif "
+                    "pour suivre votre réservation."
+                ),
+                "url": reverse(
+                    "parking:reservation_summary",
+                    args=[active_demo_reservation.pk],
+                ),
+            },
+        )
 
-        left_spots = spots[len(STATIONED_PLATES) : len(STATIONED_PLATES) + len(LEFT_PLATES)]
+        left_spots = spots[12 : 12 + len(LEFT_PLATES)]
         now = timezone.now()
         for index, (plate, spot) in enumerate(zip(LEFT_PLATES, left_spots)):
-            reservation, created = Reservation.objects.get_or_create(
+            reservation = Reservation.objects.create(
+                user=demo_user if plate in DEMO_RESERVATION_PLATES else None,
                 plate=plate,
                 spot=spot,
-                defaults={
-                    "user": demo_user if plate in DEMO_RESERVATION_PLATES else None,
-                    "status": Reservation.Status.COMPLETED,
-                },
+                status=Reservation.Status.COMPLETED,
             )
-            if created:
-                started = now - timedelta(hours=3 - index)
-                ended = now - timedelta(hours=1)
-                Reservation.objects.filter(pk=reservation.pk).update(created_at=started, ended_at=ended)
+            started = now - timedelta(hours=3 - index)
+            ended = now - timedelta(hours=1)
+            Reservation.objects.filter(pk=reservation.pk).update(created_at=started, ended_at=ended)
         self.stdout.write(f"{len(LEFT_PLATES)} véhicules déjà partis (historique).")
+
+        self.create_demo_summary(demo_user, spots[15], now)
+        self.create_demo_reports(demo_user, spots)
 
         history_count = self.create_history(timezone.localdate())
         self.stdout.write(f"{history_count} réservations passées sur {HISTORY_DAYS} jours (affluence).")
 
-        self.create_demo_summary(demo_user, spots[10], now)
         self.create_contraventions(demo_user)
         self.stdout.write(self.style.SUCCESS("Données factices créées avec succès."))
+
+    def create_demo_reports(self, demo_user, spots):
+        agent = get_user_model().objects.get(username=AGENTS[0]["username"])
+        examples = [
+            {
+                "category": ParkingReport.Category.DANGER,
+                "title": "Danger immédiat : accès à une place bloqué",
+                "description": "Une voiture occupe une place réservée et empêche son utilisation.",
+                "parking": spots[0].parking,
+                "spot": spots[0],
+                "status": ParkingReport.Status.IN_PROGRESS,
+                "priority": ParkingReport.Priority.URGENT,
+                "assigned_agent": agent,
+                "comment": (
+                    "Signalement traité en priorité : un agent vérifie le véhicule "
+                    "et sécurise l’accès à la place."
+                ),
+            },
+            {
+                "category": ParkingReport.Category.EQUIPMENT,
+                "title": "Borne de paiement hors service",
+                "description": "La borne de paiement du parking ne fonctionne pas.",
+                "parking": spots[10].parking,
+                "spot": None,
+                "status": ParkingReport.Status.RESOLVED,
+                "priority": ParkingReport.Priority.NORMAL,
+                "comment": "La borne a été redémarrée et son fonctionnement vérifié.",
+            },
+            {
+                "category": ParkingReport.Category.INFORMATION,
+                "title": "Adresse du parking incorrecte",
+                "description": "L’adresse affichée pour le parking est incorrecte.",
+                "parking": spots[20].parking,
+                "spot": None,
+                "status": ParkingReport.Status.RESOLVED,
+                "priority": ParkingReport.Priority.NORMAL,
+                "comment": "L’adresse du parking a été corrigée dans l’application.",
+            },
+            {
+                "category": ParkingReport.Category.INFORMATION,
+                "title": "Panneau d’entrée supposé manquant",
+                "description": "Le panneau d’entrée du parking semble manquer.",
+                "parking": spots[30].parking,
+                "spot": None,
+                "status": ParkingReport.Status.REFUSED,
+                "priority": ParkingReport.Priority.NORMAL,
+                "comment": (
+                    "Après vérification, la signalisation est présente à l’entrée "
+                    "officielle du parking. Le signalement est donc refusé."
+                ),
+            },
+            {
+                "category": ParkingReport.Category.OCCUPIED,
+                "title": "Véhicule gênant l’accès à une place",
+                "description": (
+                    "Un véhicule est stationné devant une place et gêne "
+                    "l’accès des autres usagers."
+                ),
+                "parking": spots[5].parking,
+                "spot": spots[5],
+                "status": ParkingReport.Status.NEW,
+                "priority": ParkingReport.Priority.HIGH,
+            },
+        ]
+        for example in examples:
+            category = example["category"]
+            description = example["description"]
+            report, _ = ParkingReport.objects.update_or_create(
+                user=demo_user,
+                description=description,
+                defaults={
+                    "category": category,
+                    "title": example["title"],
+                    "parking": example["parking"],
+                    "spot": example["spot"],
+                    "status": example["status"],
+                    "priority": example["priority"],
+                    "assigned_agent": example.get("assigned_agent"),
+                },
+            )
+            if example.get("comment"):
+                seeded_comments = report.comments.filter(author=agent).order_by(
+                    "created_at", "pk"
+                )
+                seeded_comment = seeded_comments.first()
+                if seeded_comment is None:
+                    ParkingReportComment.objects.create(
+                        report=report,
+                        message=example["comment"],
+                        author=agent,
+                    )
+                else:
+                    seeded_comment.message = example["comment"]
+                    seeded_comment.save(update_fields=["message"])
+                    seeded_comments.exclude(pk=seeded_comment.pk).delete()
+        self.stdout.write("5 signalements de démonstration créés ou actualisés.")
 
     def create_demo_summary(self, demo_user, spot, now):
         arrived_at = now - timedelta(days=2)
         ended_at = arrived_at + timedelta(hours=2, minutes=16)
-        reservation, created = Reservation.objects.get_or_create(
-            plate="II-901-II",
+        reservation = Reservation(
+            user=demo_user,
             spot=spot,
-            defaults={
-                "user": demo_user,
-                "duration_minutes": 210,
-                "amount_paid": Decimal("6.30"),
-                "amount_charged": Decimal("6.30"),
-                "status": Reservation.Status.COMPLETED,
-                "arrived_at": arrived_at,
-                "ended_at": ended_at,
-            },
+            plate="II-901-II",
+            duration_minutes=210,
+            amount_paid=Decimal("6.30"),
+            amount_charged=Decimal("6.30"),
+            status=Reservation.Status.COMPLETED,
+            arrived_at=arrived_at,
+            ended_at=ended_at,
         )
-        if created:
-            reservation.settle_final_amount()
-            reservation.save()
-            Reservation.objects.filter(pk=reservation.pk).update(created_at=arrived_at)
+        reservation.settle_final_amount()
+        reservation.save()
+        Reservation.objects.filter(pk=reservation.pk).update(created_at=arrived_at)
         self.stdout.write(
             "Récapitulatif de démonstration créé : 3 h 30 réservées, "
             "2 h 16 de stationnement réel."
@@ -199,6 +360,11 @@ class Command(BaseCommand):
         }
         centre_ville = Parking.objects.get(name="Parking Centre-Ville")
         gare = Parking.objects.get(name="Parking Gare")
+        saint_michel = Parking.objects.get(name="Parking Place Saint-Michel")
+        villette = Parking.objects.get(
+            name="Parking Parc de la Villette Nord - Cité des Sciences"
+        )
+        demo_payment_time = timezone.now()
         sample_contraventions = [
             {
                 "agent": agents["agent1"],
@@ -207,11 +373,15 @@ class Command(BaseCommand):
                 "fine_type": Contravention.FineType.NO_PAYMENT,
                 "reason": "Paiement ou titre de stationnement absent",
                 "parking": centre_ville,
+                "spot": centre_ville.spots.get(number=8),
+                "latitude": centre_ville.latitude,
+                "longitude": centre_ville.longitude,
                 "amount": Decimal("50.00"),
                 "comment": "Exemple de contravention associée au compte demo.",
                 "status": Contravention.Status.ISSUED,
                 "opposition_reason": "",
                 "opposition_submitted_at": None,
+                "paid_at": None,
             },
             {
                 "agent": agents["agent2"],
@@ -220,33 +390,138 @@ class Command(BaseCommand):
                 "fine_type": Contravention.FineType.OVERSTAY,
                 "reason": "Dépassement de la durée réservée",
                 "parking": gare,
+                "spot": gare.spots.get(number=5),
+                "latitude": gare.latitude,
+                "longitude": gare.longitude,
                 "amount": Decimal("35.00"),
                 "comment": "Exemple d’avis créé par agent2.",
                 "status": Contravention.Status.ISSUED,
                 "opposition_reason": "",
                 "opposition_submitted_at": None,
+                "paid_at": None,
+            },
+            {
+                "agent": agents["agent1"],
+                "user": demo_user,
+                "plate": "MM-345-MM",
+                "fine_type": Contravention.FineType.WRONG_SPOT,
+                "reason": "Stationnement sur une place non autorisée",
+                "parking": saint_michel,
+                "spot": saint_michel.spots.get(number=1),
+                "latitude": saint_michel.latitude,
+                "longitude": saint_michel.longitude,
+                "amount": Decimal("50.00"),
+                "comment": "Avis de démonstration réglé.",
+                "status": Contravention.Status.ISSUED,
+                "opposition_reason": "",
+                "opposition_submitted_at": None,
+                "paid_at": demo_payment_time,
+            },
+            {
+                "agent": agents["agent2"],
+                "user": demo_user,
+                "plate": "NN-456-NN",
+                "fine_type": Contravention.FineType.OBSTRUCTING,
+                "reason": "Stationnement gênant ou bloquant",
+                "parking": villette,
+                "spot": villette.spots.get(number=1),
+                "latitude": villette.latitude,
+                "longitude": villette.longitude,
+                "amount": Decimal("75.00"),
+                "comment": "Avis de démonstration réglé.",
+                "status": Contravention.Status.ISSUED,
+                "opposition_reason": "",
+                "opposition_submitted_at": None,
+                "paid_at": demo_payment_time,
+            },
+            {
+                "agent": agents["agent1"],
+                "user": demo_user,
+                "plate": "PP-567-PP",
+                "fine_type": Contravention.FineType.NO_RESERVATION,
+                "reason": "Stationnement sans réservation",
+                "parking": centre_ville,
+                "spot": centre_ville.spots.get(number=9),
+                "latitude": centre_ville.latitude,
+                "longitude": centre_ville.longitude,
+                "amount": Decimal("50.00"),
+                "comment": "Avis de démonstration faisant l’objet d’une contestation.",
+                "status": Contravention.Status.CONTESTING,
+                "opposition_reason": (
+                    "Je conteste cet avis : j’avais bien réservé cette place. "
+                    "La confirmation de réservation est disponible dans mon compte."
+                ),
+                "opposition_submitted_at": demo_payment_time,
+                "paid_at": None,
+            },
+            {
+                "agent": agents["agent2"],
+                "user": demo_user,
+                "plate": "QQ-678-QQ",
+                "fine_type": Contravention.FineType.OVERSTAY,
+                "reason": "Dépassement de la durée réservée",
+                "parking": gare,
+                "spot": gare.spots.get(number=7),
+                "latitude": gare.latitude,
+                "longitude": gare.longitude,
+                "amount": Decimal("35.00"),
+                "comment": "Avis de démonstration faisant l’objet d’une contestation.",
+                "status": Contravention.Status.CONTESTING,
+                "opposition_reason": (
+                    "Je conteste la durée indiquée : j’ai quitté la place avant "
+                    "la fin de ma réservation. Je demande une vérification de l’heure de départ."
+                ),
+                "opposition_submitted_at": demo_payment_time,
+                "paid_at": None,
+            },
+            {
+                "agent": agents["agent1"],
+                "user": demo_user,
+                "plate": "RR-789-RR",
+                "fine_type": Contravention.FineType.NO_RESERVATION,
+                "reason": "Stationnement sans réservation",
+                "parking": centre_ville,
+                "spot": centre_ville.spots.get(number=4),
+                "latitude": centre_ville.latitude,
+                "longitude": centre_ville.longitude,
+                "amount": Decimal("50.00"),
+                "comment": (
+                    "Après vérification de la confirmation de réservation, "
+                    "la contestation est acceptée et l’avis est annulé."
+                ),
+                "status": Contravention.Status.APPEAL_WON,
+                "opposition_reason": (
+                    "J’avais bien réservé cette place pour la période indiquée. "
+                    "Je joins la confirmation reçue lors de la réservation."
+                ),
+                "opposition_submitted_at": demo_payment_time - timedelta(hours=1),
+                "paid_at": None,
             },
         ]
         for data in sample_contraventions:
             agent = data["agent"]
             plate = data["plate"]
-            Contravention.objects.update_or_create(
-                agent=agent,
+            contravention, _ = Contravention.objects.update_or_create(
                 plate=plate,
-                reason=data["reason"],
                 defaults=data,
             )
+            if contravention.paid_at:
+                if contravention.payment_reference is None:
+                    contravention.payment_reference = uuid.uuid4()
+                    contravention.save(update_fields=["payment_reference"])
+                PaymentTransaction.objects.update_or_create(
+                    contravention=contravention,
+                    defaults={
+                        "user": contravention.user,
+                        "kind": PaymentTransaction.Kind.CONTRAVENTION,
+                        "amount": contravention.amount,
+                        "created_at": contravention.paid_at,
+                    },
+                )
         self.stdout.write(f"{len(sample_contraventions)} contraventions de démonstration créées ou actualisées.")
 
     def create_history(self, today):
         """Crée des stationnements terminés sur les jours précédents, sans chevauchement sur une même place."""
-        if Reservation.objects.filter(
-            spot__parking__name__in=[parking["name"] for parking in PARKINGS],
-            arrived_at__isnull=False,
-            ended_at__isnull=False,
-        ).exists():
-            return 0
-
         rng = random.Random(42)
         reservations = []
         starts = []
