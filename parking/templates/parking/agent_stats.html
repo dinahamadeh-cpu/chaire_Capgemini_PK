@@ -14,8 +14,36 @@
         .kpi .label { font-size: 0.85rem; color: #6b7280; }
         .gauge { height: 8px; background: #e5e9e1; border-radius: 4px; overflow: hidden; }
         .gauge span { display: block; height: 100%; background: var(--primary); }
-        .parking-stats { border-top: 1px solid var(--line); margin-top: 2rem; padding-top: 0.5rem; }
-        .parking-stats h3 { margin-bottom: 0.3rem; }
+        .occupancy-chart-scroll { max-width: 100%; overflow-x: auto; padding: 10px 0; }
+        .occupancy-chart { display: block; min-width: 540px; width: 100%; height: auto; overflow: visible; }
+        .occupancy-chart text { fill: var(--ink); font: 11px system-ui, sans-serif; }
+        .occupancy-chart .chart-axis { stroke: #536273; stroke-width: 1.5; }
+        .occupancy-chart .chart-grid { stroke: #cbd2da; stroke-dasharray: 4 4; }
+        .chart-bar { fill: #2457c5; }
+        .color-vision-mode .chart-bar { fill: #111; stroke: #111; }
+        .chart-value { font-weight: 800 !important; }
+        .chart-label { font-size: 10px !important; }
+        .chart-data-list { display: grid; grid-template-columns: 1fr; gap: .35rem; padding: 0; list-style: none; }
+        .chart-data-list li { padding: .4rem .65rem; border-left: 3px solid var(--primary); background: #f5f7f1; }
+        .parking-selector { display: grid; gap: .45rem; margin-top: 1.5rem; }
+        .parking-panel { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+        .parking-panel > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto 1.5rem; align-items: center; gap: 1rem; padding: .75rem 1rem; background: #f5f7f1; font-weight: 700; list-style: none; cursor: pointer; }
+        .parking-panel > summary::-webkit-details-marker { display: none; }
+        .parking-panel > summary::after { flex: 0 0 auto; color: var(--primary-dark); font-size: 1.2rem; content: "+"; }
+        .parking-panel[open] > summary { border-bottom: 1px solid var(--line); background: #edf2f5; }
+        .parking-panel[open] > summary::after { content: "−"; }
+        .parking-panel__heading { display: grid; min-width: 0; gap: .15rem; }
+        .parking-panel__name { color: var(--ink); }
+        .parking-panel__address { color: #6b7280; font-size: .82rem; font-weight: 400; }
+        .parking-panel__status { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: .5rem; color: var(--ink); text-align: right; white-space: nowrap; }
+        .parking-alert { padding: .2rem .5rem; border: 1px solid var(--warning); border-radius: 999px; background: var(--warning-bg); color: var(--warning); font-size: .78rem; font-weight: 700; }
+        .parking-panel__content { padding: 0 1rem 1rem; }
+        .parking-panel__content h3 { margin-bottom: 0.3rem; }
+        .parking-pmr-summary { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin: 1rem 0; padding: .75rem .9rem; border: 1px solid #d5e0e8; border-radius: 5px; background: #f3f7fa; }
+        .parking-pmr-summary strong { color: var(--brand); }
+        .parking-pmr-list { margin: .4rem 0 1rem; padding-left: 1.25rem; }
+        .parking-pmr-list li { margin: .35rem 0; }
+        .pmr-tag { display: inline-flex; padding: .1rem .45rem; border: 1px solid #9bb9cd; border-radius: 999px; background: #edf5fa; color: #234b65; font-size: .75rem; font-weight: 700; white-space: nowrap; }
         .table-scroll { max-width: 100%; overflow-x: auto; }
         .table-scroll table { min-width: 38rem; font-size: 0.9rem; }
         .plate {
@@ -31,6 +59,11 @@
         .tag.in { color: var(--success); background: var(--success-bg); }
         .tag.out { color: var(--danger); background: var(--danger-bg); }
         .muted { color: #6b7280; font-size: 0.9rem; }
+        @media (max-width: 600px) {
+            .parking-panel > summary { grid-template-columns: minmax(0, 1fr) 1.5rem; gap: .35rem .7rem; }
+            .parking-panel__status { grid-column: 1; grid-row: 2; justify-content: flex-start; text-align: left; white-space: normal; }
+            .parking-panel > summary::after { grid-column: 2; grid-row: 1 / span 2; }
+        }
     </style>
 
     <p class="eyebrow">Espace professionnel · Suivi en direct</p>
@@ -42,10 +75,52 @@
         <div class="kpi"><span class="value">{{ summary.rate }} %</span><span class="label">taux d'occupation</span></div>
     </div>
 
+    <section class="parking-stats" aria-labelledby="occupancy-chart-title">
+        <h2 id="occupancy-chart-title">Taux d’occupation par parking</h2>
+        <p class="muted">Véhicules arrivés ou stationnements historiques, rapportés au nombre de places.</p>
+        {% if chart_bars %}
+            <div class="occupancy-chart-scroll" tabindex="0" role="region" aria-label="Graphique du taux d’occupation par parking">
+                <svg class="occupancy-chart" viewBox="0 0 {{ chart_width }} 200" role="img" aria-labelledby="occupancy-chart-title occupancy-chart-desc">
+                    <desc id="occupancy-chart-desc">Graphique en barres verticales. Chaque barre indique le taux d’occupation actuel d’un parking.</desc>
+                    <line x1="50" y1="10" x2="50" y2="150" class="chart-axis"/>
+                    <line x1="50" y1="150" x2="{{ chart_width|add:'-20' }}" y2="150" class="chart-axis"/>
+                    <line x1="50" y1="115" x2="{{ chart_width|add:'-20' }}" y2="115" class="chart-grid"/>
+                    <line x1="50" y1="80" x2="{{ chart_width|add:'-20' }}" y2="80" class="chart-grid"/>
+                    <line x1="50" y1="45" x2="{{ chart_width|add:'-20' }}" y2="45" class="chart-grid"/>
+                    <text x="8" y="154">0 %</text><text x="8" y="119">25 %</text>
+                    <text x="8" y="84">50 %</text><text x="8" y="49">75 %</text>
+                    <text x="8" y="14">100 %</text>
+                    {% for bar in chart_bars %}
+                        <rect class="chart-bar" x="{{ bar.x }}" y="{{ bar.y }}" width="80" height="{{ bar.height }}" rx="4">
+                            <title>{{ bar.label }} : {{ bar.rate }} %</title>
+                        </rect>
+                        <text class="chart-value" x="{{ bar.center }}" y="{{ bar.y|add:'-7' }}" text-anchor="middle">{{ bar.rate }} %</text>
+                        <text class="chart-label" x="{{ bar.center }}" y="174" text-anchor="middle">{{ bar.label }}</text>
+                    {% endfor %}
+                </svg>
+            </div>
+            <ul class="chart-data-list">
+                {% for entry in stats %}<li>{{ entry.parking.name }} : {{ entry.rate }} %</li>{% endfor %}
+            </ul>
+        {% else %}
+            <p class="muted">Aucun parking à représenter.</p>
+        {% endif %}
+    </section>
+
+    <section class="parking-selector" aria-label="Statistiques par parking">
     {% for entry in stats %}
-        <section class="parking-stats">
-            <h2>{{ entry.parking.name }}</h2>
-            <p class="muted">{{ entry.parking.address }}</p>
+        <details class="parking-panel" {% if forloop.first %}open{% endif %}>
+            <summary>
+                <span class="parking-panel__heading">
+                    <span class="parking-panel__name">{{ entry.parking.name }}</span>
+                    <span class="parking-panel__address">{{ entry.parking.address }}</span>
+                </span>
+                <span class="parking-panel__status">
+                    <span>{{ entry.occupied }}/{{ entry.total_spots }} occupées · {{ entry.rate }} %</span>
+                    {% if entry.high_occupancy %}<span class="parking-alert">Alerte · forte occupation</span>{% endif %}
+                </span>
+            </summary>
+            <div class="parking-panel__content">
             <p>
                 <strong>{{ entry.occupied }} / {{ entry.total_spots }}</strong> places occupées
                 · {{ entry.free }} libre{{ entry.free|pluralize }} · {{ entry.rate }} %
@@ -54,6 +129,24 @@
                 <p class="message message-warning" role="alert">Alerte : ce parking dépasse le seuil d’occupation de 80 %.</p>
             {% endif %}
             <div class="gauge"><span style="width: {{ entry.rate }}%"></span></div>
+
+            <section class="parking-pmr-summary" aria-label="État des places PMR">
+                <strong>Places PMR</strong>
+                <span>{{ entry.pmr_occupied }} occupée{{ entry.pmr_occupied|pluralize }} / {{ entry.pmr_total }}</span>
+                <span>· {{ entry.pmr_free }} libre{{ entry.pmr_free|pluralize }}</span>
+            </section>
+            {% if entry.pmr_reservations %}
+                <h3>Réservations PMR en cours</h3>
+                <ul class="parking-pmr-list">
+                    {% for reservation in entry.pmr_reservations %}
+                        <li>
+                            Place n°{{ reservation.spot.number }} ·
+                            <a href="{% url 'parking:agent_plate_check' %}?plate={{ reservation.plate|urlencode }}">{{ reservation.plate }}</a>
+                            {% if reservation.arrived_at %}· arrivée {{ reservation.arrived_at|date:"d/m H:i" }}{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
 
             <h3>Véhicules stationnés</h3>
             {% if entry.active_reservations %}
@@ -65,8 +158,8 @@
                         <tbody>
                             {% for reservation in entry.active_reservations %}
                                 <tr>
-                                    <td>n°{{ reservation.spot.number }}</td>
-                                    <td><a href="{% url 'parking:agent_plate_check' %}?plate={{ reservation.plate|urlencode }}"><span class="plate">{{ reservation.plate }}</span></a></td>
+                                    <td>n°{{ reservation.spot.number }}{% if reservation.spot.is_pmr %} <span class="pmr-tag">PMR</span>{% endif %}</td>
+                                    <td><a href="{% url 'parking:agent_plate_check' %}?plate={{ reservation.plate|urlencode }}"><svg class="button-icon" aria-hidden="true"><use href="{% if reservation.vehicle_type == 'motorcycle' %}#icon-motorcycle{% else %}#icon-car{% endif %}"></use></svg><span class="plate">{{ reservation.plate }}</span></a></td>
                                     <td>{{ reservation.created_at|date:"d/m H:i" }}</td>
                                     <td>{% if reservation.arrived_at %}{{ reservation.arrived_at|date:"d/m H:i" }}{% else %}<span class="muted">non confirmée</span>{% endif %}</td>
                                     <td>{{ reservation.expected_end|date:"d/m H:i" }}</td>
@@ -105,42 +198,26 @@
             {% else %}
                 <p class="muted">Aucun mouvement enregistré pour ce parking.</p>
             {% endif %}
-        </section>
+            </div>
+        </details>
     {% empty %}
         <p>Aucun parking enregistré.</p>
     {% endfor %}
-
-    <section class="parking-stats" aria-labelledby="fines-title">
-        <h2 id="fines-title">Contraventions enregistrées</h2>
-        {% if contraventions %}
-            <div class="table-scroll" tabindex="0" role="region" aria-label="Contraventions enregistrées">
-                <table>
-                    <thead>
-                        <tr><th scope="col">Date</th><th scope="col">Numéro</th><th scope="col">Véhicule</th><th scope="col">Motif</th><th scope="col">Montant</th><th scope="col">Statut</th><th scope="col">Agent</th><th scope="col">Détail</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for contravention in contraventions %}
-                            <tr>
-                                <td>{{ contravention.created_at|date:"d/m/Y H:i" }}</td>
-                                <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
-                                <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.plate }}</a></td>
-                                <td>{{ contravention.reason }}</td>
-                                <td>{{ contravention.amount|floatformat:2 }} €</td>
-                                <td>{{ contravention.get_status_display }}</td>
-                                <td>{{ contravention.agent_name }}</td>
-                                <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">Voir le détail</a></td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="muted">Aucune contravention enregistrée.</p>
-        {% endif %}
     </section>
 
     <p>
         <a href="{% url 'parking:agent_affluence' %}">Analyse de l'affluence</a> ·
+        <a href="{% url 'parking:agent_contraventions' %}">Historique des contraventions</a> ·
         <a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a>
     </p>
+    <script>
+        document.querySelectorAll(".parking-panel").forEach((panel) => {
+            panel.addEventListener("toggle", () => {
+                if (!panel.open) return;
+                document.querySelectorAll(".parking-panel").forEach((otherPanel) => {
+                    if (otherPanel !== panel) otherPanel.open = false;
+                });
+            });
+        });
+    </script>
 {% endblock %}
