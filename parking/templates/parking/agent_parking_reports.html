@@ -1,0 +1,127 @@
+{% extends "parking/base.html" %}
+{% block title %}Signalements usagers - Espace agent{% endblock %}
+{% block content %}
+    <a class="back-link" href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l’espace agent</a>
+    <header class="content-heading">
+        <p class="eyebrow">Espace professionnel</p>
+        <h1>Signalements des usagers</h1>
+        <p class="reports-intro">
+            {% if open_reports %}
+                {{ open_reports }} signalement{{ open_reports|pluralize }} en attente de traitement.
+            {% else %}
+                Tous les signalements ont été traités.
+            {% endif %}
+        </p>
+    </header>
+    <section class="report-counts" aria-label="Résumé des signalements">
+        <div><strong>{{ report_counts.open }}</strong><span>À traiter</span></div>
+        <div><strong>{{ report_counts.new }}</strong><span>Nouveaux</span></div>
+        <div><strong>{{ report_counts.in_progress }}</strong><span>En cours</span></div>
+        <div><strong>{{ report_counts.resolved }}</strong><span>Résolus</span></div>
+        <div><strong>{{ report_counts.refused }}</strong><span>Refusés</span></div>
+        <div class="{% if report_counts.stale %}report-count--alert{% endif %}"><strong>{{ report_counts.stale }}</strong><span>En attente depuis plus de 24 h</span></div>
+    </section>
+    <form method="get" class="report-filters" aria-label="Filtrer les signalements">
+        <div class="filter-heading">
+            <div>
+                <h2>Rechercher et filtrer</h2>
+                <p>Affinez la liste par contenu, état, parking ou date de modification.</p>
+            </div>
+        </div>
+        <div class="report-filter-fields">
+            <p class="filter-search">{{ filter_form.search.label_tag }}{{ filter_form.search }}</p>
+            <p class="filter-status">{{ filter_form.status.label_tag }}{{ filter_form.status }}</p>
+            <p class="filter-parking">{{ filter_form.parking.label_tag }}{{ filter_form.parking }}</p>
+            <p class="filter-date">{{ filter_form.modified_from.label_tag }}{{ filter_form.modified_from }}</p>
+            <p class="filter-date">{{ filter_form.modified_to.label_tag }}{{ filter_form.modified_to }}</p>
+        </div>
+        <div class="report-filter-actions">
+            <a class="button secondary" href="{% url 'parking:agent_parking_reports' %}">Réinitialiser</a>
+            <button type="submit">Appliquer les filtres</button>
+        </div>
+    </form>
+    {% if filter_form.errors %}
+        <div class="message message-error" role="alert">{{ filter_form.errors }}</div>
+    {% endif %}
+    {% if reports %}
+        <div class="report-list">
+            {% for report in reports %}
+                <article class="report-card">
+                    <div class="report-card-heading">
+                        <div>
+                            <p class="eyebrow">{{ report.get_category_display }}{% if report.parking %} · {{ report.parking.name }}{% endif %}</p>
+                            <h2><a href="{% url 'parking:agent_parking_report_detail' report.id %}">{{ report.title|default:report.get_category_display }}</a></h2>
+                        </div>
+                        <span class="report-status report-status--{{ report.status }}">{{ report.get_status_display }}</span>
+                    </div>
+                    <p class="report-description">{{ report.description|truncatechars:180 }}</p>
+                    <div class="report-metadata">
+                        {% if report.spot %}<span>Place n°{{ report.spot.number }}</span>{% endif %}
+                        <span>Créé le {{ report.created_at|date:"d/m/Y à H:i" }}</span>
+                        <span>Mis à jour le {{ report.updated_at|date:"d/m/Y à H:i" }}</span>
+                        <span>Créé par {% if report.user %}{{ report.user.get_full_name|default:report.user.username }}{% else %}compte supprimé{% endif %}</span>
+                        <span>Priorité : {{ report.get_priority_display }}</span>
+                        <span>Agent : {% if report.assigned_agent %}{{ report.assigned_agent.get_full_name|default:report.assigned_agent.username }}{% else %}Non attribué{% endif %}</span>
+                    </div>
+                    {% for comment in report.comments.all %}
+                        {% if forloop.last %}
+                            <div class="report-latest-activity">
+                                <span class="activity-label">Dernière activité</span>
+                                <p><strong>{% if comment.author %}{{ comment.author.get_full_name|default:comment.author.username }}{% else %}Équipe{% endif %}</strong> · {{ comment.created_at|date:"d/m/Y à H:i" }}</p>
+                                <p>{{ comment.message|truncatechars:160 }}</p>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <div class="report-card-footer">
+                        <a class="report-open-link" href="{% url 'parking:agent_parking_report_detail' report.id %}">Consulter le dossier <span aria-hidden="true">→</span></a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">Aucun signalement n’a été transmis.</p>
+    {% endif %}
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 24px; }
+    .content-heading h1 { margin-bottom: 8px; }
+    .reports-intro { color: var(--muted); }
+    .report-counts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin: 0 0 22px; }
+    .report-counts > div { min-height: 96px; padding: 15px 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .report-counts strong { display: block; margin-bottom: 3px; color: var(--brand); font-size: 27px; line-height: 1.2; }
+    .report-counts span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .report-counts .report-count--alert { border-color: #edcbc6; background: var(--danger-bg); }
+    .report-counts .report-count--alert strong { color: var(--danger); }
+    .report-filters { margin: 0 0 24px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 4px 16px #213b5b08; }
+    .filter-heading { display: flex; justify-content: space-between; margin-bottom: 16px; }
+    .filter-heading h2 { margin: 0; font-size: 18px; }
+    .filter-heading p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .report-filter-fields { display: grid; grid-template-columns: minmax(200px, 1.5fr) minmax(160px, .85fr) minmax(200px, 1.25fr) repeat(2, minmax(160px, .8fr)); gap: 14px; align-items: end; }
+    .report-filter-fields p { min-width: 0; margin: 0; }
+    .report-filter-fields label { display: block; margin: 0 0 6px; color: #344456; font-size: 13px; font-weight: 700; }
+    .report-filter-fields input, .report-filter-fields select { min-width: 0; }
+    .report-filter-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+    .report-filter-actions .button, .report-filter-actions button { min-height: 42px; }
+    .report-list { display: grid; gap: 14px; }
+    .report-card { padding: 20px 22px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 3px 12px #213b5b08; transition: border-color .15s ease, box-shadow .15s ease; }
+    .report-card:hover { border-color: #bcc7d1; box-shadow: 0 7px 20px #213b5b12; }
+    .report-card-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .report-card-heading .eyebrow { margin-bottom: 5px; }
+    .report-card-heading h2 { margin: 0; font-size: 19px; }
+    .report-card-heading h2 a { color: var(--ink); text-decoration: none; }
+    .report-card-heading h2 a:hover { color: var(--brand); text-decoration: underline; }
+    .report-description { margin: 12px 0; color: #425163; }
+    .report-metadata { display: flex; flex-wrap: wrap; gap: 7px 16px; color: var(--muted); font-size: 12px; }
+    .report-latest-activity { margin-top: 14px; padding: 11px 14px; border-left: 3px solid var(--brand); border-radius: 0 5px 5px 0; background: #f5f7f9; }
+    .activity-label { color: var(--brand); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .report-latest-activity p { margin: 4px 0 0; color: #435163; font-size: 13px; }
+    .report-card-footer { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px solid #edf0f2; }
+    .report-open-link { display: inline-flex; align-items: center; gap: 8px; color: var(--brand); font-size: 14px; font-weight: 750; text-decoration: none; }
+    .report-open-link:hover { text-decoration: underline; }
+    .report-status { display: inline-flex; flex: 0 0 auto; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 750; }
+    .report-status--new, .report-status--in_progress { border-color: #e2c36d; background: #fff5d8; color: #70520b; }
+    .report-status--resolved { border-color: #9dc9ac; background: #e8f3ed; color: #176349; }
+    .report-status--refused { border-color: #d7a09a; background: #fff0ee; color: #8a3028; }
+    @media (max-width: 1100px) { .report-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }.report-filter-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 680px) { .report-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }.report-filter-fields { grid-template-columns: 1fr 1fr; }.filter-search, .filter-parking { grid-column: 1 / -1; }.report-filters { padding: 16px; }.report-filter-actions { flex-direction: column-reverse; }.report-filter-actions .button, .report-filter-actions button { width: 100%; } }
+{% endblock %}
