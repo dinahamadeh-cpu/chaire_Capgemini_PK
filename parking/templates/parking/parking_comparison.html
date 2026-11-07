@@ -1,0 +1,91 @@
+{% extends "parking/base.html" %}
+{% block title %}Comparer des parkings - Parking King{% endblock %}
+{% block content %}
+    <a class="back-link" href="{% url 'parking:parking_list' %}">&larr; Retour aux parkings</a>
+    <header class="content-heading">
+        <p class="eyebrow">Aide au choix</p>
+        <h1>Comparer les parkings</h1>
+        <p>Consultez les disponibilités, tarifs et équipements côte à côte.</p>
+    </header>
+    {% if selection_error %}
+        <div class="message message-error" role="alert">
+            Sélectionnez de 2 à 3 parkings existants depuis la liste des parkings.
+        </div>
+    {% else %}
+        <div class="comparison-table-wrap">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Caractéristique</th>
+                        {% for parking in parkings %}
+                            <th scope="col"><a href="{% url 'parking:parking_detail' parking.pk %}">{{ parking.name }}</a></th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">Adresse</th>
+                        {% for parking in parkings %}<td>{{ parking.address }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Places disponibles</th>
+                        {% for parking in parkings %}<td>{{ parking.available_spots_count }} / {{ parking.total_spots_count }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Tarif horaire</th>
+                        {% for parking in parkings %}
+                            <td>{% if parking.hourly_rate is None %}Non renseigné{% elif parking.hourly_rate == 0 %}Gratuit{% else %}{{ parking.hourly_rate|floatformat:2 }} €/h{% endif %}</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Horaires</th>
+                        {% for parking in parkings %}<td>{{ parking.opening_hours_display }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Durée maximale</th>
+                        {% for parking in parkings %}<td>{{ parking.max_duration_display }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Couvert</th>
+                        {% for parking in parkings %}<td>{% if parking.is_covered %}Oui{% else %}Non{% endif %}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Hauteur maximale</th>
+                        {% for parking in parkings %}<td>{% if parking.max_vehicle_height_m %}{{ parking.max_vehicle_height_m|floatformat:2 }} m{% else %}Non renseignée{% endif %}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Recharge électrique</th>
+                        {% for parking in parkings %}<td>{% if parking.has_ev_charging %}Oui{% else %}Non{% endif %}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Accès sans marche</th>
+                        {% for parking in parkings %}<td>{% if parking.has_step_free_access %}Oui{% else %}Non{% endif %}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Ascenseur accessible</th>
+                        {% for parking in parkings %}<td>{% if parking.has_accessible_elevator %}Oui{% else %}Non{% endif %}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Toilettes accessibles</th>
+                        {% for parking in parkings %}<td>{% if parking.has_accessible_restroom %}Oui{% else %}Non{% endif %}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Avis</th>
+                        {% for parking in parkings %}
+                            <td>{% if parking.average_rating %}{{ parking.average_rating|floatformat:1 }} / 5 ({{ parking.review_count }}){% else %}Aucun avis{% endif %}</td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin: 20px 0; }
+    .comparison-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .comparison-table { width: 100%; min-width: 640px; border-collapse: collapse; }
+    .comparison-table th, .comparison-table td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .comparison-table thead th { background: var(--paper); color: var(--ink); }
+    .comparison-table tbody th { width: 190px; color: var(--muted); font-weight: 650; }
+    .comparison-table tr:last-child th, .comparison-table tr:last-child td { border-bottom: 0; }
+{% endblock %}
