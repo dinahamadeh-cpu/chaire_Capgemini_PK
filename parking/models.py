@@ -255,7 +255,7 @@ class Reservation(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
+            models.UniqueConstraint( 
                 fields=["plate"],
                 condition=models.Q(status="active"),
                 name="unique_active_reservation_per_plate",
