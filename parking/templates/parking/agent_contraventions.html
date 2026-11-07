@@ -1,19 +1,30 @@
 {% extends "parking/base.html" %}
 {% block title %}Historique des contraventions - Parking{% endblock %}
 {% block content %}
-    <p class="eyebrow">Espace professionnel · Contrôle</p>
-    <h1>Historique des contraventions</h1>
+    <header class="contravention-history-heading">
+        <div>
+            <p class="eyebrow">Espace professionnel · Contrôle</p>
+            <h1>Historique des contraventions</h1>
+            <p>Consultez les avis émis, leur règlement et leur localisation.</p>
+        </div>
+        {% if contraventions %}
+            <span class="history-count"><strong>{{ contraventions|length }}</strong> avis suivis</span>
+        {% endif %}
+    </header>
     {% if contraventions %}
-        <div class="table-scroll">
-            <table>
+        <div class="table-scroll contravention-history-table" tabindex="0" role="region" aria-label="Historique des contraventions">
+            <table class="contravention-table">
                 <thead>
                     <tr>
                         <th scope="col">Date</th>
                         <th scope="col">Numéro</th>
                         <th scope="col">Plaque</th>
+                        <th scope="col">Place</th>
                         <th scope="col">Motif</th>
                         <th scope="col">Montant</th>
                         <th scope="col">Statut</th>
+                        <th scope="col">Paiement</th>
+                        <th scope="col">Contestation</th>
                         <th scope="col">Agent</th>
                         <th scope="col">Localisation</th>
                     </tr>
@@ -22,20 +33,89 @@
                     {% for contravention in contraventions %}
                         <tr>
                             <td>{{ contravention.created_at|date:"d/m/Y à H:i" }}</td>
-                            <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
-                            <td><a href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.plate }}</a></td>
+                            <td><a class="notice-number" href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
+                            <td><a class="notice-plate" href="{% url 'parking:agent_contravention_detail' contravention.id %}">{{ contravention.plate }}</a></td>
+                            <td>{% if contravention.spot %}n°{{ contravention.spot.number }}{% if contravention.spot.is_pmr %} · PMR{% endif %}{% else %}<span class="muted">—</span>{% endif %}</td>
                             <td>{{ contravention.reason }}</td>
-                            <td>{{ contravention.amount|floatformat:2 }} €</td>
-                            <td>{{ contravention.get_status_display }}</td>
-                            <td>{{ contravention.agent_name }}</td>
-                            <td>{% if contravention.parking %}{{ contravention.parking.name }}{% else %}Non renseigné{% endif %}</td>
+                            <td><strong class="notice-amount">{{ contravention.amount|floatformat:2 }} €</strong></td>
+                            <td><span class="notice-status notice-status--{{ contravention.status }}">{{ contravention.get_status_display }}</span></td>
+                            <td>{% if contravention.paid_at %}<span class="payment-badge payment-badge--paid">✓ Payée</span>{% else %}<span class="payment-badge payment-badge--unpaid">À payer</span>{% endif %}</td>
+                            <td>
+                                {% if contravention.opposition_submitted_at %}
+                                    <a href="{% url 'parking:agent_contravention_detail' contravention.id %}">Déposée le {{ contravention.opposition_submitted_at|date:"d/m/Y" }}</a>
+                                    {% if contravention.opposition_reason %}<small class="appeal-reason">{{ contravention.opposition_reason }}</small>{% endif %}
+                                {% else %}
+                                    <span class="muted">Aucune</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ contravention.agent_name|default:"—" }}</td>
+                            <td>
+                                {% if contravention.parking %}
+                                    <a class="location-badge" href="{% if contravention.latitude != None and contravention.longitude != None %}https://www.google.com/maps/search/?api=1&amp;query={{ contravention.latitude }},{{ contravention.longitude }}{% else %}https://www.google.com/maps/search/?api=1&amp;query={{ contravention.parking.address|urlencode }}{% endif %}" target="_blank" rel="noopener noreferrer">
+                                        <span aria-hidden="true">⌖</span>
+                                        <span><strong>{{ contravention.parking.name }}</strong><small>{{ contravention.parking.address }}</small></span>
+                                    </a>
+                                {% elif contravention.latitude != None and contravention.longitude != None %}
+                                    <a class="location-badge" href="https://www.google.com/maps/search/?api=1&amp;query={{ contravention.latitude }},{{ contravention.longitude }}" target="_blank" rel="noopener noreferrer">
+                                        <span aria-hidden="true">⌖</span>
+                                        <span><strong>Coordonnées du constat</strong><small>{{ contravention.latitude }}, {{ contravention.longitude }}</small></span>
+                                    </a>
+                                {% else %}
+                                    <span class="location-missing">Non renseigné</span>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}
-        <p>Aucune contravention n’a été enregistrée.</p>
+        <div class="contravention-empty">
+            <span aria-hidden="true">✓</span>
+            <h2>Aucun avis à afficher</h2>
+            <p>Les nouvelles contraventions apparaîtront ici avec leur statut et leur localisation.</p>
+        </div>
     {% endif %}
-    <p><a href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+    <p class="history-back"><a class="button secondary" href="{% url 'parking:agent_dashboard' %}">&larr; Retour à l'espace agent</a></p>
+{% endblock %}
+{% block extra_styles %}
+    .contravention-history-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.6rem; padding: 1.7rem 1.8rem; border-radius: 12px; background: radial-gradient(ellipse at 92% 10%, #ffffff20 0, transparent 34%), linear-gradient(125deg, #172d49, #284f70); color: #fff; }
+    .contravention-history-heading .eyebrow { margin-bottom: .5rem; color: #c7d7e5; }
+    .contravention-history-heading h1 { margin: 0; color: #fff; font-size: clamp(1.7rem, 3vw, 2.45rem); }
+    .contravention-history-heading > div > p:last-child { margin: .45rem 0 0; color: #d3deea; }
+    .history-count { display: inline-flex; align-items: center; gap: .45rem; flex: 0 0 auto; padding: .6rem .85rem; border: 1px solid #ffffff50; border-radius: 999px; background: #ffffff14; color: #fff; font-size: .82rem; font-weight: 700; }
+    .history-count strong { font-size: 1.1rem; }
+    .contravention-history-table { overflow-x: auto; border: 1px solid #dfe6ec; border-radius: 10px; box-shadow: 0 10px 24px #172d490d; }
+    .contravention-table { width: 100%; min-width: 1120px; border-collapse: separate; border-spacing: 0; }
+    .contravention-table th { padding: .85rem .75rem; background: #f0f4f7; color: #3a5268; font-size: .76rem; font-weight: 800; letter-spacing: .035em; text-align: left; white-space: nowrap; }
+    .contravention-table td { padding: .9rem .75rem; border-top: 1px solid #e8edf1; font-size: .84rem; vertical-align: middle; }
+    .contravention-table tbody tr { background: #fff; transition: background .15s ease; }
+    .contravention-table tbody tr:nth-child(even) { background: #fbfcfd; }
+    .contravention-table tbody tr:hover { background: #f1f7fb; }
+    .notice-number { display: inline-block; max-width: 145px; color: #385973; font-family: Consolas, monospace; font-size: .76rem; overflow-wrap: anywhere; }
+    .notice-plate { display: inline-flex; padding: .32rem .5rem; border: 1px solid #cfdae3; border-radius: 5px; background: #f2f6f9; color: #243f56; font-family: Consolas, monospace; font-weight: 800; letter-spacing: .04em; text-decoration: none; white-space: nowrap; }
+    .notice-plate:hover { border-color: #9db5c7; background: #e6eef4; }
+    .notice-amount { color: #263f56; white-space: nowrap; }
+    .notice-status, .payment-badge { display: inline-flex; align-items: center; padding: .32rem .55rem; border: 1px solid #c8dce9; border-radius: 999px; background: #edf5f9; color: #285a77; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+    .notice-status--contesting { border-color: #efd994; background: #fff6dc; color: #75530a; }
+    .notice-status--closed { border-color: #d2dae0; background: #f0f2f4; color: #465362; }
+    .notice-status--appeal_won { border-color: #b7d9c4; background: #eaf5ee; color: #20583a; }
+    .payment-badge--paid { border-color: #b7d9c4; background: #eaf5ee; color: #20583a; }
+    .payment-badge--unpaid { border-color: #efd994; background: #fff6dc; color: #75530a; }
+    .appeal-reason { display: block; min-width: 190px; max-width: 300px; margin-top: .35rem; color: #596978; line-height: 1.4; }
+    .location-badge { display: flex; min-width: 175px; align-items: flex-start; gap: .45rem; color: #285a77; text-decoration: none; }
+    .location-badge > span:first-child { font-size: 1.15rem; line-height: 1; }
+    .location-badge > span:last-child { display: grid; gap: .15rem; }
+    .location-badge strong { font-size: .78rem; }
+    .location-badge small { color: var(--muted); font-size: .72rem; line-height: 1.35; }
+    .location-badge:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+    .location-missing { color: #805318; font-size: .78rem; font-weight: 700; }
+    .contravention-empty { padding: 2rem; border: 1px dashed #cbd7e0; border-radius: 10px; background: #f8fafb; text-align: center; }
+    .contravention-empty > span { display: grid; width: 46px; height: 46px; margin: 0 auto .8rem; place-items: center; border-radius: 50%; background: #eaf5ee; color: #20583a; font-size: 1.3rem; font-weight: 800; }
+    .contravention-empty h2 { margin: 0; font-size: 1.15rem; }
+    .contravention-empty p { margin: .35rem 0 0; color: var(--muted); }
+    .history-back { margin-top: 1.4rem; }
+    @media (max-width: 600px) {
+        .contravention-history-heading { align-items: flex-start; flex-direction: column; padding: 1.3rem; }
+    }
 {% endblock %}
