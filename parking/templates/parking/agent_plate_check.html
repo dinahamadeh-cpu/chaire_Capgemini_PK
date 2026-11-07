@@ -9,6 +9,9 @@
         .plate-details dt { font-weight: 700; }
         .plate-details dd { margin: 0; overflow-wrap: anywhere; }
         .contravention-form { margin-top: 1.25rem; }
+        .reservation-refusal-form { margin-top: 1.25rem; padding: 1rem; border: 1px solid #d7a09a; border-radius: 5px; background: var(--danger-bg); }
+        .reservation-refusal-form label { display: block; margin-bottom: .4rem; font-weight: 700; }
+        .reservation-refusal-form textarea { width: 100%; padding: .65rem; border: 1px solid var(--line); border-radius: 5px; font: inherit; }
         .conforme { color: var(--success); font-weight: 700; }
         .non-conforme { color: var(--danger); font-weight: 700; }
         @media (max-width: 480px) {
@@ -44,6 +47,11 @@
                 <dl class="plate-details">
                     <dt>Plaque</dt>
                     <dd>{{ result.plate }}</dd>
+                    <dt>Type de véhicule</dt>
+                    <dd>
+                        <svg class="button-icon" aria-hidden="true"><use href="{% if result.reservation.vehicle_type == 'motorcycle' %}#icon-motorcycle{% else %}#icon-car{% endif %}"></use></svg>
+                        {% if result.reservation.vehicle_type == "motorcycle" %}Moto{% else %}Voiture{% endif %}
+                    </dd>
                     <dt>Parking</dt>
                     <dd>{{ result.reservation.spot.parking.name }}</dd>
                     <dt>Place</dt>
@@ -100,10 +108,21 @@
                         </dd>
                     {% endif %}
                 </dl>
-                <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
-                    {% csrf_token %}
-                    <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Clôturer le stationnement</button>
-                </form>
+                {% if result.reservation.arrived_at %}
+                    <form method="post" action="{% url 'parking:agent_end_reservation' result.reservation.id %}">
+                        {% csrf_token %}
+                        <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-check"></use></svg>Clôturer le stationnement</button>
+                    </form>
+                {% else %}
+                    <form class="reservation-refusal-form" method="post" action="{% url 'parking:agent_refuse_reservation' result.reservation.id %}" onsubmit="return confirm('Refuser cette réservation avant l’arrivée ? Le paiement simulé sera intégralement remboursé.');">
+                        {% csrf_token %}
+                        <input type="hidden" name="plate" value="{{ result.plate }}">
+                        <label for="reservation-refusal-reason">Motif du refus (obligatoire)</label>
+                        <textarea id="reservation-refusal-reason" name="reason" rows="3" maxlength="400" required placeholder="Expliquez pourquoi cette réservation ne peut pas être honorée."></textarea>
+                        <p>Cette action annule la réservation et déclenche un remboursement simulé intégral.</p>
+                        <button type="submit">Refuser et rembourser</button>
+                    </form>
+                {% endif %}
             </section>
         {% else %}
             <section class="plate-result" aria-labelledby="plate-result-title">
@@ -113,7 +132,7 @@
                 <div class="contravention-form">
                     <h3>Créer une contravention</h3>
                     <p>Choisissez un motif prédéfini ou « Autres » pour saisir vous-même le motif et le montant.</p>
-                    <form method="post" action="{% url 'parking:create_contravention' %}" onsubmit="return confirm('Créer une contravention pour la plaque {{ result.plate }} ?');">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'parking:create_contravention' %}" onsubmit="return confirm('Créer une contravention pour la plaque {{ result.plate }} ?');">
                         {% csrf_token %}
                         {{ contravention_form.plate }}
                         <p>
@@ -135,8 +154,28 @@
                             {{ contravention_form.parking }}
                         </p>
                         <p>
+                            {{ contravention_form.spot.label_tag }}
+                            <select id="id_spot" name="spot" required>
+                                <option value="">Choisir une place</option>
+                                {% for spot in contravention_form.fields.spot.queryset %}
+                                    <option value="{{ spot.pk }}" data-parking-id="{{ spot.parking_id }}">
+                                        {{ spot.parking.name }} — place n°{{ spot.number }}{% if spot.is_pmr %} — PMR{% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if contravention_form.spot.errors %}
+                                <span class="field-error">{{ contravention_form.spot.errors }}</span>
+                            {% endif %}
+                            <small>Sélectionnez le parking pour afficher ses places.</small>
+                        </p>
+                        <p>
                             {{ contravention_form.comment.label_tag }}
                             {{ contravention_form.comment }}
+                        </p>
+                        <p>
+                            {{ contravention_form.photo.label_tag }}
+                            {{ contravention_form.photo }}
+                            <small>Photo facultative, 5 Mo maximum. Sur téléphone, le champ peut proposer de prendre une photo.</small>
                         </p>
                         <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>Créer la contravention</button>
                     </form>
@@ -154,6 +193,8 @@
             const reasonField = document.getElementById("fine-reason-field");
             const amountField = document.getElementById("fine-amount-field");
             const preview = document.getElementById("fine-preset-preview");
+            const parkingSelect = document.getElementById("id_parking");
+            const spotSelect = document.getElementById("id_spot");
             const finePresets = {
                 no_reservation: ["Stationnement sans réservation", "50,00"],
                 pmr_abuse: ["Usage abusif d’une place PMR", "135,00"],
@@ -174,6 +215,33 @@
             };
             fineType.addEventListener("change", updateFineFields);
             updateFineFields();
+
+            const updateSpotOptions = () => {
+                const parkingId = parkingSelect.value;
+                let availableSpots = 0;
+                for (const option of spotSelect.options) {
+                    if (!option.value) continue;
+                    const belongsToParking = option.dataset.parkingId === parkingId;
+                    option.hidden = !belongsToParking;
+                    option.disabled = !belongsToParking;
+                    if (belongsToParking) availableSpots += 1;
+                }
+                if (!parkingId) {
+                    spotSelect.disabled = true;
+                    spotSelect.options[0].textContent = "Choisissez d’abord un parking";
+                    spotSelect.value = "";
+                } else {
+                    spotSelect.disabled = false;
+                    spotSelect.options[0].textContent = availableSpots
+                        ? "Choisir une place"
+                        : "Aucune place enregistrée pour ce parking";
+                    if (spotSelect.selectedOptions[0]?.dataset.parkingId !== parkingId) {
+                        spotSelect.value = "";
+                    }
+                }
+            };
+            parkingSelect.addEventListener("change", updateSpotOptions);
+            updateSpotOptions();
         </script>
     {% endif %}
 {% endblock %}
