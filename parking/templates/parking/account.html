@@ -20,16 +20,36 @@
         </fieldset>
         <fieldset class="settings-section">
             <legend>Véhicule et accessibilité</legend>
+            <p>{{ form.vehicle_type.label_tag }}{{ form.vehicle_type }}</p>
             <p>{{ form.vehicle_model.label_tag }}{{ form.vehicle_model }}</p>
+            <p>{{ form.vehicle_height_m.label_tag }}{{ form.vehicle_height_m }}</p>
+            <p class="settings-help">La hauteur proposée est indicative : vérifiez la hauteur réelle de votre véhicule. Vous pouvez la modifier librement.</p>
             <p>{{ form.pmr_justification_registered }} {{ form.pmr_justification_registered.label_tag }}</p>
+        </fieldset>
+        <fieldset class="settings-section">
+            <legend>Préférences de stationnement</legend>
+            <p>{{ form.prefers_covered_parking }} {{ form.prefers_covered_parking.label_tag }}</p>
+            <p>{{ form.requires_ev_charging }} {{ form.requires_ev_charging.label_tag }}</p>
+            <p class="settings-help">Ces critères filtrent les parkings proposés dans la recherche. Les parkings sans limite de hauteur renseignée restent visibles.</p>
         </fieldset>
         <fieldset class="settings-section">
             <legend>Notifications</legend>
             <p>{{ form.notifications_enabled }} {{ form.notifications_enabled.label_tag }}</p>
-            <p class="settings-help">Ce réglage contrôle les rappels affichés dans l’application avant la fin de votre stationnement.</p>
+            <p>{{ form.color_vision_mode }} {{ form.color_vision_mode.label_tag }}</p>
+            <p class="settings-help">Ce réglage contrôle les rappels affichés dans l’application avant la fin de votre stationnement. Le mode daltonien renforce le contraste et ajoute des symboles aux différents statuts.</p>
+        </fieldset>
+        <fieldset class="settings-section">
+            <legend>Budget mensuel</legend>
+            <p>{{ form.monthly_budget_limit.label_tag }}{{ form.monthly_budget_limit }}</p>
+            <p class="settings-help">
+                Dépenses simulées nettes ce mois-ci : {{ spent_this_month|floatformat:2 }} €.
+                Une notification dans l’application sera envoyée lorsque votre seuil sera atteint.
+            </p>
         </fieldset>
         <button type="submit"><svg class="button-icon" aria-hidden="true"><use href="#icon-save"></use></svg>Enregistrer les paramètres</button>
     </form>
+
+    {% include "parking/_vehicle_model_filter_script.html" %}
 
     <section class="settings-section" aria-labelledby="password-settings-title">
         <h2 id="password-settings-title">Mot de passe</h2>
@@ -39,14 +59,28 @@
 
     <section class="settings-section account-payment" aria-labelledby="account-payment-title">
         <h2 id="account-payment-title">Moyen de paiement simulé</h2>
-        {% if payment_method %}
-            <p>Un moyen de paiement simulé est associé à votre compte.</p>
+        {% if payment_methods %}
+            {% if payment_methods|length == 1 %}
+                <p>Un moyen de paiement simulé est associé à votre compte.</p>
+            {% else %}
+                <p>Des moyens de paiement simulés sont associés à votre compte :</p>
+            {% endif %}
+            <ul>
+                {% for method in payment_methods %}
+                    <li>{{ method.name }}</li>
+                {% endfor %}
+            </ul>
             <p class="account-payment-note">Aucune donnée de carte bancaire n’est conservée et aucun débit réel n’est effectué.</p>
             <a class="button secondary" href="{% url 'parking:payment_methods' %}">Gérer le moyen de paiement</a>
         {% else %}
             <p>Aucun moyen de paiement simulé n’est encore enregistré.</p>
             <a class="button" href="{% url 'parking:payment_methods' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-wallet"></use></svg>Ajouter un moyen de paiement</a>
         {% endif %}
+    </section>
+    <section class="settings-section" aria-labelledby="vehicles-settings-title">
+        <h2 id="vehicles-settings-title">Véhicules enregistrés</h2>
+        <p>Enregistrez plusieurs plaques pour les sélectionner plus rapidement lors d’une réservation.</p>
+        <a class="button secondary" href="{% url 'parking:user_vehicles' %}">Gérer mes véhicules</a>
     </section>
 
     <details class="settings-section account-deletion">
