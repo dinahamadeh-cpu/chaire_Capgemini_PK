@@ -31,6 +31,20 @@
                         {% endif %}
 
                         <p class="availability-count"><strong>{{ favorite.available_spots_count }}</strong> place{{ favorite.available_spots_count|pluralize }} disponible{{ favorite.available_spots_count|pluralize }} sur {{ favorite.total_spots_count }}</p>
+                        <form class="availability-alert-form" method="post" action="{% url 'parking:set_favorite_availability_alert' favorite.parking.id %}">
+                            {% csrf_token %}
+                            <label for="alert-threshold-{{ favorite.id }}">Alerte de disponibilité</label>
+                            <input id="alert-threshold-{{ favorite.id }}" name="threshold" type="number" min="1" max="{{ favorite.total_spots_count }}" value="{{ favorite.availability_alert_threshold|default_if_none:'' }}" placeholder="Désactivée">
+                            <button class="secondary" type="submit">{% if favorite.availability_alert_threshold %}Enregistrer le seuil{% else %}Activer l’alerte{% endif %}</button>
+                        </form>
+                        {% if favorite.availability_alert_threshold %}
+                            <form method="post" action="{% url 'parking:set_favorite_availability_alert' favorite.parking.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="disable_alert" value="1">
+                                <button class="secondary" type="submit">Désactiver l’alerte</button>
+                                {% if favorite.availability_alert_sent_at %}<small>Notification déjà envoyée le {{ favorite.availability_alert_sent_at|date:"d/m/Y à H:i" }}.</small>{% endif %}
+                            </form>
+                        {% endif %}
                         {% include "parking/_pricing.html" with parking=favorite.parking %}
 
                         <div class="parking-card-actions">
@@ -70,6 +84,8 @@
     .availability-low { color: var(--warning); background: var(--warning-bg); }
     .availability-full { color: var(--danger); background: var(--danger-bg); }
     .availability-count { margin: 0; }
+    .availability-alert-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; margin-top: 1rem; }
+    .availability-alert-form label, .availability-alert-form small { grid-column: 1 / -1; }
     .parking-card .pricing { display: grid; gap: 0; margin: 14px 0; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
     .parking-card .pricing li { padding: 7px 0; border-bottom: 1px solid var(--line); }
     .parking-card .pricing li:last-child { border-bottom: 0; }
