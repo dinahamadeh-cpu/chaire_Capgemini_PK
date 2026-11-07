@@ -1,0 +1,70 @@
+{% extends "parking/base.html" %}
+{% block title %}Places indisponibles - Espace agent{% endblock %}
+{% block content %}
+    <header class="content-heading">
+        <p class="eyebrow">Espace professionnel · Gestion des places</p>
+        <h1>Places indisponibles</h1>
+        <p>Planifiez une indisponibilité temporaire pour des travaux, une panne ou une autre intervention. Une place déjà réservée sur la période ne peut pas être bloquée.</p>
+    </header>
+    <section class="section-card closure-form" aria-labelledby="closure-form-title">
+        <h2 id="closure-form-title">Planifier une indisponibilité</h2>
+        {% if form.non_field_errors %}<div class="message message-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <p>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+                </p>
+            {% endfor %}
+            <button type="submit">Enregistrer l’indisponibilité</button>
+        </form>
+    </section>
+    <section class="section-card" aria-labelledby="closure-history-title">
+        <h2 id="closure-history-title">Indisponibilités récentes</h2>
+        {% if closures %}
+            <div class="closure-list">
+                {% for closure in closures %}
+                    <article class="closure-item">
+                        <div>
+                            <h3>{{ closure.spot.parking.name }} · Place n°{{ closure.spot.number }}</h3>
+                            <p>{{ closure.reason }}</p>
+                            <p class="closure-meta">
+                                Du {{ closure.starts_at|date:"d/m/Y à H:i" }} au {{ closure.ends_at|date:"d/m/Y à H:i" }}
+                                · Créée par {% if closure.created_by %}{{ closure.created_by.get_full_name|default:closure.created_by.username }}{% else %}Compte supprimé{% endif %}
+                            </p>
+                            {% if closure.closed_at %}<span class="closure-status">Levée le {{ closure.closed_at|date:"d/m/Y à H:i" }}</span>
+                            {% elif closure.is_current %}<span class="closure-status closure-status--active">En cours</span>
+                            {% elif closure.is_upcoming %}<span class="closure-status closure-status--upcoming">À venir</span>
+                            {% else %}<span class="closure-status">Terminée</span>{% endif %}
+                        </div>
+                        {% if not closure.closed_at and not closure.is_finished %}
+                            <form method="post" action="{% url 'parking:agent_end_spot_closure' closure.id %}" onsubmit="return confirm('Lever maintenant l’indisponibilité de cette place ?');">
+                                {% csrf_token %}
+                                <button class="secondary" type="submit">Lever l’indisponibilité</button>
+                            </form>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Aucune indisponibilité n’a encore été enregistrée.</p>
+        {% endif %}
+    </section>
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 24px; }
+    .section-card { margin-bottom: 22px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .section-card h2 { margin: 0 0 18px; font-size: 22px; }
+    .closure-form form p { margin: 0 0 16px; }
+    .closure-form label { display: block; margin-bottom: 6px; }
+    .closure-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line); }
+    .closure-item h3 { margin: 0 0 6px; font-size: 17px; }
+    .closure-item p { margin: 0 0 7px; }
+    .closure-meta { color: var(--muted); font-size: 13px; }
+    .closure-status { display: inline-block; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .closure-status--active { border-color: #d7a09a; background: var(--danger-bg); color: var(--danger); }
+    .closure-status--upcoming { border-color: #e2c36d; background: var(--warning-bg); color: var(--warning); }
+    @media (max-width: 640px) { .closure-item { flex-direction: column; } }
+{% endblock %}
