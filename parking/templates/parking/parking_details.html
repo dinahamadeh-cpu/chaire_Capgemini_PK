@@ -38,6 +38,8 @@
         .reservation-form button:hover, .reservation-form button:focus-visible { background: var(--primary-dark); }
         .reservation-button--disabled { width: 100%; opacity: .55; cursor: not-allowed !important; }
         .pmr-requirement { margin: .55rem 0 0; color: var(--danger); font-size: .88rem; }
+        .parking-review { padding: .8rem 0; border-top: 1px solid var(--line); }
+        .parking-review p { margin: 0 0 .4rem; }
         @media (max-width: 800px) {
             .detail-layout { display: flex; flex-direction: column; }
             .parking-details-section { order: 1; }
@@ -78,12 +80,15 @@
             <div class="detail-summary">
                 <div class="detail-summary-item">
                     <span>Places disponibles</span>
-                    <strong>{{ available_spots|length }}/{{ total_spots }}</strong>
+                    <strong id="available-spots-count">{{ available_spots|length }}/{{ total_spots }}</strong>
                 </div>
                 <div class="detail-summary-item">
                     <span>Tarif</span>
                     <strong>{% if parking.hourly_rate is None %}Non renseigné{% elif parking.hourly_rate == 0 %}Gratuit{% else %}{{ parking.hourly_rate|floatformat:2 }} €/h{% endif %}</strong>
                 </div>
+                <p id="availability-updated-at" role="status">
+                    {% if availability_last_updated %}Disponibilité mise à jour le {{ availability_last_updated }}{% else %}Disponibilité non renseignée{% endif %}
+                </p>
                 <div class="detail-summary-item">
                     <span>Durée maximale</span>
                     <strong>{{ parking.max_duration_display }}</strong>
@@ -92,11 +97,60 @@
                     <span>Horaires</span>
                     <strong>{{ parking.opening_hours_display }}</strong>
                 </div>
+                <div class="detail-summary-item">
+                    <span>Équipements et accès</span>
+                    <strong>
+                        {% if parking.is_covered %}Couvert{% else %}Non couvert{% endif %}
+                        · {% if parking.max_vehicle_height_m %}{{ parking.max_vehicle_height_m|floatformat:2 }} m max{% else %}hauteur non renseignée{% endif %}
+                        · {% if parking.has_ev_charging %}recharge électrique{% else %}sans borne renseignée{% endif %}
+                        · {% if parking.has_step_free_access %}accès sans marche{% else %}accès sans marche non renseigné{% endif %}
+                        · {% if parking.has_accessible_elevator %}ascenseur accessible{% endif %}
+                        · {% if parking.has_accessible_restroom %}toilettes accessibles{% endif %}
+                    </strong>
+                </div>
             </div>
+
+            {% if upcoming_hours_exceptions %}
+                <section class="section-card" aria-labelledby="hours-exceptions-title">
+                    <h2 id="hours-exceptions-title">Horaires exceptionnels à venir</h2>
+                    <ul class="pricing">
+                        {% for exception in upcoming_hours_exceptions %}
+                            <li>
+                                <strong>{{ exception.date|date:"d/m/Y" }}</strong> ·
+                                {% if exception.is_closed %}Fermé{% else %}{{ exception.opening_time|time:"H:i" }} – {{ exception.closing_time|time:"H:i" }}{% endif %}
+                                {% if exception.reason %} · {{ exception.reason }}{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
 
             <section class="section-card" aria-labelledby="pricing-title">
                 <h2 id="pricing-title">Tarif et horaires</h2>
                 {% include "parking/_pricing.html" %}
+            </section>
+
+            <section class="section-card" aria-labelledby="parking-reviews-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="parking-reviews-title">Avis des usagers</h2>
+                        <p>
+                            {% if review_count %}
+                                {{ review_average|floatformat:1 }}/5 · {{ review_count }} avis
+                            {% else %}
+                                Aucun avis pour le moment
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% for review in reviews %}
+                    <article class="parking-review">
+                        <p><strong>{{ review.rating }}/5</strong> · {% if review.user %}{{ review.user.get_full_name|default:review.user.username }}{% else %}Usager{% endif %} · {{ review.created_at|date:"d/m/Y" }}</p>
+                        {% if review.comment %}<p>{{ review.comment|linebreaksbr }}</p>{% endif %}
+                    </article>
+                {% empty %}
+                    <p class="empty-state">Les usagers pourront laisser un avis après leur stationnement.</p>
+                {% endfor %}
             </section>
 
             <section class="section-card" aria-labelledby="spots-title">
@@ -107,34 +161,9 @@
                     </div>
                 </div>
 
-                {% if available_spots %}
-                    <div class="spot-grid">
-                        {% for spot in available_spots %}
-                            <article class="spot-card">
-                                <span class="spot-icon" aria-hidden="true">🅿️</span>
-                                <strong>Place n°{{ spot.number }}</strong>
-                                {% if spot.is_pmr %}
-                                    <span class="pmr-spot-label">Place PMR</span>
-                                {% endif %}
-                                {% if user.is_authenticated %}
-                                    {% if spot.is_pmr and not pmr_justification_registered %}
-                                        <button class="button reservation-button--disabled" type="button" disabled aria-describedby="pmr-requirement-{{ spot.id }}">Réservation PMR indisponible</button>
-                                        <p class="pmr-requirement" id="pmr-requirement-{{ spot.id }}">Vous ne disposez pas de Justificatif PMR</p>
-                                    {% else %}
-                                        <a class="button" href="{% url 'parking:reserve_spot' parking.id spot.id %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-car"></use></svg>Réserver la place n°{{ spot.number }}</a>
-                                    {% endif %}
-                                {% else %}
-                                    <a href="{% url 'parking:login' %}?next={{ request.path }}">Se connecter pour réserver</a>
-                                {% endif %}
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <p><strong>Aucune place disponible dans ce parking.</strong></p>
-                        <a class="button" href="{% url 'parking:parking_list' %}"><svg class="button-icon" aria-hidden="true"><use href="#icon-search"></use></svg>Voir un autre parking</a>
-                    </div>
-                {% endif %}
+                <div id="available-spots-list">
+                    {% include "parking/_available_spots.html" %}
+                </div>
             </section>
         </section>
       </div>
@@ -163,6 +192,32 @@
                 window.setTimeout(zoomIn, 180);
             }
         }
+    </script>
+    <script>
+        (() => {
+            const endpoint = "{% url 'parking:parking_detail_availability' parking.id %}";
+            const count = document.getElementById("available-spots-count");
+            const updatedAt = document.getElementById("availability-updated-at");
+            const spots = document.getElementById("available-spots-list");
+
+            const refreshAvailability = async () => {
+                try {
+                    const response = await fetch(endpoint, { cache: "no-store" });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    count.textContent = `${data.available_spots}/${data.total_spots}`;
+                    spots.innerHTML = data.spots_html;
+                    updatedAt.textContent = data.updated_at
+                        ? `Disponibilité mise à jour le ${new Date(data.updated_at).toLocaleString("fr-FR")}`
+                        : "Disponibilité non renseignée";
+                } catch (error) {
+                    updatedAt.textContent = "Actualisation de la disponibilité impossible.";
+                    console.error("Échec de l’actualisation des places disponibles.", error);
+                }
+            };
+
+            window.setInterval(refreshAvailability, 30000);
+        })();
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEfpSsmznAywyN9GvKlFWqL2Ax9giAfyU&callback=initMap" async defer></script>
 {% endblock %}
