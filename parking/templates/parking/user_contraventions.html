@@ -7,7 +7,7 @@
         <div class="table-scroll">
             <table>
                 <thead>
-                    <tr><th scope="col">Date</th><th scope="col">Numéro</th><th scope="col">Véhicule</th><th scope="col">Motif</th><th scope="col">Montant</th><th scope="col">Statut</th></tr>
+                    <tr><th scope="col">Date</th><th scope="col">Numéro</th><th scope="col">Véhicule</th><th scope="col">Place</th><th scope="col">Motif</th><th scope="col">Montant</th><th scope="col">Paiement</th><th scope="col">Statut</th></tr>
                 </thead>
                 <tbody>
                     {% for contravention in contraventions %}
@@ -15,9 +15,19 @@
                             <td>{{ contravention.created_at|date:"d/m/Y à H:i" }}</td>
                             <td><a href="{% url 'parking:user_contravention_detail' contravention.id %}">{{ contravention.number }}</a></td>
                             <td>{{ contravention.plate }}</td>
+                            <td>{% if contravention.spot %}n°{{ contravention.spot.number }}{% if contravention.spot.is_pmr %} · PMR{% endif %}{% else %}<span class="muted">—</span>{% endif %}</td>
                             <td>{{ contravention.reason }}</td>
                             <td>{{ contravention.amount|floatformat:2 }} €</td>
-                            <td>{{ contravention.get_status_display }}</td>
+                            <td>{% if contravention.paid_at %}Payée{% else %}À payer{% endif %}</td>
+                            <td>
+                                <span class="user-notice-status{% if contravention.status == 'contesting' %} user-notice-status--contesting{% elif contravention.status == 'closed' %} user-notice-status--closed{% elif contravention.status == 'appeal_won' %} user-notice-status--appeal-won{% endif %}">{{ contravention.get_status_display }}</span>
+                                {% if contravention.status == "appeal_won" %}
+                                    <small class="user-appeal-result">Avis annulé après examen de votre contestation.</small>
+                                {% endif %}
+                                {% if contravention.opposition_submitted_at %}
+                                    <small class="user-appeal-reason"><strong>Motif de contestation :</strong> {{ contravention.opposition_reason }}</small>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -26,4 +36,13 @@
     {% else %}
         <p>Aucun avis de contravention n’est associé à votre compte.</p>
     {% endif %}
+{% endblock %}
+{% block extra_styles %}
+    .user-notice-status { display: inline-flex; padding: .3rem .6rem; border: 1px solid #c8dce9; border-radius: 999px; background: #edf5f9; color: #285a77; font-size: .78rem; font-weight: 800; white-space: nowrap; }
+    .user-notice-status--contesting { border-color: #efd994; background: #fff6dc; color: #75530a; }
+    .user-notice-status--closed { border-color: #d2dae0; background: #f0f2f4; color: #465362; }
+    .user-notice-status--appeal-won { border-color: #b7d9c4; background: #eaf5ee; color: #20583a; }
+    .user-appeal-reason { display: block; min-width: 220px; max-width: 36rem; margin-top: .45rem; color: #596978; line-height: 1.45; }
+    .user-appeal-reason strong { color: #75530a; }
+    .user-appeal-result { display: block; max-width: 28rem; margin-top: .35rem; color: #416b52; line-height: 1.4; }
 {% endblock %}
