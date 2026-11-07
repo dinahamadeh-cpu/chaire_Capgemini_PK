@@ -1,0 +1,89 @@
+{% extends "parking/base.html" %}
+{% block title %}Traitement du signalement - Espace agent{% endblock %}
+{% block content %}
+    <a class="back-link" href="{% url 'parking:agent_parking_reports' %}">&larr; Retour aux signalements</a>
+    <header class="content-heading">
+        <p class="eyebrow">Espace professionnel · Traitement</p>
+        <p class="eyebrow">{{ report.get_category_display }}</p>
+        <h1>{{ report.title|default:report.get_category_display }}</h1>
+        <p><strong>Créé par :</strong>
+            {% if report.user %}
+                {{ report.user.get_full_name|default:report.user.username }}
+            {% else %}
+                Compte supprimé
+            {% endif %}
+            · Transmis le {{ report.created_at|date:"d/m/Y à H:i" }}.
+        </p>
+        <p><strong>Priorité :</strong> {{ report.get_priority_display }} ·
+            <strong>Agent responsable :</strong>
+            {% if report.assigned_agent %}{{ report.assigned_agent.get_full_name|default:report.assigned_agent.username }}{% else %}Non attribué{% endif %}
+        </p>
+    </header>
+    <section class="section-card report-details" aria-label="Détails du signalement">
+        <p><strong>Parking :</strong> {% if report.parking %}{{ report.parking.name }}{% else %}Parking non disponible{% endif %}</p>
+        {% if report.spot %}<p><strong>Place :</strong> n°{{ report.spot.number }}</p>{% endif %}
+        {% if report.reservation %}<p><strong>Réservation :</strong> {{ report.reservation.plate }}</p>{% endif %}
+        <p><strong>Description :</strong></p>
+        <p>{{ report.description|linebreaksbr }}</p>
+        {% if report.photo %}
+            <p><strong>Photo jointe :</strong></p>
+            <a href="{% url 'parking:parking_report_photo' report.id %}" target="_blank" rel="noopener">
+                <img class="report-photo" src="{% url 'parking:parking_report_photo' report.id %}" alt="Photo jointe au signalement « {{ report.title|default:report.get_category_display }} »">
+            </a>
+        {% endif %}
+    </section>
+    {% if similar_reports %}
+        <section class="section-card similar-reports" aria-labelledby="similar-reports-title">
+            <h2 id="similar-reports-title">Signalements potentiellement similaires</h2>
+            <p>Cette suggestion repose sur le parking, le type, la place ou des mots du titre. Vérifiez manuellement avant de traiter les tickets séparément.</p>
+            <ul>
+                {% for similar in similar_reports %}
+                    <li><a href="{% url 'parking:agent_parking_report_detail' similar.id %}">{{ similar.title|default:similar.get_category_display }}</a> · {{ similar.get_status_display }} · {{ similar.created_at|date:"d/m/Y" }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+    {% if report_comments %}
+        <section class="section-card report-comments" aria-labelledby="report-comments-title">
+            <h2 id="report-comments-title">Historique des échanges</h2>
+            {% for comment in report_comments %}
+                <article>
+                    <p><strong>{% if comment.author %}{{ comment.author.username }}{% else %}Équipe{% endif %}</strong> · {{ comment.created_at|date:"d/m/Y à H:i" }}</p>
+                    <p>{{ comment.message|linebreaksbr }}</p>
+                </article>
+            {% endfor %}
+        </section>
+    {% endif %}
+    <section class="section-card" aria-labelledby="report-update-title">
+        <h2 id="report-update-title">Mettre à jour le signalement</h2>
+        {% if form.errors %}
+            <div class="message message-error" role="alert">{{ form.errors }}</div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <p>{{ form.status.label_tag }}{{ form.status }}</p>
+            <p>{{ form.priority.label_tag }}{{ form.priority }}</p>
+            <p>{{ form.assigned_agent.label_tag }}{{ form.assigned_agent }}</p>
+            <p>{{ form.message.label_tag }}{{ form.message }}</p>
+            <p class="settings-help">Ce commentaire sera visible par l’usager. Il est obligatoire en cas de refus.</p>
+            <p>{{ form.confirm_status_change }} {{ form.confirm_status_change.label_tag }}</p>
+            {% for error in form.confirm_status_change.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+            <p class="settings-help">Cochez cette case pour confirmer le passage au statut « Résolu » ou « Refusé ».</p>
+            <button type="submit">Enregistrer la mise à jour</button>
+        </form>
+    </section>
+{% endblock %}
+{% block extra_styles %}
+    .content-heading { margin-bottom: 20px; }
+    .content-heading h1 { margin-bottom: 8px; }
+    .content-heading > p:last-child { color: var(--muted); }
+    .report-details p { margin: 0 0 10px; }
+    .report-details p:last-child { margin-bottom: 0; }
+    .report-photo { display: block; max-width: min(100%, 560px); max-height: 420px; border: 1px solid var(--line); border-radius: 6px; object-fit: contain; }
+    .section-card h2 { margin: 0 0 18px; }
+    .section-card form p { margin: 0 0 16px; }
+    .section-card label { display: block; margin-bottom: 6px; }
+    .report-comments article { padding: 12px 0; border-top: 1px solid var(--line); }
+    .report-comments article p { margin: 0 0 6px; }
+    .settings-help { color: var(--muted); font-size: 13px; }
+{% endblock %}
