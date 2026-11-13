@@ -1320,6 +1320,24 @@ class ParkingViewsTests(TestCase):
         profile = UserProfile.objects.get(user__username="without-car-model")
         self.assertEqual(profile.vehicle_model, "")
 
+    def test_signup_displays_form_validation_errors(self):
+        response = self.client.post(
+            reverse("parking:signup"),
+            {
+                "username": "invalid-email-user",
+                "email": "not-an-email",
+                "password1": "A-valid-password-123!",
+                "password2": "A-valid-password-123!",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        error = response.context["form"]["email"].errors[0]
+        self.assertContains(response, str(error))
+        self.assertFalse(
+            get_user_model().objects.filter(username="invalid-email-user").exists()
+        )
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_user_can_reset_password_from_email_link(self):
         user = get_user_model().objects.create_user(
@@ -5511,6 +5529,32 @@ class UserParkingToolsTests(TestCase):
         self.assertEqual(response.context["open_reports"], 1)
         self.assertEqual(response.context["active_reservations"], 1)
         self.assertEqual(response.context["parkings"][0].occupancy_rate, 100)
+
+    def test_django_admin_requires_a_staff_account(self):
+        response = self.client.get(reverse("admin:index"))
+        self.assertRedirects(
+            response,
+            f"{reverse('admin:login')}?next={reverse('admin:index')}",
+        )
+
+        regular_user = get_user_model().objects.create_user(
+            username="regular-admin-user",
+            password="test-password",
+        )
+        self.client.force_login(regular_user)
+        response = self.client.get(reverse("admin:index"))
+        self.assertRedirects(
+            response,
+            f"{reverse('admin:login')}?next={reverse('admin:index')}",
+        )
+
+        staff_user = get_user_model().objects.create_user(
+            username="authorized-admin-user",
+            password="test-password",
+            is_staff=True,
+        )
+        self.client.force_login(staff_user)
+        self.assertEqual(self.client.get(reverse("admin:index")).status_code, 200)
 
 
 class AgentAffluenceTests(TestCase):
